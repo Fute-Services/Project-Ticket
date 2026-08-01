@@ -96,18 +96,18 @@
 
   h2 { font-size: 18px; margin: 0 0 18px; font-weight: 600; }
 
-  form label { display: block; margin-top: 16px; font-weight: 600; font-size: 12.5px; color: var(--text-dim); }
+  form label { display: block; margin-top: 10px; font-weight: 600; font-size: 12px; color: var(--text-dim); }
   form input, form select, form textarea {
-    width: 100%; padding: 9px 11px; margin-top: 6px;
-    font: inherit; font-size: 13.5px; border-radius: 8px; border: 1px solid var(--border);
+    width: 100%; padding: 6px 9px; margin-top: 3px;
+    font: inherit; font-size: 13px; border-radius: 6px; border: 1px solid var(--border);
     background: var(--bg); color: var(--text); transition: border-color .12s, box-shadow .12s;
   }
   form input:focus, form select:focus, form textarea:focus {
     outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
   }
-  form textarea { min-height: 64px; resize: vertical; font-family: inherit; }
-  form small { display: block; margin-top: 4px; font-size: 11px; color: var(--text-dim); }
-  .row { display: flex; gap: 12px; }
+  form textarea { min-height: 40px; resize: vertical; font-family: inherit; }
+  form small { display: block; margin-top: 3px; font-size: 10.5px; color: var(--text-dim); }
+  .row { display: flex; gap: 10px; }
   .row > div { flex: 1; }
 
   .btn {
@@ -194,8 +194,8 @@ function ticketToMarkdown(t) {
   const steps = t.steps.length ? t.steps.map((s, i) => `${i + 1}. ${s}`).join('\n') : 'Not Provided';
   const criteria = t.criteria.length ? t.criteria.map(c => `- [ ] ${c}`).join('\n') : 'Not Provided';
   return `### Title\n${t.title || 'Not Provided'}\n\n` +
-    `### Type\n${t.type}\n\n` +
-    `### Priority\n${t.priority}\n\n` +
+    `### Type\n${t.type || 'Not Provided'}\n\n` +
+    `### Priority\n${t.priority || 'Not Provided'}\n\n` +
     `### Module\n${t.module || 'Not Provided'}\n\n` +
     `### Environment\n- Web / Mobile: ${t.platform || 'Not Provided'}\n- Browser: ${t.browser || 'Not Provided'}\n- OS: ${t.os || 'Not Provided'}\n- Build Version: ${t.build || 'Not Provided'}\n\n` +
     `### Description\n${t.description || 'Not Provided'}\n\n` +
@@ -222,7 +222,7 @@ function renderList() {
       <span class="dot" style="background:${PRIORITY_COLOR[t.priority] || 'var(--text-dim)'}"></span>
       <div>
         <div class="title">${escapeHtml(t.title) || '(untitled)'}</div>
-        <div class="meta">${escapeHtml(t.type)} · ${escapeHtml(t.priority)}</div>
+        <div class="meta">${escapeHtml(t.type) || 'Not Provided'}${t.priority ? ' · ' + escapeHtml(t.priority) : ''}</div>
       </div>`;
     li.onclick = () => { selectedId = t.id; render(); };
     list.appendChild(li);
@@ -235,58 +235,16 @@ function renderForm() {
       <h2>Raise a Ticket</h2>
       <form id="ticketForm">
         <label>Title</label>
-        <input name="title" placeholder="Short descriptive title">
+        <input name="title" placeholder="Short descriptive title" required>
 
-        <div class="row">
-          <div>
-            <label>Type</label>
-            <select name="type">
-              <option>Bug</option><option>Feature Request</option><option>Enhancement</option>
-              <option>Improvement</option><option>UI/UX</option><option>Performance</option><option>Security</option>
-            </select>
-          </div>
-          <div>
-            <label>Priority</label>
-            <select name="priority">
-              <option>Critical</option><option>High</option><option>Medium</option><option selected>Low</option>
-            </select>
-          </div>
-        </div>
-
-        <label>Module</label>
-        <input name="module" placeholder="Affected module or page">
-
-        <div class="row">
-          <div><label>Web / Mobile</label><input name="platform" placeholder="Web"></div>
-          <div><label>Browser</label><input name="browser" placeholder="Chrome 120"></div>
-        </div>
-        <div class="row">
-          <div><label>OS</label><input name="os" placeholder="Windows 11"></div>
-          <div><label>Build Version</label><input name="build"></div>
-        </div>
+        <label>Type</label>
+        <select name="type">
+          <option>Bug</option><option>Feature Request</option><option>Enhancement</option>
+          <option>Improvement</option><option>UI/UX</option><option>Performance</option><option>Security</option>
+        </select>
 
         <label>Description</label>
-        <textarea name="description" placeholder="What's the issue or requirement?"></textarea>
-
-        <label>Steps to Reproduce</label>
-        <textarea name="steps" placeholder="One step per line"></textarea>
-        <small>One step per line — numbered automatically</small>
-
-        <label>Expected Result</label>
-        <textarea name="expected"></textarea>
-
-        <label>Actual Result</label>
-        <textarea name="actual"></textarea>
-
-        <label>Impact</label>
-        <textarea name="impact" placeholder="Effect on users or the business"></textarea>
-
-        <label>Acceptance Criteria</label>
-        <textarea name="criteria" placeholder="One criterion per line"></textarea>
-        <small>One item per line — becomes a checklist</small>
-
-        <label>Attachments</label>
-        <input name="attachments" placeholder="Links / filenames / notes">
+        <textarea name="description" placeholder="What's the issue or requirement?" required></textarea>
 
         <button type="submit" class="btn primary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -302,19 +260,19 @@ function renderForm() {
       id: Date.now() + '-' + Math.random().toString(36).slice(2),
       title: f.get('title').trim(),
       type: f.get('type'),
-      priority: f.get('priority'),
-      module: f.get('module').trim(),
-      platform: f.get('platform').trim(),
-      browser: f.get('browser').trim(),
-      os: f.get('os').trim(),
-      build: f.get('build').trim(),
+      priority: '',
+      module: '',
+      platform: '',
+      browser: '',
+      os: '',
+      build: '',
       description: f.get('description').trim(),
-      steps: linesToList(f.get('steps')),
-      expected: f.get('expected').trim(),
-      actual: f.get('actual').trim(),
-      impact: f.get('impact').trim(),
-      criteria: linesToList(f.get('criteria')),
-      attachments: f.get('attachments').trim(),
+      steps: [],
+      expected: '',
+      actual: '',
+      impact: '',
+      criteria: [],
+      attachments: '',
     };
     tickets.unshift(ticket);
     saveTickets(tickets);
@@ -345,8 +303,8 @@ function renderTicketView(t) {
     <div class="card ticket-view">
       <h2>
         ${escapeHtml(t.title) || '(untitled)'}
-        <span class="badge">${escapeHtml(t.type)}</span>
-        <span class="badge priority ${pClass}">${escapeHtml(t.priority)}</span>
+        <span class="badge">${escapeHtml(t.type) || 'Not Provided'}</span>
+        ${t.priority ? `<span class="badge priority ${pClass}">${escapeHtml(t.priority)}</span>` : ''}
       </h2>
 
       <section><h3>Module</h3><div class="value">${escapeHtml(t.module) || 'Not Provided'}</div></section>
@@ -408,6 +366,14 @@ if (location.search.includes('test=1')) {
   console.assert(md.includes('1. Open page'), 'steps should be numbered');
   console.assert(md.includes('- [ ] Fixed'), 'criteria should be checklist');
   console.assert(md.includes('Browser: Not Provided'), 'missing fields should say Not Provided');
+
+  const minimal = ticketToMarkdown({
+    title: 'Only title/type/desc', type: 'Bug', priority: '', module: '',
+    platform: '', browser: '', os: '', build: '',
+    description: 'desc', steps: [], expected: '', actual: '', impact: '',
+    criteria: [], attachments: ''
+  });
+  console.assert(minimal.includes('### Priority\nNot Provided'), 'blank priority (small-form path) should say Not Provided');
   console.log('self-test done — check console.assert output above for failures');
 }
 </script>
