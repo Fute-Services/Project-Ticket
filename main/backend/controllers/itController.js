@@ -1,6 +1,8 @@
-const supabase = require('../config/supabase');
+const { db } = require('../config/firebase');
 const { sendMail, newComplaintEmail, statusUpdateEmail } = require('../utils/mailer');
 require('dotenv').config();
+
+const collection = db.collection('it_complaints');
 
 function generateToken() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -20,6 +22,10 @@ function calcDuration(complaintDate) {
   return `${Math.floor(days / 7)} week(s)`;
 }
 
+function sortByRecent(docs) {
+  return docs.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+}
+
 // POST /api/it/complaints
 async function createComplaint(req, res) {
   const { name, department, category, sub_category, description, complaint_date, priority, approval } = req.body;
@@ -29,8 +35,9 @@ async function createComplaint(req, res) {
 
   const token = generateToken();
   const duration = calcDuration(complaint_date);
+  const submitted_at = new Date().toISOString();
 
-  const { data, error } = await supabase.from('it_complaints').insert({
+  const docData = {
     token,
     user_id: req.user.id,
     name,
@@ -40,12 +47,15 @@ async function createComplaint(req, res) {
     description,
     complaint_date,
     duration,
+    submitted_at,
     priority,
     approval: approval === true || approval === 'true',
     status: 'Pending',
-  }).select().single();
+    updated_at: submitted_at,
+  };
 
-  if (error) return res.status(400).json({ error: error.message });
+  const docRef = await collection.add(docData);
+  const data = { id: docRef.id, ...docData };
 
   try {
     await sendMail(
@@ -62,36 +72,26 @@ async function createComplaint(req, res) {
 
 // GET /api/it/complaints — IT staff / founder
 async function getAllComplaints(req, res) {
-  const { data, error } = await supabase
-    .from('it_complaints')
-    .select('*')
-    .order('submitted_at', { ascending: false });
-  if (error) return res.status(400).json({ error: error.message });
-  res.json(data);
+  const snap = await collection.get();
+  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  res.json(sortByRecent(data));
 }
 
 // GET /api/it/complaints/my
 async function getMyComplaints(req, res) {
-  const { data, error } = await supabase
-    .from('it_complaints')
-    .select('*')
-    .eq('user_id', req.user.id)
-    .order('submitted_at', { ascending: false });
-  if (error) return res.status(400).json({ error: error.message });
-  res.json(data);
+  const snap = await collection.where('user_id', '==', req.user.id).get();
+  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  res.json(sortByRecent(data));
 }
 
 // GET /api/it/complaints/search?token=
 async function searchByToken(req, res) {
   const { token } = req.query;
   if (!token) return res.status(400).json({ error: 'token query param required' });
-  const { data, error } = await supabase
-    .from('it_complaints')
-    .select('*')
-    .eq('token', token.toUpperCase())
-    .single();
-  if (error) return res.status(404).json({ error: 'Complaint not found' });
-  res.json(data);
+  const snap = await collection.where('token', '==', token.toUpperCase()).limit(1).get();
+  if (snap.empty) return res.status(404).json({ error: 'Complaint not found' });
+  const doc = snap.docs[0];
+  res.json({ id: doc.id, ...doc.data() });
 }
 
 // PATCH /api/it/complaints/:id/status
@@ -101,21 +101,15 @@ async function updateStatus(req, res) {
   const validStatuses = ['Pending', 'In Progress', 'Completed'];
   if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
-  const { data, error } = await supabase
-    .from('it_complaints')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) return res.status(400).json({ error: error.message });
+  const docRef = collection.doc(id);
+  const updated_at = new Date().toISOString();
+  await docRef.update({ status, updated_at });
+  const data = { id, ...(await docRef.get()).data() };
 
   try {
-    const { data: submitter } = await supabase
-      .from('users')
-      .select('email, full_name')
-      .eq('id', data.user_id)
-      .single();
-    if (submitter) {
+    const submitterDoc = await db.collection('users').doc(data.user_id).get();
+    if (submitterDoc.exists) {
+      const submitter = submitterDoc.data();
       await sendMail(
         submitter.email,
         `Your Complaint ${data.token} has been updated`,

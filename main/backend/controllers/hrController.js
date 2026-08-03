@@ -1,6 +1,8 @@
-const supabase = require('../config/supabase');
+const { db } = require('../config/firebase');
 const { sendMail, newComplaintEmail, statusUpdateEmail } = require('../utils/mailer');
 require('dotenv').config();
+
+const collection = db.collection('hr_complaints');
 
 // Generate token: FT-HR-XXXXXX
 function generateToken() {
@@ -22,6 +24,10 @@ function calcDuration(complaintDate) {
   return `${Math.floor(days / 7)} week(s)`;
 }
 
+function sortByRecent(docs) {
+  return docs.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+}
+
 // POST /api/hr/complaints — submit new HR complaint
 async function createComplaint(req, res) {
   const { name, department, description, complaint_date, priority } = req.body;
@@ -31,8 +37,9 @@ async function createComplaint(req, res) {
 
   const token = generateToken();
   const duration = calcDuration(complaint_date);
+  const submitted_at = new Date().toISOString();
 
-  const { data, error } = await supabase.from('hr_complaints').insert({
+  const docData = {
     token,
     user_id: req.user.id,
     name,
@@ -40,11 +47,14 @@ async function createComplaint(req, res) {
     description,
     complaint_date,
     duration,
+    submitted_at,
     priority,
     status: 'Pending',
-  }).select().single();
+    updated_at: submitted_at,
+  };
 
-  if (error) return res.status(400).json({ error: error.message });
+  const docRef = await collection.add(docData);
+  const data = { id: docRef.id, ...docData };
 
   // Notify HR staff
   try {
@@ -62,36 +72,26 @@ async function createComplaint(req, res) {
 
 // GET /api/hr/complaints — HR staff / founder sees all
 async function getAllComplaints(req, res) {
-  const { data, error } = await supabase
-    .from('hr_complaints')
-    .select('*')
-    .order('submitted_at', { ascending: false });
-  if (error) return res.status(400).json({ error: error.message });
-  res.json(data);
+  const snap = await collection.get();
+  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  res.json(sortByRecent(data));
 }
 
 // GET /api/hr/complaints/my — employee sees own complaints
 async function getMyComplaints(req, res) {
-  const { data, error } = await supabase
-    .from('hr_complaints')
-    .select('*')
-    .eq('user_id', req.user.id)
-    .order('submitted_at', { ascending: false });
-  if (error) return res.status(400).json({ error: error.message });
-  res.json(data);
+  const snap = await collection.where('user_id', '==', req.user.id).get();
+  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  res.json(sortByRecent(data));
 }
 
 // GET /api/hr/complaints/search?token=FT-HR-XXXXX
 async function searchByToken(req, res) {
   const { token } = req.query;
   if (!token) return res.status(400).json({ error: 'token query param required' });
-  const { data, error } = await supabase
-    .from('hr_complaints')
-    .select('*')
-    .eq('token', token.toUpperCase())
-    .single();
-  if (error) return res.status(404).json({ error: 'Complaint not found' });
-  res.json(data);
+  const snap = await collection.where('token', '==', token.toUpperCase()).limit(1).get();
+  if (snap.empty) return res.status(404).json({ error: 'Complaint not found' });
+  const doc = snap.docs[0];
+  res.json({ id: doc.id, ...doc.data() });
 }
 
 // PATCH /api/hr/complaints/:id/status — HR staff / founder updates status
@@ -101,22 +101,16 @@ async function updateStatus(req, res) {
   const validStatuses = ['Pending', 'In Progress', 'Completed'];
   if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
-  const { data, error } = await supabase
-    .from('hr_complaints')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) return res.status(400).json({ error: error.message });
+  const docRef = collection.doc(id);
+  const updated_at = new Date().toISOString();
+  await docRef.update({ status, updated_at });
+  const data = { id, ...(await docRef.get()).data() };
 
   // Notify the employee who submitted
   try {
-    const { data: submitter } = await supabase
-      .from('users')
-      .select('email, full_name')
-      .eq('id', data.user_id)
-      .single();
-    if (submitter) {
+    const submitterDoc = await db.collection('users').doc(data.user_id).get();
+    if (submitterDoc.exists) {
+      const submitter = submitterDoc.data();
       await sendMail(
         submitter.email,
         `Your Complaint ${data.token} has been updated`,

@@ -1,4 +1,4 @@
-const supabase = require('../config/supabase');
+const { auth, db } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -16,28 +16,25 @@ async function register(req, res) {
     return res.status(400).json({ error: 'email, password and full_name are required' });
   }
 
-  // Create user in Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  });
-  if (authError) return res.status(400).json({ error: authError.message });
+  let userRecord;
+  try {
+    userRecord = await auth.createUser({ email, password, displayName: full_name });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
 
   const role = detectRole(email);
 
-  // Insert into users table
-  const { error: dbError } = await supabase.from('users').insert({
-    id: authData.user.id,
+  await db.collection('users').doc(userRecord.uid).set({
     email,
     full_name,
     role,
     department: department || null,
+    created_at: new Date().toISOString(),
   });
-  if (dbError) return res.status(400).json({ error: dbError.message });
 
   const token = jwt.sign(
-    { id: authData.user.id, email, role, full_name },
+    { id: userRecord.uid, email, role, full_name },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -50,19 +47,24 @@ async function login(req, res) {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'email and password required' });
 
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-  if (authError) return res.status(401).json({ error: 'Invalid credentials' });
+  // Verify password via Firebase Auth REST API (Admin SDK can't verify passwords directly)
+  const resp = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, returnSecureToken: true }),
+    }
+  );
+  const authData = await resp.json();
+  if (!resp.ok) return res.status(401).json({ error: 'Invalid credentials' });
 
-  // Fetch user profile from users table
-  const { data: user, error: userError } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', authData.user.id)
-    .single();
-  if (userError) return res.status(400).json({ error: userError.message });
+  const userDoc = await db.collection('users').doc(authData.localId).get();
+  if (!userDoc.exists) return res.status(400).json({ error: 'User profile not found' });
+  const user = userDoc.data();
 
   const token = jwt.sign(
-    { id: user.id, email: user.email, role: user.role, full_name: user.full_name },
+    { id: authData.localId, email: user.email, role: user.role, full_name: user.full_name },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );

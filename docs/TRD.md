@@ -9,8 +9,8 @@
 |-------|-----------|
 | Frontend | React 18, React Router v6, Tailwind CSS, Framer Motion, Lucide Icons |
 | Backend | Node.js, Express.js |
-| Database | PostgreSQL (via Supabase) |
-| Auth | Supabase Auth (email + password) |
+| Database | Firestore (Firebase) |
+| Auth | Firebase Auth (email + password) |
 | Email | Nodemailer (Gmail SMTP) |
 | Deployment | Vercel (frontend + backend as serverless) |
 | Package Manager | npm |
@@ -210,15 +210,15 @@ Example:  FT-HR-A3X9K2 | FT-IT-B7M2P1
 
 ### Frontend `.env`
 ```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
 VITE_API_BASE_URL=
 ```
 
 ### Backend `.env`
 ```
-SUPABASE_URL=
-SUPABASE_SERVICE_KEY=
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
+FIREBASE_API_KEY=
 JWT_SECRET=
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
