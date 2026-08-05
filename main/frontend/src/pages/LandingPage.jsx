@@ -1,99 +1,51 @@
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Shield, Zap, Users } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
+import Intro, { INTRO_TOTAL_MS } from '../components/Intro';
+
+const EASE = [0.22, 1, 0.36, 1];
+
+// The page is always mounted and simply waits for the intro to clear. Gating it
+// on an "intro finished" callback made a single broken animation blank the
+// whole screen; a delay can't fail that way.
+const REVEAL = INTRO_TOTAL_MS / 1000;
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-
-  function handleGetStarted() {
-    if (!user) { navigate('/login'); return; }
-    if (user.role === 'founder') navigate('/founder/dashboard');
-    else if (user.role === 'hr') navigate('/hr/dashboard');
-    else if (user.role === 'it') navigate('/it/dashboard');
-    else navigate('/employee/dashboard');
-  }
 
   return (
-    <div className="min-h-screen hero-bg flex flex-col">
-      {/* Nav */}
-      <nav className="px-8 py-5 flex items-center justify-between">
-        <span className="text-2xl font-black gradient-text tracking-tight">FUTE</span>
-        <div className="flex items-center gap-3">
-          {!user && (
-            <>
-              <button onClick={() => navigate('/login')} className="text-sm text-white/60 hover:text-white transition px-4 py-2">
-                Login
-              </button>
-              <button onClick={() => navigate('/register')} className="text-sm bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-xl font-semibold transition btn-glow">
-                Register
-              </button>
-            </>
-          )}
-          {user && (
-            <button onClick={handleGetStarted} className="text-sm bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-xl font-semibold transition btn-glow">
-              Dashboard
-            </button>
-          )}
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#0f0f13]">
+      <Intro />
 
-      {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
+      <main className="min-h-screen flex flex-col items-center justify-center gap-12 px-6">
+        <motion.h1
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="flex flex-col items-center gap-6"
+          transition={{ duration: 0.7, ease: EASE, delay: REVEAL }}
+          className="font-display text-5xl sm:text-7xl font-medium tracking-tight text-white text-center"
         >
-          {/* Badge */}
-          <span className="text-xs font-semibold px-4 py-1.5 rounded-full border border-brand-500/30 text-brand-500 bg-brand-500/10 tracking-widest uppercase">
-            Internal Portal
-          </span>
+          Fute Services
+        </motion.h1>
 
-          {/* Heading */}
-          <h1 className="text-5xl sm:text-7xl font-black leading-none tracking-tight">
-            <span className="gradient-text">Fute</span>
-            <br />
-            <span className="text-white/90">Complaint Portal</span>
-          </h1>
-
-          <p className="text-lg text-white/40 max-w-md leading-relaxed">
-            Raise, track, and resolve complaints with HR & IT — all in one place. Every issue gets a unique token.
-          </p>
-
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: EASE, delay: REVEAL + 0.15 }}
+          className="flex flex-col sm:flex-row items-center gap-4"
+        >
           <button
-            onClick={handleGetStarted}
-            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white px-8 py-4 rounded-2xl font-bold text-lg transition btn-glow"
+            onClick={() => navigate('/login')}
+            className="font-display w-56 sm:w-40 py-3.5 rounded-full bg-white text-[#0f0f13] font-medium tracking-tight transition hover:bg-white/90"
           >
-            Get Started <ArrowRight size={20} />
+            Login
+          </button>
+          <button
+            onClick={() => navigate('/signup')}
+            className="font-display w-56 sm:w-40 py-3.5 rounded-full border border-white/20 text-white font-medium tracking-tight transition hover:bg-white/[0.06] hover:border-white/35"
+          >
+            Sign Up
           </button>
         </motion.div>
-
-        {/* Feature pills */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="flex flex-wrap justify-center gap-4 mt-4"
-        >
-          {[
-            { icon: <Zap size={14} />, text: 'Instant Token Generation' },
-            { icon: <Shield size={14} />, text: 'Role-Based Access' },
-            { icon: <Users size={14} />, text: 'HR & IT Departments' },
-          ].map((f) => (
-            <div key={f.text} className="glass flex items-center gap-2 px-4 py-2 rounded-full text-sm text-white/60">
-              <span className="text-brand-500">{f.icon}</span>
-              {f.text}
-            </div>
-          ))}
-        </motion.div>
       </main>
-
-      <footer className="text-center py-6 text-xs text-white/20">
-        © {new Date().getFullYear()} Fute — Internal Use Only
-      </footer>
     </div>
   );
 }

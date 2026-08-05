@@ -5,6 +5,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Wordmark / headings
+        display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         brand: {
