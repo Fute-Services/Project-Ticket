@@ -20,7 +20,7 @@ export default function TokenDisplay({ token, onClose }) {
       animate={{ opacity: 1, scale: 1 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
     >
-      <div className="glass rounded-3xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-5">
+      <div className="surface elev-3 rounded-3xl p-8 max-w-sm w-full text-center flex flex-col items-center gap-5">
         <div className="w-16 h-16 rounded-full bg-green-500/15 flex items-center justify-center">
           <CheckCircle className="text-green-400" size={32} />
         </div>

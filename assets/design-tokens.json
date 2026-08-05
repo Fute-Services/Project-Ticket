@@ -1,0 +1,269 @@
+{
+  "brand": "Fute Portal",
+  "primitive": {
+    "color": {
+      "primary": {
+        "50": {
+          "$value": "#E0E7FF",
+          "$type": "color"
+        },
+        "100": {
+          "$value": "#E0E7FF",
+          "$type": "color"
+        },
+        "200": {
+          "$value": "#FCFFFF",
+          "$type": "color"
+        },
+        "300": {
+          "$value": "#C9CCFF",
+          "$type": "color"
+        },
+        "400": {
+          "$value": "#9699FF",
+          "$type": "color"
+        },
+        "500": {
+          "$value": "#6366F1",
+          "$type": "color"
+        },
+        "600": {
+          "$value": "#4F46E5",
+          "$type": "color"
+        },
+        "700": {
+          "$value": "#171AA5",
+          "$type": "color"
+        },
+        "800": {
+          "$value": "#00007E",
+          "$type": "color"
+        },
+        "900": {
+          "$value": "#000058",
+          "$type": "color"
+        }
+      },
+      "secondary": {
+        "50": {
+          "$value": "#EDE9FE",
+          "$type": "color"
+        },
+        "100": {
+          "$value": "#EDE9FE",
+          "$type": "color"
+        },
+        "200": {
+          "$value": "#FFFFFF",
+          "$type": "color"
+        },
+        "300": {
+          "$value": "#FFF1FF",
+          "$type": "color"
+        },
+        "400": {
+          "$value": "#DABEFF",
+          "$type": "color"
+        },
+        "500": {
+          "$value": "#A78BFA",
+          "$type": "color"
+        },
+        "600": {
+          "$value": "#7C3AED",
+          "$type": "color"
+        },
+        "700": {
+          "$value": "#5B3FAE",
+          "$type": "color"
+        },
+        "800": {
+          "$value": "#341887",
+          "$type": "color"
+        },
+        "900": {
+          "$value": "#0E0061",
+          "$type": "color"
+        }
+      },
+      "accent": {
+        "50": {
+          "$value": "#FFFFFF",
+          "$type": "color"
+        },
+        "100": {
+          "$value": "#FFFFFF",
+          "$type": "color"
+        },
+        "200": {
+          "$value": "#D1FFFF",
+          "$type": "color"
+        },
+        "300": {
+          "$value": "#9EFFFF",
+          "$type": "color"
+        },
+        "400": {
+          "$value": "#6BF0FF",
+          "$type": "color"
+        },
+        "500": {
+          "$value": "#38BDF8",
+          "$type": "color"
+        },
+        "600": {
+          "$value": "#0EA5E9",
+          "$type": "color"
+        },
+        "700": {
+          "$value": "#0071AC",
+          "$type": "color"
+        },
+        "800": {
+          "$value": "#004A85",
+          "$type": "color"
+        },
+        "900": {
+          "$value": "#00245F",
+          "$type": "color"
+        }
+      }
+    }
+  },
+  "semantic": {
+    "color": {
+      "canvas": {
+        "$value": "#0F0F13",
+        "$type": "color"
+      },
+      "surface": {
+        "$value": "#17171C",
+        "$type": "color"
+      },
+      "surface-raised": {
+        "$value": "#1E1E2E",
+        "$type": "color"
+      },
+      "text-primary": {
+        "$value": "#F1F1F3",
+        "$type": "color"
+      },
+      "text-secondary": {
+        "$value": "rgba(255,255,255,0.60)",
+        "$type": "color"
+      },
+      "text-muted": {
+        "$value": "rgba(255,255,255,0.40)",
+        "$type": "color"
+      },
+      "border": {
+        "$value": "rgba(255,255,255,0.08)",
+        "$type": "color"
+      },
+      "dept-hr": {
+        "$value": "#A78BFA",
+        "$type": "color"
+      },
+      "dept-it": {
+        "$value": "#38BDF8",
+        "$type": "color"
+      },
+      "status-pending": {
+        "$value": "#FACC15",
+        "$type": "color"
+      },
+      "status-in-progress": {
+        "$value": "#3B82F6",
+        "$type": "color"
+      },
+      "status-completed": {
+        "$value": "#22C55E",
+        "$type": "color"
+      },
+      "priority-high": {
+        "$value": "#F87171",
+        "$type": "color"
+      },
+      "priority-medium": {
+        "$value": "#FACC15",
+        "$type": "color"
+      },
+      "priority-low": {
+        "$value": "#4ADE80",
+        "$type": "color"
+      }
+    },
+    "elevation": {
+      "0": {
+        "$value": "none",
+        "$type": "shadow"
+      },
+      "1": {
+        "$value": "0 1px 2px rgba(6,6,16,0.6), 0 4px 12px rgba(6,6,16,0.35)",
+        "$type": "shadow"
+      },
+      "2": {
+        "$value": "0 2px 4px rgba(6,6,16,0.6), 0 10px 28px rgba(6,6,16,0.45)",
+        "$type": "shadow"
+      },
+      "3": {
+        "$value": "0 4px 8px rgba(6,6,16,0.65), 0 24px 56px rgba(6,6,16,0.55)",
+        "$type": "shadow"
+      },
+      "4": {
+        "$value": "0 6px 12px rgba(6,6,16,0.7), 0 32px 72px rgba(79,70,229,0.30)",
+        "$type": "shadow"
+      }
+    },
+    "radius": {
+      "sm": {
+        "$value": "8px",
+        "$type": "dimension"
+      },
+      "md": {
+        "$value": "12px",
+        "$type": "dimension"
+      },
+      "base": {
+        "$value": "16px",
+        "$type": "dimension"
+      },
+      "lg": {
+        "$value": "24px",
+        "$type": "dimension"
+      },
+      "pill": {
+        "$value": "999px",
+        "$type": "dimension"
+      }
+    },
+    "motion": {
+      "duration-hover": {
+        "$value": "150ms",
+        "$type": "duration"
+      },
+      "duration-lift": {
+        "$value": "250ms",
+        "$type": "duration"
+      },
+      "duration-enter": {
+        "$value": "400ms",
+        "$type": "duration"
+      },
+      "ease-out": {
+        "$value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "$type": "cubicBezier"
+      }
+    },
+    "font": {
+      "sans": {
+        "$value": "Inter, system-ui, sans-serif",
+        "$type": "fontFamily"
+      },
+      "mono": {
+        "$value": "'JetBrains Mono', ui-monospace, monospace",
+        "$type": "fontFamily"
+      }
+    }
+  }
+}

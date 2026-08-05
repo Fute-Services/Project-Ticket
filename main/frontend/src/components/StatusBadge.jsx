@@ -1,13 +1,12 @@
-// Colored pill showing complaint status
+import { STATUS_META } from '../utils/constants';
+
+// Colored pill showing complaint status — colour and dot make it readable at a glance
 export default function StatusBadge({ status }) {
-  const map = {
-    'Pending':     'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
-    'In Progress': 'bg-blue-500/15 text-blue-400 border-blue-500/20',
-    'Completed':   'bg-green-500/15 text-green-400 border-green-500/20',
-  };
-  const cls = map[status] || 'bg-white/10 text-white/50 border-white/10';
+  const meta = STATUS_META[status];
+  const cls = meta?.badge || 'bg-white/10 text-white/50 border-white/10';
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>
+      {meta && <span aria-hidden>{meta.dot}</span>}
       {status}
     </span>
   );

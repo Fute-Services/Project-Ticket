@@ -1,17 +1,23 @@
 import { motion } from 'framer-motion';
 import StatusBadge from './StatusBadge';
 import PriorityBadge from './PriorityBadge';
-import { Clock, Calendar, Tag } from 'lucide-react';
+import { STATUSES } from '../utils/constants';
+import { timeAgo, formatDateTime } from '../utils/duration';
+import { Clock, RefreshCw, Tag } from 'lucide-react';
+import { useTilt } from '../hooks/useTilt';
 
-// Reusable card for displaying a single complaint (used in all dashboards)
+// Reusable card for displaying a single complaint (used in all dashboards).
+// Entrance animation and tilt sit on separate elements — framer-motion's inline
+// transform would otherwise clobber the tilt once the entrance finishes.
 export default function ComplaintCard({ complaint, deptTag, onStatusChange, canUpdateStatus }) {
   const isIT = deptTag === 'IT' || !!complaint.category;
+  const tilt = useTilt({ max: 4, lift: 3 });
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="glass rounded-2xl p-5 flex flex-col gap-3 hover:border-brand-500/30 transition-colors"
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="h-full">
+    <div
+      {...tilt}
+      className="surface tilt lift rounded-2xl p-5 flex flex-col gap-3 h-full hover:border-brand-500/30"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -31,7 +37,9 @@ export default function ComplaintCard({ complaint, deptTag, onStatusChange, canU
           <PriorityBadge priority={complaint.priority} />
           <StatusBadge status={complaint.status} />
         </div>
-        <span className="text-xs text-white/30">{new Date(complaint.submitted_at).toLocaleDateString()}</span>
+        <span className="text-xs text-white/30" title={formatDateTime(complaint.submitted_at)}>
+          {timeAgo(complaint.submitted_at)}
+        </span>
       </div>
 
       {/* Name + Department */}
@@ -62,10 +70,16 @@ export default function ComplaintCard({ complaint, deptTag, onStatusChange, canU
       {/* Description */}
       <p className="text-sm text-white/60 line-clamp-2">{complaint.description}</p>
 
-      {/* Duration + Date */}
+      {/* Relative timestamps — humans read "2 hours ago", not an ISO string */}
       <div className="flex items-center gap-4 text-xs text-white/30 flex-wrap">
-        <span className="flex items-center gap-1"><Clock size={11} /> {complaint.duration}</span>
-        <span className="flex items-center gap-1"><Calendar size={11} /> {complaint.complaint_date}</span>
+        <span className="flex items-center gap-1" title={formatDateTime(complaint.submitted_at)}>
+          <Clock size={11} /> Raised {timeAgo(complaint.submitted_at)}
+        </span>
+        {complaint.updated_at && complaint.updated_at !== complaint.submitted_at && (
+          <span className="flex items-center gap-1" title={formatDateTime(complaint.updated_at)}>
+            <RefreshCw size={11} /> Updated {timeAgo(complaint.updated_at)}
+          </span>
+        )}
       </div>
 
       {/* Status update (HR/IT/Founder only) */}
@@ -77,12 +91,13 @@ export default function ComplaintCard({ complaint, deptTag, onStatusChange, canU
             onChange={(e) => onStatusChange(complaint.id, e.target.value, isIT ? 'IT' : 'HR')}
             className="text-xs bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:outline-none focus:border-brand-500"
           >
-            <option value="Pending">Pending</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
+            {STATUSES.map(s => (
+              <option key={s} value={s} className="bg-[#1e1e2e]">{s}</option>
+            ))}
           </select>
         </div>
       )}
+    </div>
     </motion.div>
   );
 }

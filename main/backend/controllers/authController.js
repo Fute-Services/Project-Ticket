@@ -24,22 +24,23 @@ async function register(req, res) {
   }
 
   const role = detectRole(email);
+  const dept = department || null;
 
   await db.collection('users').doc(userRecord.uid).set({
     email,
     full_name,
     role,
-    department: department || null,
+    department: dept,
     created_at: new Date().toISOString(),
   });
 
   const token = jwt.sign(
-    { id: userRecord.uid, email, role, full_name },
+    { id: userRecord.uid, email, role, full_name, department: dept },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
 
-  res.status(201).json({ token, role, full_name, email });
+  res.status(201).json({ token, id: userRecord.uid, role, full_name, email, department: dept });
 }
 
 // POST /api/auth/login
@@ -64,12 +65,25 @@ async function login(req, res) {
   const user = userDoc.data();
 
   const token = jwt.sign(
-    { id: authData.localId, email: user.email, role: user.role, full_name: user.full_name },
+    {
+      id: authData.localId,
+      email: user.email,
+      role: user.role,
+      full_name: user.full_name,
+      department: user.department || null,
+    },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
 
-  res.json({ token, role: user.role, full_name: user.full_name, email: user.email });
+  res.json({
+    token,
+    id: authData.localId,
+    role: user.role,
+    full_name: user.full_name,
+    email: user.email,
+    department: user.department || null,
+  });
 }
 
 module.exports = { register, login };

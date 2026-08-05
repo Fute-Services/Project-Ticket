@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { loginUser } from '../utils/api';
 import { Eye, EyeOff } from 'lucide-react';
+import Stage3D from '../components/three/Stage3D';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -18,7 +19,13 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const { data } = await loginUser(form);
-      login({ id: data.id, email: data.email, role: data.role, full_name: data.full_name }, data.token);
+      login({
+        id: data.id,
+        email: data.email,
+        role: data.role,
+        full_name: data.full_name,
+        department: data.department,
+      }, data.token);
       toast.success(`Welcome back, ${data.full_name?.split(' ')[0]}!`);
       // Route based on role
       if (data.role === 'founder') navigate('/founder/dashboard');
@@ -33,11 +40,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen hero-bg flex items-center justify-center p-4">
+    <Stage3D
+      variant="ambient"
+      className="min-h-screen hero-bg flex"
+      contentClassName="flex-1 flex items-center justify-center p-4"
+    >
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass rounded-3xl p-8 w-full max-w-md"
+        className="surface elev-3 rounded-3xl p-8 w-full max-w-md"
       >
         <div className="mb-8 text-center">
           <span className="text-3xl font-black gradient-text">FUTE</span>
@@ -92,6 +103,6 @@ export default function LoginPage() {
           </Link>
         </p>
       </motion.div>
-    </div>
+    </Stage3D>
   );
 }

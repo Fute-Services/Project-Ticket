@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { registerUser } from '../utils/api';
 import { DEPARTMENTS } from '../utils/constants';
 import { Eye, EyeOff } from 'lucide-react';
+import Stage3D from '../components/three/Stage3D';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ full_name: '', email: '', password: '', department: '' });
@@ -19,7 +20,13 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const { data } = await registerUser(form);
-      login({ id: data.id, email: data.email, role: data.role, full_name: data.full_name }, data.token);
+      login({
+        id: data.id,
+        email: data.email,
+        role: data.role,
+        full_name: data.full_name,
+        department: data.department,
+      }, data.token);
       toast.success(`Welcome, ${data.full_name?.split(' ')[0]}!`);
       if (data.role === 'founder') navigate('/founder/dashboard');
       else if (data.role === 'hr') navigate('/hr/dashboard');
@@ -33,11 +40,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen hero-bg flex items-center justify-center p-4">
+    <Stage3D
+      variant="ambient"
+      className="min-h-screen hero-bg flex"
+      contentClassName="flex-1 flex items-center justify-center p-4"
+    >
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass rounded-3xl p-8 w-full max-w-md"
+        className="surface elev-3 rounded-3xl p-8 w-full max-w-md"
       >
         <div className="mb-8 text-center">
           <span className="text-3xl font-black gradient-text">FUTE</span>
@@ -120,6 +131,6 @@ export default function RegisterPage() {
           </Link>
         </p>
       </motion.div>
-    </div>
+    </Stage3D>
   );
 }

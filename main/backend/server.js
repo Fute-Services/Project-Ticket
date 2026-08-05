@@ -12,6 +12,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/hr', require('./routes/hrRoutes'));
 app.use('/api/it', require('./routes/itRoutes'));
 app.use('/api/founder', require('./routes/founderRoutes'));
+app.use('/api/stats', require('./routes/statsRoutes'));
 
 app.get('/', (req, res) => res.json({ message: 'Fute Portal API running' }));
 

@@ -1,40 +1,27 @@
 const { db } = require('../config/firebase');
 const { sendMail, newComplaintEmail, statusUpdateEmail } = require('../utils/mailer');
+const { STATUSES, generateToken, pageSize, fetchPage } = require('../utils/complaints');
 require('dotenv').config();
 
 const collection = db.collection('it_complaints');
 
-function generateToken() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) result += chars[Math.floor(Math.random() * chars.length)];
-  return `FT-IT-${result}`;
-}
-
-function calcDuration(complaintDate) {
-  const diff = Date.now() - new Date(complaintDate).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins} minute(s)`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} hour(s)`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days} day(s)`;
-  return `${Math.floor(days / 7)} week(s)`;
-}
-
-function sortByRecent(docs) {
-  return docs.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+// IT staff and the founder may read any IT complaint; everyone else only their own
+function canReadAll(user) {
+  return user.role === 'it' || user.role === 'founder';
 }
 
 // POST /api/it/complaints
 async function createComplaint(req, res) {
-  const { name, department, category, sub_category, description, complaint_date, priority, approval } = req.body;
+  const { category, sub_category, description, complaint_date, priority, approval } = req.body;
+  // Name and department come from the signed-in user, not from the form
+  const name = req.user.full_name;
+  const department = req.body.department || req.user.department;
+
   if (!name || !department || !category || !sub_category || !description || !complaint_date || !priority) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
-  const token = generateToken();
-  const duration = calcDuration(complaint_date);
+  const token = generateToken('IT');
   const submitted_at = new Date().toISOString();
 
   const docData = {
@@ -46,7 +33,6 @@ async function createComplaint(req, res) {
     sub_category,
     description,
     complaint_date,
-    duration,
     submitted_at,
     priority,
     approval: approval === true || approval === 'true',
@@ -70,36 +56,49 @@ async function createComplaint(req, res) {
   res.status(201).json({ complaint: data, token });
 }
 
-// GET /api/it/complaints — IT staff / founder
+// GET /api/it/complaints?limit=&cursor= — IT staff / founder
 async function getAllComplaints(req, res) {
-  const snap = await collection.get();
-  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  res.json(sortByRecent(data));
+  const page = await fetchPage(collection, {
+    limit: pageSize(req),
+    cursor: req.query.cursor,
+  });
+  res.json(page);
 }
 
-// GET /api/it/complaints/my
+// GET /api/it/complaints/my?limit=&cursor=
 async function getMyComplaints(req, res) {
-  const snap = await collection.where('user_id', '==', req.user.id).get();
-  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  res.json(sortByRecent(data));
+  const page = await fetchPage(collection.where('user_id', '==', req.user.id), {
+    limit: pageSize(req),
+    cursor: req.query.cursor,
+  });
+  res.json(page);
 }
 
 // GET /api/it/complaints/search?token=
 async function searchByToken(req, res) {
   const { token } = req.query;
   if (!token) return res.status(400).json({ error: 'token query param required' });
+
   const snap = await collection.where('token', '==', token.toUpperCase()).limit(1).get();
   if (snap.empty) return res.status(404).json({ error: 'Complaint not found' });
+
   const doc = snap.docs[0];
-  res.json({ id: doc.id, ...doc.data() });
+  const data = { id: doc.id, ...doc.data() };
+
+  // An employee may only open their own ticket. Answer 404 rather than 403 so a
+  // stranger's token cannot be confirmed to exist.
+  if (!canReadAll(req.user) && data.user_id !== req.user.id) {
+    return res.status(404).json({ error: 'Complaint not found' });
+  }
+
+  res.json(data);
 }
 
 // PATCH /api/it/complaints/:id/status
 async function updateStatus(req, res) {
   const { id } = req.params;
   const { status } = req.body;
-  const validStatuses = ['Pending', 'In Progress', 'Completed'];
-  if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+  if (!STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
   const docRef = collection.doc(id);
   const updated_at = new Date().toISOString();

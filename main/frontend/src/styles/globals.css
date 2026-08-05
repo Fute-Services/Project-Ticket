@@ -1,3 +1,5 @@
+@import './tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,44 +9,144 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: #0f0f13;
-  color: #f1f1f3;
+  font-family: var(--font-sans);
+  background: var(--color-canvas);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #3f3f5a; border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: #3f3f5a; border-radius: var(--radius-pill); }
 
-/* Glass card */
-.glass {
-  background: rgba(255,255,255,0.04);
+/* ---------------------------------------------------------------------------
+   Elevation
+   Every surface sits at a defined height above the canvas. Height reads as
+   shadow depth plus a brighter top edge — the way a real object catches light
+   from above. This is the same idea the WebGL scenes express, at zero GPU cost.
+   --------------------------------------------------------------------------- */
+
+.surface {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--elev-1);
+  transition: box-shadow var(--duration-lift) var(--ease-out),
+              transform var(--duration-lift) var(--ease-out),
+              border-color var(--duration-hover) ease-out;
+}
+
+/* Lit top edge — sells the idea that the light comes from above */
+.surface::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.14) 20%,
+    rgba(255, 255, 255, 0.14) 80%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+.elev-1 { box-shadow: var(--elev-1); }
+.elev-2 { box-shadow: var(--elev-2); }
+.elev-3 { box-shadow: var(--elev-3); }
+.elev-4 { box-shadow: var(--elev-4); }
+
+/* Lift on hover: a card at rest is level 1, hovered it is level 2. */
+.lift:hover {
+  box-shadow: var(--elev-2);
+  transform: translateY(-2px);
+}
+
+/* Pointer-tracked tilt. The rotation values are set from JS (useTilt) so the
+   element leans away from the cursor like a physical panel. */
+.tilt {
+  transform: perspective(900px)
+             rotateX(var(--tilt-x, 0deg))
+             rotateY(var(--tilt-y, 0deg))
+             translateY(var(--tilt-lift, 0px));
+  transform-style: preserve-3d;
+  transition: transform var(--duration-lift) var(--ease-out),
+              box-shadow var(--duration-lift) var(--ease-out);
+  will-change: transform;
+}
+
+/* Kept for backwards compatibility — `.glass` is now just a level-1 surface. */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--elev-1);
 }
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #a78bfa, #6366f1, #38bdf8);
+  background: linear-gradient(
+    135deg,
+    var(--color-violet-500),
+    var(--color-brand-500),
+    var(--color-cyan-500)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Glow button */
+/* Primary action — the only element allowed at level 4 */
 .btn-glow {
-  box-shadow: 0 0 20px rgba(99,102,241,0.4);
+  box-shadow: var(--elev-4);
+  transition: box-shadow var(--duration-hover) ease-out, transform var(--duration-hover) ease-out;
 }
 .btn-glow:hover {
-  box-shadow: 0 0 32px rgba(99,102,241,0.7);
+  box-shadow: 0 8px 16px rgba(6, 6, 16, 0.7), 0 40px 88px rgba(79, 70, 229, 0.45);
+  transform: translateY(-1px);
 }
 
-/* Animated gradient background */
+/* Canvas background */
 .hero-bg {
-  background: radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.15) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.1) 0%, transparent 50%),
-              radial-gradient(ellipse at 60% 80%, rgba(56,189,248,0.08) 0%, transparent 50%),
-              #0f0f13;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
+    var(--color-canvas);
+}
+
+/* Static stand-in shown wherever a WebGL scene cannot or should not run */
+.scene-fallback {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(167, 139, 250, 0.30) 0%, transparent 45%),
+    radial-gradient(circle at 62% 60%, rgba(56, 189, 248, 0.22) 0%, transparent 40%),
+    radial-gradient(circle at 38% 58%, rgba(99, 102, 241, 0.26) 0%, transparent 42%);
+  filter: blur(6px);
+}
+
+/* ---------------------------------------------------------------------------
+   Reduced motion is a hard requirement, not an enhancement. The 3D scenes stop
+   their render loop in JS; everything else collapses here.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .tilt {
+    transform: none !important;
+  }
+
+  .lift:hover {
+    transform: none;
+  }
 }

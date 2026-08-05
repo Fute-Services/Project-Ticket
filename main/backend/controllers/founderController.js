@@ -1,21 +1,31 @@
 const { db } = require('../config/firebase');
+const { pageSize, fetchPage, byRecent } = require('../utils/complaints');
 
-// GET /api/founder/complaints — returns all HR + IT complaints combined
+// GET /api/founder/complaints?limit=&cursor= — one merged page of HR + IT complaints
 async function getAllComplaints(req, res) {
-  const [hrSnap, itSnap] = await Promise.all([
-    db.collection('hr_complaints').get(),
-    db.collection('it_complaints').get(),
+  const limit = pageSize(req);
+  const cursor = req.query.cursor;
+
+  // Each side returns its own newest `limit` rows after the cursor, so the
+  // globally newest `limit` rows are guaranteed to be inside the union.
+  const [hr, it] = await Promise.all([
+    fetchPage(db.collection('hr_complaints'), { limit, cursor }),
+    fetchPage(db.collection('it_complaints'), { limit, cursor }),
   ]);
 
-  const hrTagged = hrSnap.docs.map(d => ({ id: d.id, ...d.data(), dept_tag: 'HR' }));
-  const itTagged = itSnap.docs.map(d => ({ id: d.id, ...d.data(), dept_tag: 'IT' }));
+  const merged = [
+    ...hr.items.map(c => ({ ...c, dept_tag: 'HR' })),
+    ...it.items.map(c => ({ ...c, dept_tag: 'IT' })),
+  ].sort(byRecent);
 
-  // Merge and sort by submitted_at descending
-  const all = [...hrTagged, ...itTagged].sort(
-    (a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)
-  );
+  const hasMore = merged.length > limit || hr.hasMore || it.hasMore;
+  const items = merged.slice(0, limit);
 
-  res.json(all);
+  res.json({
+    items,
+    hasMore,
+    nextCursor: hasMore && items.length ? items[items.length - 1].submitted_at : null,
+  });
 }
 
 module.exports = { getAllComplaints };

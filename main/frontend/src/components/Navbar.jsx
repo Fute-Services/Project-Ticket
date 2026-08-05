@@ -20,7 +20,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="glass sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
+    <nav className="surface elev-2 sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
       <Link to="/" className="flex items-center gap-2">
         <span className="text-xl font-black gradient-text tracking-tight">FUTE</span>
         <span className="text-xs text-white/30 font-medium hidden sm:block">Portal</span>
