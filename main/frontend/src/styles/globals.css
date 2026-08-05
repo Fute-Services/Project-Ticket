@@ -1,20 +1,238 @@
+@import './tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* {
-  box-sizing: border-box;
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+    font-weight: 400;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    font-weight: var(--heading-weight);
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+    margin: 0 0 var(--space-2);
+  }
+
+  a {
+    color: var(--acc);
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    color: var(--acc-700);
+  }
+
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--acc);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--acc) 30%, transparent);
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--n-700);
+  }
 }
 
-html,
-body,
-#root {
-  height: 100%;
-}
+@layer components {
+  /* ══════════════════════════════════════════════════════════════════════
+     Components — ported from the design system. Square corners, 2px rules,
+     one accent. Keep new UI on these classes rather than ad-hoc utilities,
+     so a token change reaches every screen.
+     ══════════════════════════════════════════════════════════════════════ */
 
-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: #0f0f13;
-  color: #f1f1f3;
-  margin: 0;
+  /* — kicker: the small uppercase label above a heading — */
+  .kicker {
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mut);
+  }
+
+  /* — buttons — */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: var(--font-heading);
+    font-weight: var(--heading-weight);
+    font-size: 14px;
+    line-height: 1.2;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid transparent;
+    padding: var(--space-2) calc(var(--space-3) * 1.2);
+    border-radius: var(--radius);
+    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--acc);
+    color: #f3f2f2;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--acc-600);
+  }
+  .btn-primary:active:not(:disabled) {
+    background: var(--acc-700);
+  }
+  .btn-secondary {
+    border-color: var(--line);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ink) 7%, transparent);
+  }
+  .btn-ghost {
+    color: var(--acc);
+    padding-inline: var(--space-1);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--acc) 10%, transparent);
+  }
+  .btn-block {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 12px 14px;
+  }
+
+  /* — forms — */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .field > .label {
+    font-size: 10.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--mut);
+  }
+  .input {
+    width: 100%;
+    font: inherit;
+    font-size: 14px;
+    padding: 11px 12px;
+    color: var(--ink);
+    caret-color: var(--acc);
+    background: var(--pn);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .input::placeholder {
+    color: color-mix(in srgb, var(--mut) 70%, transparent);
+  }
+  .input:hover {
+    border-color: color-mix(in srgb, var(--ink) 35%, transparent);
+  }
+  .input:focus-visible {
+    border-color: var(--acc);
+    outline: 2px solid var(--acc);
+    outline-offset: 1px;
+  }
+  textarea.input {
+    min-height: 90px;
+    resize: vertical;
+  }
+  select.input {
+    cursor: pointer;
+  }
+
+  /* — surfaces — */
+  .panel {
+    background: var(--sf);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .rule {
+    height: 2px;
+    border: 0;
+    margin: var(--space-4) 0;
+    background: var(--line);
+  }
+
+  /* — tags — */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding: 3px 10px;
+    border-radius: var(--radius);
+  }
+
+  /* — tables — */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .table th {
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mut);
+    padding: var(--space-2);
+    border-bottom: 2px solid var(--line);
+  }
+  .table td {
+    padding: var(--space-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .table tbody tr:hover {
+    background: color-mix(in srgb, var(--ink) 4%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }

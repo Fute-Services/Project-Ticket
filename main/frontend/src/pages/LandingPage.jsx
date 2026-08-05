@@ -13,7 +13,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#0f0f13]">
+    <div className="min-h-screen bg-bg">
       <Intro />
 
       <main className="min-h-screen flex flex-col items-center justify-center gap-12 px-6">
@@ -21,7 +21,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: EASE, delay: REVEAL }}
-          className="font-display text-5xl sm:text-7xl font-medium tracking-tight text-white text-center"
+          className="font-heading font-extrabold text-5xl sm:text-7xl tracking-[-0.04em] text-ink text-center"
         >
           Fute Services
         </motion.h1>
@@ -34,13 +34,13 @@ export default function LandingPage() {
         >
           <button
             onClick={() => navigate('/login')}
-            className="font-display w-56 sm:w-40 py-3.5 rounded-full bg-white text-[#0f0f13] font-medium tracking-tight transition hover:bg-white/90"
+            className="btn btn-primary w-56 sm:w-40 justify-center py-3"
           >
             Login
           </button>
           <button
             onClick={() => navigate('/signup')}
-            className="font-display w-56 sm:w-40 py-3.5 rounded-full border border-white/20 text-white font-medium tracking-tight transition hover:bg-white/[0.06] hover:border-white/35"
+            className="btn btn-secondary w-56 sm:w-40 justify-center py-3"
           >
             Sign Up
           </button>

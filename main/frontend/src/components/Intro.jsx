@@ -84,7 +84,7 @@ export default function Intro({ onDone }) {
     <AnimatePresence>
       {phase === 'playing' && (
         <motion.div
-          className="fixed inset-0 z-50 overflow-hidden bg-[#0f0f13]"
+          className="fixed inset-0 z-50 overflow-hidden bg-bg"
           exit={{ opacity: 0 }}
           transition={{ duration: FADE_DURATION / 1000, ease: 'easeInOut' }}
         >
@@ -96,7 +96,7 @@ export default function Intro({ onDone }) {
               animate="show"
               transition={{ delayChildren: titleDelay }}
               aria-label={TITLE}
-              className="font-display text-5xl sm:text-7xl font-medium tracking-tight text-white text-center whitespace-pre"
+              className="font-heading font-extrabold text-5xl sm:text-7xl tracking-[-0.04em] text-ink text-center whitespace-pre"
             >
               {TITLE.split('').map((char, i) => (
                 <motion.span key={i} variants={letter} aria-hidden className="inline-block">
@@ -115,7 +115,7 @@ export default function Intro({ onDone }) {
               Legibility: dark-on-dark motion is invisible, so the hem carries a
               lit edge and casts a soft shadow onto the stage below. */}
           <motion.div
-            className="absolute bg-[#17171d]"
+            className="absolute bg-sf"
             style={{
               left: '-2%',
               right: '-2%',
