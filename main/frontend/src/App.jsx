@@ -55,7 +55,7 @@ export default function App() {
               cross-link, so there's no separate landing page to pass through. */}
           <Route path="/" element={<LoginPage />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
-          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/signup" element={<Navigate to="/" replace />} />
           <Route
             path="/founder/dashboard"
             element={

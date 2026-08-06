@@ -164,14 +164,7 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="text-xs text-gray-400 mt-5 text-center">
-        Don't have an account?{' '}
-        <Link to="/signup" className="font-semibold text-[#e86024] hover:underline">
-          Sign up
-        </Link>
-      </p>
-
-      <div className="mt-5 pt-4 border-t border-white/10 text-center">
+      <div className="mt-6 pt-4 border-t border-white/10 text-center">
         <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
           Demo mode — no backend needed
         </p>
