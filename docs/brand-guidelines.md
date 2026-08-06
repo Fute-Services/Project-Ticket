@@ -210,7 +210,6 @@ between them.
 |-------------|----------|--------|
 | Hover / colour | 120ms | ease-out |
 | Enter / reveal | 400–700ms | cubic-bezier(0.22, 1, 0.36, 1) |
-| Opening curtain | 2600ms | cubic-bezier(0.5, 0, 0.2, 1) |
 
 Motion communicates structure, not personality. Nothing bounces.
 

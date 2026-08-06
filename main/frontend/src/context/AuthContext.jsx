@@ -14,32 +14,52 @@ export function homeFor(role) {
   return HOME_FOR_ROLE[role] || HOME_FOR_ROLE.employee;
 }
 
+// "Remember me" is real, not decorative: checked writes to localStorage and
+// survives closing the browser; unchecked writes to sessionStorage and clears
+// when the tab does. api.js's request interceptor checks both.
+function readSession() {
+  for (const store of [localStorage, sessionStorage]) {
+    const stored = store.getItem('fute_user');
+    const storedToken = store.getItem('fute_token');
+    if (stored && storedToken) {
+      try {
+        return { user: JSON.parse(stored), token: storedToken };
+      } catch {
+        // Corrupt entry — clear it and keep looking rather than crash on boot
+        store.removeItem('fute_user');
+        store.removeItem('fute_token');
+      }
+    }
+  }
+  return null;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // { id, email, role, full_name, department }
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem('fute_user');
-    const storedToken = localStorage.getItem('fute_token');
-    if (stored && storedToken) {
-      try {
-        setUser(JSON.parse(stored));
-        setToken(storedToken);
-      } catch {
-        // Corrupt entry — start clean rather than crashing on boot
-        localStorage.removeItem('fute_user');
-        localStorage.removeItem('fute_token');
-      }
+    const session = readSession();
+    if (session) {
+      setUser(session.user);
+      setToken(session.token);
     }
     setLoading(false);
   }, []);
 
-  function login(userData, jwt) {
+  function login(userData, jwt, remember = true) {
     setUser(userData);
     setToken(jwt);
-    localStorage.setItem('fute_user', JSON.stringify(userData));
-    localStorage.setItem('fute_token', jwt);
+
+    // Clear the other store first — otherwise a stale copy from a previous
+    // "remember me" choice can outlive this one.
+    const store = remember ? localStorage : sessionStorage;
+    const other = remember ? sessionStorage : localStorage;
+    other.removeItem('fute_user');
+    other.removeItem('fute_token');
+    store.setItem('fute_user', JSON.stringify(userData));
+    store.setItem('fute_token', jwt);
   }
 
   function logout() {
@@ -47,6 +67,8 @@ export function AuthProvider({ children }) {
     setToken(null);
     localStorage.removeItem('fute_user');
     localStorage.removeItem('fute_token');
+    sessionStorage.removeItem('fute_user');
+    sessionStorage.removeItem('fute_token');
   }
 
   return (

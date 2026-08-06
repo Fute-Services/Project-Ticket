@@ -21,13 +21,13 @@ export function statusToken(status) {
 }
 
 /**
- * P1 is the one place urgency and brand share a colour. Nothing else on this
- * screen may be red — see the "one red" rule in the brand guidelines.
+ * Priority runs primary → secondary → muted, so it steps down in weight
+ * without borrowing any of the status colours.
  */
 export function priorityToken(priority) {
   const p = String(priority || '').toLowerCase();
   if (p.startsWith('p1') || p.includes('high')) return 'var(--acc)';
-  if (p.startsWith('p2') || p.includes('medium')) return 'var(--warn)';
+  if (p.startsWith('p2') || p.includes('medium')) return 'var(--sec)';
   return 'var(--mut)';
 }
 

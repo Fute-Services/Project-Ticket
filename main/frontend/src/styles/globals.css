@@ -72,7 +72,7 @@
 
 @layer components {
   /* ══════════════════════════════════════════════════════════════════════
-     Components — ported from the design system. Square corners, 2px rules,
+     Components — ported from the design system. Rounded corners, 2px rules,
      one accent. Keep new UI on these classes rather than ad-hoc utilities,
      so a token change reaches every screen.
      ══════════════════════════════════════════════════════════════════════ */
@@ -102,7 +102,8 @@
     border: 1px solid transparent;
     padding: var(--space-2) calc(var(--space-3) * 1.2);
     border-radius: var(--radius);
-    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out,
+      transform 120ms ease-out;
   }
   .btn:disabled {
     opacity: 0.45;
@@ -111,12 +112,15 @@
   .btn-primary {
     background: var(--acc);
     color: #f3f2f2;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 25%, transparent);
   }
   .btn-primary:hover:not(:disabled) {
     background: var(--acc-600);
+    transform: translateY(-1px);
   }
   .btn-primary:active:not(:disabled) {
     background: var(--acc-700);
+    transform: translateY(0);
   }
   .btn-secondary {
     border-color: var(--line);
@@ -186,11 +190,14 @@
     border: 1px solid var(--line);
     border-radius: var(--radius);
   }
+
+  /* Structural divider, warmed with a trace of gold so it sits in the palette
+     rather than reading as plain grey. */
   .rule {
     height: 2px;
     border: 0;
     margin: var(--space-4) 0;
-    background: var(--line);
+    background: color-mix(in srgb, var(--sec) 30%, var(--line));
   }
 
   /* — tags — */

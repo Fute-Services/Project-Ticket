@@ -1,18 +1,24 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth, homeFor } from '../context/AuthContext';
 import { loginUser } from '../utils/api';
+import AuthLayout from '../components/AuthLayout';
+import IconField from '../components/IconField';
 
 /**
- * Sign-in. Layout and type follow the "Modernist" design prototype: split
- * screen, form left, accent panel right, square corners throughout.
+ * Sign-in. Per PRD §4.1 there is one login UI for every role — the role comes
+ * from the account, and routing after sign-in follows from it.
  *
- * Per PRD §4.1 there is one login UI for every role — the role comes from the
- * account, and routing after sign-in follows from it. The prototype's SSO and
- * MFA steps are not built: neither is in the PRD.
+ * Forgot-password is shown disabled rather than left out: there's no
+ * password-reset endpoint on the backend, so a click would 404. A visible,
+ * honestly disabled control beats one that looks live and silently fails.
+ * Google/Apple sign-in isn't shown at all — no OAuth is wired up, and unlike
+ * a disabled state, an entire missing feature has no honest way to display.
  */
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
+  const [remember, setRemember] = useState(true);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,11 +44,11 @@ export default function LoginPage() {
           full_name: data.full_name,
           department: data.department,
         },
-        data.token
+        data.token,
+        remember
       );
       navigate(homeFor(data.role));
     } catch (err) {
-      // Never surface a raw server message or status code to the user
       setError(
         err.response?.status === 401
           ? 'That email and password do not match. Please try again.'
@@ -54,109 +60,97 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      {/* Form */}
-      <div className="flex flex-col justify-center px-8 sm:px-12 py-14">
-        <div className="w-full max-w-[400px] mx-auto lg:mx-0 lg:ml-auto lg:mr-16">
-          <Link to="/" className="flex items-center gap-2.5 mb-10 no-underline text-ink">
-            <span className="w-[26px] h-[26px] bg-acc block" />
-            <span className="font-heading font-extrabold text-[15px]">Fute Services</span>
-          </Link>
+    <AuthLayout>
+      <h1 className="text-3xl sm:text-[38px] font-extrabold tracking-tight text-white mb-1.5 leading-none">
+        Welcome back
+      </h1>
+      <p className="text-xs sm:text-sm text-gray-400 mb-6">
+        Sign in to raise a ticket or pick up your queue.
+      </p>
 
-          <h1 className="text-[46px] leading-[1.02] tracking-[-0.04em] m-0 mb-2.5">
-            Welcome back
-          </h1>
-          <p className="text-sm text-mut m-0 mb-7">
-            Sign in with your work account to raise a ticket or pick up the queue.
-          </p>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3.5" noValidate>
+        <IconField
+          icon={Mail}
+          label="EMAIL ADDRESS"
+          type="email"
+          required
+          autoComplete="email"
+          value={form.email}
+          onChange={(e) => update('email', e.target.value)}
+          placeholder="you@futeservices.com"
+        />
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5" noValidate>
-            <label className="field">
-              <span className="label">Work email</span>
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={form.email}
-                onChange={(e) => update('email', e.target.value)}
-                placeholder="you@futeservices.com"
-                className="input"
-              />
-            </label>
-
-            <label className="field">
-              <span className="label">Password</span>
-              <div className="relative">
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  required
-                  autoComplete="current-password"
-                  value={form.password}
-                  onChange={(e) => update('password', e.target.value)}
-                  placeholder="••••••••••"
-                  className="input pr-16"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass((p) => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-extrabold uppercase tracking-[0.1em] text-mut hover:text-ink"
-                >
-                  {showPass ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            </label>
-
-            {error && (
-              <p
-                role="alert"
-                className="text-[13px] m-0 px-3 py-2.5 text-acc"
-                style={{ background: 'color-mix(in srgb, var(--acc) 12%, transparent)' }}
-              >
-                {error}
-              </p>
-            )}
-
-            <button type="submit" disabled={loading} className="btn btn-primary btn-block mt-1.5">
-              {loading ? 'Signing in…' : 'Sign in'}
+        <IconField
+          icon={Lock}
+          label="PASSWORD"
+          type={showPass ? 'text' : 'password'}
+          required
+          autoComplete="current-password"
+          value={form.password}
+          onChange={(e) => update('password', e.target.value)}
+          placeholder="Enter your password"
+          right={
+            <button
+              type="button"
+              onClick={() => setShowPass((p) => !p)}
+              aria-label={showPass ? 'Hide password' : 'Show password'}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+            >
+              {showPass ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
             </button>
-          </form>
+          }
+        />
 
-          <p className="text-[12.5px] text-mut mt-6 mb-0">
-            No account yet?{' '}
-            <Link to="/signup" className="font-bold">
-              Create one
-            </Link>
-          </p>
-        </div>
-      </div>
-
-      {/* Accent panel — hidden on small screens, where it would just push the form down */}
-      <aside className="hidden lg:flex flex-col justify-between bg-acc text-[#f3f2f2] px-11 py-14">
-        <div className="text-[10.5px] tracking-[0.14em] uppercase opacity-85">
-          Fute Services · one platform
-        </div>
-
-        <div>
-          <div className="font-heading font-extrabold text-[52px] leading-[0.98] tracking-[-0.04em]">
-            Every issue gets a ticket.
-          </div>
-          <div className="text-sm opacity-90 mt-4 max-w-[34ch]">
-            Raise it with HR or IT, get a token, and track it to resolution — without
-            chasing anyone over email.
-          </div>
+        <div className="flex items-center justify-between text-xs py-0.5">
+          <label className="flex items-center gap-2 cursor-pointer text-gray-300 select-none">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-[#e86024] focus:ring-0 accent-[#e86024] cursor-pointer"
+            />
+            <span>Remember me</span>
+          </label>
+          <span
+            title="Password reset isn't available yet"
+            className="text-gray-500 hover:text-gray-400 cursor-not-allowed select-none transition-colors"
+          >
+            Forgot password?
+          </span>
         </div>
 
-        <div className="flex gap-8 border-t-2 border-[#f3f2f2]/40 pt-[18px]">
-          <div>
-            <div className="font-heading font-extrabold text-2xl">FT-HR</div>
-            <div className="text-[11px] opacity-85">HR complaints</div>
+        {error && (
+          <div
+            role="alert"
+            className="text-xs px-4 py-2.5 text-orange-300 bg-orange-950/40 border border-orange-800/60 rounded-xl"
+          >
+            {error}
           </div>
-          <div>
-            <div className="font-heading font-extrabold text-2xl">FT-IT</div>
-            <div className="text-[11px] opacity-85">IT support</div>
-          </div>
-        </div>
-      </aside>
-    </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold py-2.5 pl-5 pr-1.5 rounded-full flex items-center justify-between shadow-md shadow-orange-950/40 transition-all transform active:scale-[0.99] cursor-pointer mt-1 disabled:opacity-50"
+        >
+          <span className="text-sm font-bold">
+            {loading ? 'Signing in…' : 'Sign in'}
+          </span>
+          <span
+            aria-hidden="true"
+            className="w-7 h-7 rounded-full bg-white text-[#e86024] flex items-center justify-center shrink-0 shadow-sm"
+          >
+            <ArrowRight size={15} />
+          </span>
+        </button>
+      </form>
+
+      <p className="text-xs text-gray-400 mt-5 text-left">
+        Don't have an account?{' '}
+        <Link to="/signup" className="font-semibold text-[#e86024] hover:underline">
+          Sign up
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }

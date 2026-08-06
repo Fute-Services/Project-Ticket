@@ -5,17 +5,32 @@
    The system's three rules: no radius, 2px rules, one red. */
 
 :root {
-  /* Accent — the single red the whole system leans on */
-  --acc: #ec3013;
-  --acc-100: #fff2ef;
-  --acc-200: #ffe0d9;
-  --acc-300: #ffc4b8;
-  --acc-400: #ff9783;
-  --acc-500: #ff563c;
-  --acc-600: #dd2b0f;
-  --acc-700: #ae1800;
-  --acc-800: #7c1405;
-  --acc-900: #4d170e;
+  /* Primary — warm amber. Actions, links, the brand mark, P1 priority. Back
+     to the system's original one-accent-on-near-black idea, just in a warm
+     hue instead of red. */
+  /* Primary — bright brand orange (#e86024) */
+  --acc: #e86024;
+  --acc-100: #fdf1e7;
+  --acc-200: #fadfc5;
+  --acc-300: #f4c093;
+  --acc-400: #ec9a5d;
+  --acc-500: #e86024;
+  --acc-600: #d4521a;
+  --acc-700: #b33f10;
+  --acc-800: #8a2e0a;
+  --acc-900: #571c05;
+
+  /* Secondary — muted gold */
+  --sec: #c7a34d;
+  --sec-100: #fbf5e7;
+  --sec-200: #f3e4c0;
+  --sec-300: #e7cd8e;
+  --sec-400: #d9b563;
+  --sec-500: #cda34c;
+  --sec-600: #a9843a;
+  --sec-700: #7f632b;
+  --sec-800: #59461e;
+  --sec-900: #3a2e14;
 
   /* Neutral ramp */
   --n-100: #f8f4f4;
@@ -31,7 +46,7 @@
   /* Status */
   --ok: #4fae7c;
   --warn: #d9a13c;
-  --info: #7d9ede;
+  --info: #6bafc2;
 
   --font-heading: 'Archivo', system-ui, sans-serif;
   --font-body: 'Archivo', system-ui, sans-serif;
@@ -44,36 +59,22 @@
   --space-6: 24px;
   --space-8: 32px;
 
-  /* Modernist is square. Do not reintroduce rounding. */
-  --radius: 0px;
+  --radius-sm: 8px;
+  --radius: 12px;
 
   --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
   --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
   --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
 }
 
-/* Dark is the product default — the prototype ships with dark: true */
-:root,
-:root[data-theme='dark'] {
-  --bg: #141314;
-  --sf: #1a1919;
-  --pn: #1f1e1e;
-  --ink: #f1efee;
-  --line: rgba(241, 239, 238, 0.12);
-  --mut: #8d8988;
+:root {
+  --bg: #0c0c0e;
+  --sf: #141418;
+  --pn: #1a1a1f;
+  --ink: #f5f1ec;
+  --line: rgba(255, 255, 255, 0.1);
+  --mut: #8e8e93;
   --ok: #4fae7c;
   --warn: #d9a13c;
-  --info: #7d9ede;
-}
-
-:root[data-theme='light'] {
-  --bg: #f4f3f2;
-  --sf: #edecea;
-  --pn: #ffffff;
-  --ink: #201e1d;
-  --line: rgba(32, 30, 29, 0.13);
-  --mut: #75716f;
-  --ok: #2f7d55;
-  --warn: #a8761a;
-  --info: #3a5f9e;
+  --info: #6bafc2;
 }

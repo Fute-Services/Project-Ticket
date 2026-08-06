@@ -177,8 +177,8 @@ export default function DashboardPage() {
       {error && (
         <p
           role="alert"
-          className="text-[13px] m-0 mt-5 px-3 py-2.5 text-acc"
-          style={{ background: 'color-mix(in srgb, var(--acc) 12%, transparent)' }}
+          className="text-[13px] m-0 mt-5 px-3 py-2.5 text-warn rounded-sm"
+          style={{ background: 'color-mix(in srgb, var(--warn) 14%, transparent)' }}
         >
           {error}
         </p>

@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
@@ -20,8 +19,10 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
+          {/* Sign-in is the front door. Signup is reached from the panel's own
+              cross-link, so there's no separate landing page to pass through. */}
+          <Route path="/" element={<LoginPage />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/signup" element={<SignupPage />} />
           {DASHBOARD_PATHS.map((path) => (
             <Route

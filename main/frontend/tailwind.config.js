@@ -21,13 +21,20 @@ export default {
           600: 'var(--acc-600)',
           700: 'var(--acc-700)',
         },
+        sec: {
+          DEFAULT: 'var(--sec)',
+          600: 'var(--sec-600)',
+          700: 'var(--sec-700)',
+        },
         ok: 'var(--ok)',
         warn: 'var(--warn)',
         info: 'var(--info)',
       },
       borderRadius: {
-        // Modernist is square.
         none: '0px',
+        sm: 'var(--radius-sm)',
+        DEFAULT: 'var(--radius)',
+        lg: 'var(--radius-lg)',
       },
     },
   },

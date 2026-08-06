@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }) {
 
   function handleSignOut() {
     logout();
-    navigate('/login', { replace: true });
+    navigate('/', { replace: true });
   }
 
   const nav = (
