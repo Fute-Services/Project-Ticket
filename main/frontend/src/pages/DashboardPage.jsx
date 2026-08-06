@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTickets } from '../context/TicketContext';
 import ItDeskLayout from '../components/ItDeskLayout';
 import DonutChart from '../components/DonutChart';
 import DataTransferModal from '../components/DataTransferModal';
@@ -760,81 +761,12 @@ export default function DashboardPage() {
     { label: 'Closed', value: 120, percent: 48, color: '#8b5cf6' },
   ];
 
-  const STATUS_COLOR = {
-    Open: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    'In Progress': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    'Waiting Approval': 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-    Resolved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    Closed: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
-  };
-
-  const [recentTickets, setRecentTickets] = useState([
-    {
-      id: 1,
-      token: 'INC-1024',
-      title: 'Laptop hanging and slow performance',
-      user: 'John Doe',
-      dept: 'IT Support',
-      status: 'In Progress',
-      statusColor: STATUS_COLOR['In Progress'],
-    },
-    {
-      id: 2,
-      token: 'INC-1023',
-      title: 'Internet connection keeps dropping',
-      user: 'Jane Smith',
-      dept: 'Network',
-      status: 'Open',
-      statusColor: STATUS_COLOR.Open,
-    },
-    {
-      id: 3,
-      token: 'REQ-1018',
-      title: 'Request for Adobe Photoshop installation',
-      user: 'Mike Johnson',
-      dept: 'Software',
-      status: 'Waiting Approval',
-      statusColor: STATUS_COLOR['Waiting Approval'],
-    },
-    {
-      id: 4,
-      token: 'VPN-1012',
-      title: 'VPN access not working',
-      user: 'Sarah Wilson',
-      dept: 'VPN',
-      status: 'In Progress',
-      statusColor: STATUS_COLOR['In Progress'],
-    },
-    {
-      id: 5,
-      token: 'DR-1009',
-      title: 'Data transfer from Server 70 to 131',
-      user: 'Robert Brown',
-      dept: 'Data Team',
-      status: 'Open',
-      statusColor: STATUS_COLOR.Open,
-    },
-  ]);
+  // Shared with the Employee dashboard — a ticket raised there appears
+  // here immediately, and a status change made here reflects there too.
+  const { tickets: recentTickets, addTicket, changeStatus: changeTicketStatus } = useTickets();
 
   function handleNewTicket(req) {
-    setRecentTickets((prev) => [
-      {
-        id: Date.now(),
-        token: `REQ-${1025 + prev.length}`,
-        title: req.description,
-        user: user?.full_name || 'You',
-        dept: req.department || req.category,
-        status: 'Open',
-        statusColor: STATUS_COLOR.Open,
-      },
-      ...prev,
-    ]);
-  }
-
-  function changeTicketStatus(id, status) {
-    setRecentTickets((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status, statusColor: STATUS_COLOR[status] } : t))
-    );
+    addTicket(req, user?.full_name);
   }
 
   const searchIndex = useMemo(
@@ -847,7 +779,13 @@ export default function DashboardPage() {
   );
 
   return (
-    <ItDeskLayout activeTab={activeTab} setActiveTab={setActiveTab} searchIndex={searchIndex}>
+    <ItDeskLayout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      searchIndex={searchIndex}
+      role="it"
+      approvalCount={approvals.filter((a) => a.status === 'pending').length}
+    >
       {activeTab === 'dashboard' && (
         <div className="w-full flex flex-col gap-3.5 h-full max-h-full justify-between overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

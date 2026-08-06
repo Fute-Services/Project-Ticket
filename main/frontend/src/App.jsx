@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { LeaveProvider } from './context/LeaveContext';
+import { TicketProvider } from './context/TicketContext';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
+import EmployeeDashboardPage from './pages/EmployeeDashboardPage';
 import RequireAuth from './components/RequireAuth';
 import HrOverview from './pages/hr/Overview';
 import HrCandidates from './pages/hr/Candidates';
@@ -21,10 +23,7 @@ import CoordinatorTasks from './pages/coordinator/Tasks';
 
 import FounderDashboardPage from './pages/FounderDashboardPage';
 
-const DASHBOARD_ROUTES = [
-  { path: '/it/dashboard', allow: ['it'] },
-  { path: '/employee/dashboard', allow: ['employee'] },
-];
+const DASHBOARD_ROUTES = [{ path: '/it/dashboard', allow: ['it'] }];
 
 const HR_ROUTES = [
   { path: '/hr/overview', element: <HrOverview /> },
@@ -49,6 +48,7 @@ export default function App() {
   return (
     <AuthProvider>
       <LeaveProvider>
+      <TicketProvider>
       <BrowserRouter>
         <Routes>
           {/* Sign-in is the front door. Signup is reached from the panel's own
@@ -75,6 +75,14 @@ export default function App() {
               }
             />
           ))}
+          <Route
+            path="/employee/dashboard"
+            element={
+              <RequireAuth allow={['employee']}>
+                <EmployeeDashboardPage />
+              </RequireAuth>
+            }
+          />
           {/* Legacy path some links still point at — send it to the new HR home. */}
           <Route path="/hr/dashboard" element={<Navigate to="/hr/overview" replace />} />
           {HR_ROUTES.map(({ path, element }) => (
@@ -94,6 +102,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </TicketProvider>
       </LeaveProvider>
     </AuthProvider>
   );

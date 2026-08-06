@@ -42,7 +42,22 @@ const NOTIFICATIONS = [
 
 const DATE_RANGES = ['Exact Date', 'Today', 'This Week', 'This Month'];
 
-export default function ItDeskLayout({ activeTab, setActiveTab, children, searchIndex = [] }) {
+const IT_NAV_ITEMS = (approvalCount) => [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
+  { id: 'tickets', label: 'Tickets Queue', icon: Ticket },
+  { id: 'approval', label: 'Approval Center', icon: CheckSquare, badge: approvalCount || undefined },
+  { id: 'datarequests', label: 'Data Requests', icon: Server },
+  { id: 'assets', label: 'Asset Management', icon: Monitor },
+  { id: 'reports', label: 'Reports & Logs', icon: BarChart2 },
+  { id: 'settings', label: 'Settings', icon: Settings },
+];
+
+const EMPLOYEE_NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
+  { id: 'tickets', label: 'My Tickets', icon: Ticket },
+];
+
+export default function ItDeskLayout({ activeTab, setActiveTab, children, searchIndex = [], role = 'it', approvalCount = 0 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -70,15 +85,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
     navigate('/', { replace: true });
   }
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
-    { id: 'tickets', label: 'Tickets Queue', icon: Ticket },
-    { id: 'approval', label: 'Approval Center', icon: CheckSquare, badge: 8 },
-    { id: 'datarequests', label: 'Data Requests', icon: Server },
-    { id: 'assets', label: 'Asset Management', icon: Monitor },
-    { id: 'reports', label: 'Reports & Logs', icon: BarChart2 },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
+  const navItems = role === 'employee' ? EMPLOYEE_NAV_ITEMS : IT_NAV_ITEMS(approvalCount);
 
   const currentDateStr = new Date().toLocaleDateString('en-US', {
     month: 'short',
@@ -100,7 +107,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
           {!collapsed && (
             <div className="px-3 py-2 mb-3 border-b border-white/[0.06]">
               <div className="font-bold text-sm tracking-tight text-white leading-none">
-                IT Dashboard
+                {role === 'employee' ? 'Employee Portal' : 'IT Dashboard'}
               </div>
             </div>
           )}
@@ -249,8 +256,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
                   <div className="max-h-[300px] overflow-y-auto">
                     {NOTIFICATIONS.map((n) => (
                       <div key={n.id} className="p-3 border-b border-white/5 last:border-0 hover:bg-white/5">
-                        <div className="text-xs font-semibold text-white">{n.title}</div>
-                        <div className="text-[11px] text-gray-400 mt-0.5">{n.body}</div>
+                        <div className="text-xs font-semibold text-white">{n.text}</div>
                         <div className="text-[9px] text-gray-500 mt-1">{n.time}</div>
                       </div>
                     ))}

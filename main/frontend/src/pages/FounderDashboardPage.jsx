@@ -10,8 +10,6 @@ import {
   ChevronDown,
   MessageSquare,
 } from 'lucide-react';
-import { employees, candidates, interviews } from '../data/hrMockData';
-
 import TeamChatDrawer from '../components/TeamChatDrawer';
 
 export default function FounderDashboardPage() {

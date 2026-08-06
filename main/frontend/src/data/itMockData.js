@@ -30,6 +30,64 @@ export const TICKET_CATEGORIES = {
 
 export const TICKET_PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
+// ── Tickets (shared between the IT Service Desk queue and the Employee
+// "My Tickets" view — both read/write the same list via TicketContext) ────
+export const TICKET_STATUS_COLOR = {
+  Open: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+  'In Progress': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  'Waiting Approval': 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+  Resolved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  Closed: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+};
+
+export const initialTickets = [
+  {
+    id: 1,
+    token: 'INC-1024',
+    title: 'Laptop hanging and slow performance',
+    user: 'John Doe',
+    dept: 'IT Support',
+    status: 'In Progress',
+    statusColor: TICKET_STATUS_COLOR['In Progress'],
+  },
+  {
+    id: 2,
+    token: 'INC-1023',
+    title: 'Internet connection keeps dropping',
+    user: 'Jane Smith',
+    dept: 'Network',
+    status: 'Open',
+    statusColor: TICKET_STATUS_COLOR.Open,
+  },
+  {
+    id: 3,
+    token: 'REQ-1018',
+    title: 'Request for Adobe Photoshop installation',
+    user: 'Mike Johnson',
+    dept: 'Software',
+    status: 'Waiting Approval',
+    statusColor: TICKET_STATUS_COLOR['Waiting Approval'],
+  },
+  {
+    id: 4,
+    token: 'VPN-1012',
+    title: 'VPN access not working',
+    user: 'Sarah Wilson',
+    dept: 'VPN',
+    status: 'In Progress',
+    statusColor: TICKET_STATUS_COLOR['In Progress'],
+  },
+  {
+    id: 5,
+    token: 'DR-1009',
+    title: 'Data transfer from Server 70 to 131',
+    user: 'Robert Brown',
+    dept: 'Data Team',
+    status: 'Open',
+    statusColor: TICKET_STATUS_COLOR.Open,
+  },
+];
+
 // ── Asset inventory (Asset Management tab) ────────────────────────────────
 export const ASSET_TYPES = ['Laptop', 'Desktop', 'Server', 'Network', 'Printer'];
 export const ASSET_STATUSES = ['In Use', 'Available', 'Under Repair', 'Retired'];
