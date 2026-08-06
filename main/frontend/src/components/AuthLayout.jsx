@@ -13,19 +13,13 @@ export default function AuthLayout({ children }) {
         </div>
       </div>
 
-      {/* 3D House Visual Right Side — Seamless with Super Glowing Window Lights */}
+      {/* 3D House Visual Right Side — Seamless with Glowing Window Lights */}
       <div className="hidden lg:flex w-[50%] h-full relative items-center justify-center overflow-hidden shrink-0 z-10">
         {/* Pulsating Building Ambient Light Orbs */}
         <div className="absolute right-[20%] top-[25%] w-[180px] h-[180px] bg-amber-400/45 rounded-full blur-[45px] pointer-events-none animate-pulse z-0" />
         <div className="absolute right-[30%] top-[42%] w-[160px] h-[160px] bg-orange-500/40 rounded-full blur-[50px] pointer-events-none animate-pulse z-0" />
         <div className="absolute right-[15%] bottom-[22%] w-[200px] h-[200px] bg-yellow-400/35 rounded-full blur-[55px] pointer-events-none animate-pulse z-0" />
         <div className="absolute right-[35%] bottom-[35%] w-[140px] h-[140px] bg-amber-300/40 rounded-full blur-[40px] pointer-events-none z-0" />
-
-        {/* Precise Ledge & Roof Spotlight Flares */}
-        <div className="absolute right-[28%] top-[38%] w-4 h-4 bg-amber-100 rounded-full shadow-[0_0_22px_12px_rgba(252,211,77,0.95)] animate-pulse z-20 pointer-events-none" />
-        <div className="absolute right-[18%] bottom-[30%] w-3.5 h-3.5 bg-yellow-100 rounded-full shadow-[0_0_20px_10px_rgba(253,224,71,0.95)] animate-pulse z-20 pointer-events-none" />
-        <div className="absolute right-[36%] bottom-[42%] w-3.5 h-3.5 bg-amber-200 rounded-full shadow-[0_0_18px_9px_rgba(245,158,11,0.9)] animate-pulse z-20 pointer-events-none" />
-        <div className="absolute right-[22%] top-[48%] w-3 h-3 bg-amber-100 rounded-full shadow-[0_0_16px_8px_rgba(252,211,77,0.9)] z-20 pointer-events-none" />
 
         <div className="relative w-full h-full flex items-center justify-center p-2 z-10">
           <img
