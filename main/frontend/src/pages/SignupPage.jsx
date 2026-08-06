@@ -7,6 +7,8 @@ import { dummyRegister } from '../utils/dummyAuth';
 import AuthLayout from '../components/AuthLayout';
 import IconField from '../components/IconField';
 
+const DEPARTMENTS = ['Sales', 'Marketing', 'Human Resources', 'IT', 'Engineering', 'Finance'];
+
 /**
  * Create an account. Mirrors LoginPage — the accent panel sits on the left
  * here, so moving between the two reads as the layout flipping rather than
@@ -14,7 +16,8 @@ import IconField from '../components/IconField';
  *
  * Role isn't asked for: authController.detectRole derives it from the email,
  * and founder is set by hand in the database. Nothing asks the user for what
- * the account already knows.
+ * the account already knows — department is asked because nothing else can
+ * infer it.
  */
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -95,11 +98,11 @@ export default function SignupPage() {
 
   return (
     <AuthLayout>
-      <h1 className="text-3xl sm:text-[36px] font-extrabold tracking-tight text-white mb-1 leading-tight">
+      <h1 className="text-3xl sm:text-[36px] font-extrabold tracking-tight text-white mb-1 leading-tight text-center">
         Create Your Account
       </h1>
-      <p className="text-xs sm:text-sm text-gray-400 mb-4">
-        Join us and start your journey to find the perfect living space.
+      <p className="text-xs sm:text-sm text-gray-400 mb-4 text-center">
+        Join us and start your journey with the team.
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-2.5" noValidate>
@@ -123,6 +126,38 @@ export default function SignupPage() {
           onChange={(e) => update('email', e.target.value)}
           placeholder="Enter your email address"
         />
+
+        <div className="flex flex-col gap-1.5 w-full">
+          <label
+            htmlFor="signup-department"
+            className="text-[11px] font-semibold tracking-wider text-gray-400 uppercase select-none"
+          >
+            Department
+          </label>
+          <div className="relative flex items-center">
+            <Building2
+              aria-hidden="true"
+              size={18}
+              className="absolute left-3.5 text-gray-400 pointer-events-none shrink-0"
+            />
+            <select
+              id="signup-department"
+              required
+              value={form.department}
+              onChange={(e) => update('department', e.target.value)}
+              className="w-full bg-[#18181c] border border-white/10 rounded-xl pl-11 pr-3.5 py-3 text-sm text-white focus:outline-none focus:border-orange-500 transition-colors cursor-pointer"
+            >
+              <option value="" disabled>
+                Select your department
+              </option>
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <IconField
           icon={Lock}
@@ -190,7 +225,7 @@ export default function SignupPage() {
         {error && (
           <div
             role="alert"
-            className="text-xs px-4 py-2 text-orange-300 bg-orange-950/40 border border-orange-800/60 rounded-xl"
+            className="text-xs px-4 py-2 text-orange-300 bg-orange-950/40 border border-orange-800/60 rounded-xl text-center"
           >
             {error}
           </div>
@@ -199,24 +234,24 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold py-2.5 pl-5 pr-1.5 rounded-full flex items-center justify-between shadow-md shadow-orange-950/40 transition-all transform active:scale-[0.99] cursor-pointer mt-1 disabled:opacity-50"
+          className="w-full bg-[#e86024] hover:bg-[#ff6e2e] text-white font-bold py-3 px-5 rounded-full flex items-center justify-between shadow-[0_0_25px_rgba(232,96,36,0.45)] hover:shadow-[0_0_35px_rgba(255,110,46,0.75)] transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer group mt-1 disabled:opacity-50"
         >
-          <span className="text-sm font-bold">
+          <span className="text-sm font-bold pl-2">
             {loading ? 'Creating account…' : 'Sign Up'}
           </span>
           <span
             aria-hidden="true"
-            className="w-7 h-7 rounded-full bg-white text-[#e86024] flex items-center justify-center shrink-0 shadow-sm"
+            className="w-8 h-8 rounded-full bg-white text-[#e86024] flex items-center justify-center shrink-0 shadow-md group-hover:translate-x-1 transition-transform duration-300"
           >
-            <ArrowRight size={15} />
+            <ArrowRight size={16} />
           </span>
         </button>
       </form>
 
-      <p className="text-xs text-gray-400 mt-4 text-center">
+      <p className="text-xs text-gray-400 mt-3 text-center">
         Already have an account?{' '}
         <Link to="/" className="font-semibold text-[#e86024] hover:underline">
-          Login
+          Sign in
         </Link>
       </p>
     </AuthLayout>

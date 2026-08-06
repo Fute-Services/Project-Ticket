@@ -80,10 +80,10 @@ export default function LoginPage() {
 
   return (
     <AuthLayout>
-      <h1 className="text-3xl sm:text-[38px] font-extrabold tracking-tight text-white mb-1.5 leading-none">
+      <h1 className="text-3xl sm:text-[38px] font-extrabold tracking-tight text-white mb-1.5 leading-none text-center">
         Welcome back
       </h1>
-      <p className="text-xs sm:text-sm text-gray-400 mb-6">
+      <p className="text-xs sm:text-sm text-gray-400 mb-6 text-center">
         Sign in to raise a ticket or pick up your queue.
       </p>
 
@@ -141,7 +141,7 @@ export default function LoginPage() {
         {error && (
           <div
             role="alert"
-            className="text-xs px-4 py-2.5 text-orange-300 bg-orange-950/40 border border-orange-800/60 rounded-xl"
+            className="text-xs px-4 py-2.5 text-orange-300 bg-orange-950/40 border border-orange-800/60 rounded-xl text-center"
           >
             {error}
           </div>
@@ -150,32 +150,32 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold py-2.5 pl-5 pr-1.5 rounded-full flex items-center justify-between shadow-md shadow-orange-950/40 transition-all transform active:scale-[0.99] cursor-pointer mt-1 disabled:opacity-50"
+          className="w-full bg-[#e86024] hover:bg-[#ff6e2e] text-white font-bold py-3 px-5 rounded-full flex items-center justify-between shadow-[0_0_25px_rgba(232,96,36,0.45)] hover:shadow-[0_0_35px_rgba(255,110,46,0.75)] transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer group mt-2 disabled:opacity-50"
         >
-          <span className="text-sm font-bold">
+          <span className="text-sm font-bold pl-2">
             {loading ? 'Signing in…' : 'Sign in'}
           </span>
           <span
             aria-hidden="true"
-            className="w-7 h-7 rounded-full bg-white text-[#e86024] flex items-center justify-center shrink-0 shadow-sm"
+            className="w-8 h-8 rounded-full bg-white text-[#e86024] flex items-center justify-center shrink-0 shadow-md group-hover:translate-x-1 transition-transform duration-300"
           >
-            <ArrowRight size={15} />
+            <ArrowRight size={16} />
           </span>
         </button>
       </form>
 
-      <p className="text-xs text-gray-400 mt-5 text-left">
+      <p className="text-xs text-gray-400 mt-5 text-center">
         Don't have an account?{' '}
         <Link to="/signup" className="font-semibold text-[#e86024] hover:underline">
           Sign up
         </Link>
       </p>
 
-      <div className="mt-5 pt-4 border-t border-white/10">
+      <div className="mt-5 pt-4 border-t border-white/10 text-center">
         <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
           Demo mode — no backend needed
         </p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 justify-center">
           {DEMO_ACCOUNTS.map((account) => (
             <button
               key={account.role}
