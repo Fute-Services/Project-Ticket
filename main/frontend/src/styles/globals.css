@@ -70,6 +70,19 @@
   }
 }
 
+@layer utilities {
+  /* Scrolls if content overflows, but never shows a scrollbar — used on the
+     dashboard sidebars so the nav can still reach every item on short
+     viewports without a visible scroll track. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer components {
   /* ══════════════════════════════════════════════════════════════════════
      Components — ported from the design system. Rounded corners, 2px rules,

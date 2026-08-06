@@ -1,78 +1,254 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import DashboardLayout from '../components/DashboardLayout';
+import ItDeskLayout from '../components/ItDeskLayout';
+import DonutChart from '../components/DonutChart';
+import DataTransferModal from '../components/DataTransferModal';
+import NewItTicketModal from '../components/NewItTicketModal';
+import { Card, SectionHeader, StatCard } from '../components/ui';
 import {
-  getFounderComplaints,
-  getHrComplaints,
-  getItComplaints,
-  getMyHrComplaints,
-  getMyItComplaints,
-  searchHrByToken,
-  searchItByToken,
-  updateHrStatus,
-  updateItStatus,
-} from '../utils/api';
-import {
-  STATUSES,
-  countByStatus,
-  exactTime,
-  mergeByRecent,
-  priorityToken,
-  relativeTime,
-  statusToken,
-  tagDept,
-} from '../utils/tickets';
+  Ticket,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  ShieldCheck,
+  Server,
+  Monitor,
+  Laptop,
+  Printer,
+  Wifi,
+  Plus,
+  Calendar,
+  Package,
+} from 'lucide-react';
 
-// Roles that may change a ticket's status. Everyone else gets a read-only cell —
-// the API would 403 them anyway, and offering a control that always fails is worse
-// than not offering one.
-const CAN_UPDATE = new Set(['hr', 'it', 'founder']);
+const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
-const LOAD_ERROR = "We couldn't load your tickets. Please try again in a few moments.";
+function TicketsQueueView({ tickets, onStatusChange, onNewTicket }) {
+  const [filter, setFilter] = useState('All');
+  const visible = filter === 'All' ? tickets : tickets.filter((t) => t.status === filter);
 
-/**
- * Pull the queue this role is allowed to see. The founder endpoint already
- * merges and tags both departments; the others need tagging here so every row
- * downstream has the same shape.
- */
-async function fetchForRole(role) {
-  if (role === 'founder') {
-    const { data } = await getFounderComplaints();
-    return data;
-  }
-  if (role === 'hr') {
-    const { data } = await getHrComplaints();
-    return tagDept(data, 'HR');
-  }
-  if (role === 'it') {
-    const { data } = await getItComplaints();
-    return tagDept(data, 'IT');
-  }
-  // Employee — their own tickets live in two collections
-  const [hr, it] = await Promise.all([getMyHrComplaints(), getMyItComplaints()]);
-  return mergeByRecent(tagDept(hr.data, 'HR'), tagDept(it.data, 'IT'));
-}
-
-// A dot, always — status and priority are never colour alone.
-function Dot({ color }) {
   return (
-    <span
-      aria-hidden="true"
-      className="inline-block w-[7px] h-[7px] shrink-0"
-      style={{ background: color }}
-    />
+    <div className="w-full flex flex-col gap-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Tickets Queue</h1>
+          <p className="text-xs text-gray-400">{tickets.length} total tickets</p>
+        </div>
+        <button
+          type="button"
+          onClick={onNewTicket}
+          className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
+        >
+          <Plus size={16} />
+          <span>New Ticket</span>
+        </button>
+      </div>
+
+      <div className="bg-[#141418] border border-white/5 rounded-3xl p-5">
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['All', ...TICKET_STATUSES].map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setFilter(s)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                filter === s ? 'bg-[#e86024] text-white' : 'bg-[#18181c] border border-white/10 text-gray-400 hover:text-white'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        {visible.length === 0 ? (
+          <p className="text-xs text-gray-500 py-8 text-center">No tickets match this filter.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 text-gray-400 uppercase text-[10px] tracking-wider">
+                  <th className="py-3 px-3">Token</th>
+                  <th className="py-3 px-3">Issue</th>
+                  <th className="py-3 px-3">Requester</th>
+                  <th className="py-3 px-3">Department</th>
+                  <th className="py-3 px-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {visible.map((t) => (
+                  <tr key={t.id} className="hover:bg-white/[0.02]">
+                    <td className="py-3.5 px-3 font-bold text-[#e86024]">{t.token}</td>
+                    <td className="py-3.5 px-3 text-white">{t.title}</td>
+                    <td className="py-3.5 px-3 text-gray-300">{t.user}</td>
+                    <td className="py-3.5 px-3 text-gray-400">{t.dept}</td>
+                    <td className="py-3.5 px-3">
+                      <select
+                        value={t.status}
+                        onChange={(e) => onStatusChange(t.id, e.target.value)}
+                        className="bg-[#18181c] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#e86024] cursor-pointer"
+                      >
+                        {TICKET_STATUSES.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
-function StatTile({ label, value, color }) {
+function ApprovalCenterView({ approvals, onApprove, onReject }) {
+  const pending = approvals.filter((a) => a.status === 'pending');
+  const decided = approvals.filter((a) => a.status !== 'pending');
+
   return (
-    <div className="panel px-4 py-3.5">
-      <div className="kicker flex items-center gap-1.5">
-        {color && <Dot color={color} />}
-        {label}
+    <div className="w-full flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Approval Center</h1>
+        <p className="text-xs text-gray-400">{pending.length} pending · {decided.length} decided</p>
       </div>
-      <div className="font-heading font-extrabold text-[32px] leading-none tracking-[-0.015em] mt-2">
-        {value}
+
+      <div className="bg-[#141418] border border-white/5 rounded-3xl p-5">
+        <h3 className="font-extrabold text-sm text-white mb-4">Pending Approval</h3>
+        {pending.length === 0 ? (
+          <p className="text-xs text-gray-500 py-4">Nothing waiting on you.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            {pending.map((app) => (
+              <div key={app.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between">
+                <div className="min-w-0 pr-2">
+                  <div className="text-xs font-bold text-white truncate">{app.title}</div>
+                  <div className="text-[11px] text-gray-400 truncate">{app.sub}</div>
+                  <div className="text-[10px] text-gray-500">Requested by {app.user} · {app.time}</div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onApprove(app.id)}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold hover:bg-emerald-500/25 transition-colors cursor-pointer"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onReject(app.id)}
+                    className="px-2.5 py-1 rounded-lg bg-red-500/15 text-red-400 border border-red-500/30 text-[10px] font-bold hover:bg-red-500/25 transition-colors cursor-pointer"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <h3 className="font-extrabold text-sm text-white mb-4">Approval History</h3>
+        {decided.length === 0 ? (
+          <p className="text-xs text-gray-500 py-4">No decisions yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {decided.map((app) => (
+              <div key={app.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between">
+                <div className="min-w-0 pr-2">
+                  <div className="text-xs font-bold text-white truncate">{app.title}</div>
+                  <div className="text-[10px] text-gray-500">{app.user} · {app.time}</div>
+                </div>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 ${
+                    app.status === 'approved'
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      : 'bg-red-500/10 text-red-400 border-red-500/20'
+                  }`}
+                >
+                  {app.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DataRequestsView({ requests, onNewRequest }) {
+  return (
+    <div className="w-full flex flex-col gap-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Data Requests</h1>
+          <p className="text-xs text-gray-400">{requests.length} transfer requests</p>
+        </div>
+        <button
+          type="button"
+          onClick={onNewRequest}
+          className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
+        >
+          <Server size={15} />
+          <span>New Data Request</span>
+        </button>
+      </div>
+
+      <div className="bg-[#141418] border border-white/5 rounded-3xl p-5">
+        {requests.length === 0 ? (
+          <p className="text-xs text-gray-500 py-8 text-center">No data transfer requests yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {requests.map((d) => (
+              <div key={d.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+                    <Server size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white truncate">{d.path}</div>
+                    <div className="text-[10px] text-gray-400 truncate">{d.name}</div>
+                  </div>
+                </div>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold shrink-0 ${
+                    d.status === 'Completed'
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      : d.status === 'In Progress'
+                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                      : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                  }`}
+                >
+                  {d.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const COMING_SOON_LABEL = {
+  assets: 'Asset Management',
+  reports: 'Reports & Logs',
+  settings: 'Settings',
+};
+
+// Honest placeholder — same principle as the disabled "Forgot password" on
+// the login page: no backing data/backend exists for this yet, so say so
+// instead of showing fake numbers that look live.
+function ComingSoonView({ tab }) {
+  return (
+    <div className="w-full flex flex-col gap-6">
+      <div className="bg-[#141418] border border-white/5 rounded-3xl p-10 flex flex-col items-center text-center gap-2">
+        <Package size={28} className="text-gray-600 mb-2" />
+        <h2 className="text-lg font-bold text-white">{COMING_SOON_LABEL[tab]} isn't available yet</h2>
+        <p className="text-xs text-gray-500 max-w-sm">
+          This module isn't built yet. It's tracked in the IT department requirements doc for a future pass.
+        </p>
       </div>
     </div>
   );
@@ -80,256 +256,315 @@ function StatTile({ label, value, color }) {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const role = user?.role || 'employee';
-  const canUpdate = CAN_UPDATE.has(role);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isDataModalOpen, setIsDataModalOpen] = useState(false);
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // Approval Requests state
+  const [approvals, setApprovals] = useState([
+    {
+      id: 1,
+      title: 'Software Installation',
+      sub: 'Visual Studio Code',
+      user: 'Mike Johnson',
+      time: '1h ago',
+      status: 'pending',
+    },
+    {
+      id: 2,
+      title: 'Data Transfer',
+      sub: 'Server 70 to Server 131',
+      user: 'Robert Brown',
+      time: '2h ago',
+      status: 'pending',
+    },
+    {
+      id: 3,
+      title: 'New Network Request',
+      sub: 'Additional LAN Port',
+      user: 'Sarah Wilson',
+      time: '3h ago',
+      status: 'pending',
+    },
+    {
+      id: 4,
+      title: 'VPN Access Request',
+      sub: 'New VPN for John Doe',
+      user: 'John Doe',
+      time: '5h ago',
+      status: 'pending',
+    },
+  ]);
 
-  const [filter, setFilter] = useState('All');
-  const [query, setQuery] = useState('');
-  const [match, setMatch] = useState(null); // result of a token lookup
-  const [searchNote, setSearchNote] = useState('');
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      setTickets(await fetchForRole(role));
-    } catch {
-      setError(LOAD_ERROR);
-    } finally {
-      setLoading(false);
-    }
-  }, [role]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const counts = useMemo(() => countByStatus(tickets), [tickets]);
-
-  const visible = useMemo(() => {
-    if (match) return [match];
-    return filter === 'All' ? tickets : tickets.filter((t) => t.status === filter);
-  }, [tickets, filter, match]);
-
-  async function handleSearch(e) {
-    e.preventDefault();
-    const token = query.trim().toUpperCase();
-    if (!token) return clearSearch();
-
-    setSearchNote('');
-    // The prefix tells us which collection to look in
-    const search = token.startsWith('FT-IT-') ? searchItByToken : searchHrByToken;
-    const dept = token.startsWith('FT-IT-') ? 'IT' : 'HR';
-    try {
-      const { data } = await search(token);
-      setMatch({ ...data, dept_tag: data.dept_tag || dept });
-    } catch (err) {
-      setMatch(null);
-      setSearchNote(
-        err.response?.status === 404
-          ? 'No ticket with that token.'
-          : "We couldn't run that search. Please try again in a few moments."
-      );
-    }
+  function handleApprove(id) {
+    setApprovals((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status: 'approved' } : item))
+    );
   }
 
-  function clearSearch() {
-    setQuery('');
-    setMatch(null);
-    setSearchNote('');
+  function handleReject(id) {
+    setApprovals((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status: 'rejected' } : item))
+    );
   }
 
-  async function changeStatus(ticket, status) {
-    if (status === ticket.status) return;
-    const previous = ticket.status;
+  // Data Requests state
+  const [dataRequests, setDataRequests] = useState([
+    { id: 1, path: 'Server 70  →  Server 131', name: 'Project Data', status: 'In Progress' },
+    { id: 2, path: 'Server 50  →  Server 70', name: 'Backup Files', status: 'Completed' },
+    { id: 3, path: 'Server 29  →  Server 131', name: 'Client Records', status: 'Open' },
+    { id: 4, path: 'Anima  →  Server 70', name: 'Media Files', status: 'In Progress' },
+    { id: 5, path: 'Server 131  →  Anima', name: 'Reports', status: 'Waiting Approval' },
+  ]);
 
-    // Optimistic — a status change should feel immediate; we roll back if the
-    // write fails.
-    const apply = (next) => {
-      setTickets((rows) => rows.map((r) => (r.id === ticket.id ? { ...r, status: next } : r)));
-      setMatch((m) => (m && m.id === ticket.id ? { ...m, status: next } : m));
-    };
-    apply(status);
-    setError('');
-
-    const update = ticket.dept_tag === 'IT' ? updateItStatus : updateHrStatus;
-    try {
-      await update(ticket.id, status);
-    } catch {
-      apply(previous);
-      setError("We couldn't save that change. Please try again in a few moments.");
-    }
+  function handleNewDataRequest(req) {
+    setDataRequests((prev) => [
+      {
+        id: Date.now(),
+        path: `${req.source}  →  ${req.destination}`,
+        name: req.folder || 'Data Copy',
+        status: req.status || 'Waiting Approval',
+      },
+      ...prev,
+    ]);
   }
+
+  // Donut chart data definitions
+  const categoryData = [
+    { label: 'Laptop/Desktop Issues', value: 99, percent: 40, color: '#f97316' },
+    { label: 'Network Issues', value: 62, percent: 25, color: '#3b82f6' },
+    { label: 'Software Requests', value: 37, percent: 15, color: '#a855f7' },
+    { label: 'VPN Requests', value: 25, percent: 10, color: '#06b6d4' },
+    { label: 'Data Requests', value: 25, percent: 10, color: '#10b981' },
+  ];
+
+  const statusData = [
+    { label: 'Open', value: 52, percent: 21, color: '#f97316' },
+    { label: 'In Progress', value: 68, percent: 27, color: '#3b82f6' },
+    { label: 'Waiting for Approval', value: 8, percent: 3, color: '#eab308' },
+    { label: 'Resolved', value: 186, percent: 75, color: '#10b981' },
+    { label: 'Closed', value: 120, percent: 48, color: '#8b5cf6' },
+  ];
+
+  const STATUS_COLOR = {
+    Open: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    'In Progress': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    'Waiting Approval': 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+    Resolved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    Closed: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+  };
+
+  const [recentTickets, setRecentTickets] = useState([
+    {
+      id: 1,
+      token: 'INC-1024',
+      title: 'Laptop hanging and slow performance',
+      user: 'John Doe',
+      dept: 'IT Support',
+      status: 'In Progress',
+      statusColor: STATUS_COLOR['In Progress'],
+    },
+    {
+      id: 2,
+      token: 'INC-1023',
+      title: 'Internet connection keeps dropping',
+      user: 'Jane Smith',
+      dept: 'Network',
+      status: 'Open',
+      statusColor: STATUS_COLOR.Open,
+    },
+    {
+      id: 3,
+      token: 'REQ-1018',
+      title: 'Request for Adobe Photoshop installation',
+      user: 'Mike Johnson',
+      dept: 'Software',
+      status: 'Waiting Approval',
+      statusColor: STATUS_COLOR['Waiting Approval'],
+    },
+    {
+      id: 4,
+      token: 'VPN-1012',
+      title: 'VPN access not working',
+      user: 'Sarah Wilson',
+      dept: 'VPN',
+      status: 'In Progress',
+      statusColor: STATUS_COLOR['In Progress'],
+    },
+    {
+      id: 5,
+      token: 'DR-1009',
+      title: 'Data transfer from Server 70 to 131',
+      user: 'Robert Brown',
+      dept: 'Data Team',
+      status: 'Open',
+      statusColor: STATUS_COLOR.Open,
+    },
+  ]);
+
+  function handleNewTicket(req) {
+    setRecentTickets((prev) => [
+      {
+        id: Date.now(),
+        token: `REQ-${1025 + prev.length}`,
+        title: req.description,
+        user: user?.full_name || 'You',
+        dept: req.department || req.category,
+        status: 'Open',
+        statusColor: STATUS_COLOR.Open,
+      },
+      ...prev,
+    ]);
+  }
+
+  function changeTicketStatus(id, status) {
+    setRecentTickets((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, status, statusColor: STATUS_COLOR[status] } : t))
+    );
+  }
+
+  const searchIndex = useMemo(
+    () => [
+      ...recentTickets.map((t) => ({ group: 'Tickets', label: `${t.token} — ${t.title}`, sub: `${t.user} · ${t.status}`, tab: 'tickets' })),
+      ...approvals.map((a) => ({ group: 'Approvals', label: a.title, sub: `${a.user} · ${a.status}`, tab: 'approval' })),
+      ...dataRequests.map((d) => ({ group: 'Data Requests', label: d.path, sub: `${d.name} · ${d.status}`, tab: 'datarequests' })),
+    ],
+    [recentTickets, approvals, dataRequests]
+  );
 
   return (
-    <DashboardLayout>
-      <div className="kicker">
-        {role === 'employee' ? 'Your tickets' : 'Ticket queue'}
-      </div>
-      <h1 className="text-[42px] leading-[1.02] tracking-[-0.015em] m-0 mt-1.5">
-        Dashboard
-      </h1>
+    <ItDeskLayout activeTab={activeTab} setActiveTab={setActiveTab} searchIndex={searchIndex}>
+      {activeTab === 'dashboard' && (
+        <div className="w-full flex flex-col gap-3.5 h-full max-h-full justify-between overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-none mb-1">IT Service Desk</h1>
+              <p className="text-[11px] text-gray-400">Overview of active tickets, pending approvals, and IT infrastructure.</p>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsDataModalOpen(true)}
+                className="bg-[#18181c] border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <Server size={15} />
+                <span>Request Data Transfer</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsTicketModalOpen(true)}
+                className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
+              >
+                <Plus size={15} />
+                <span>New Ticket</span>
+              </button>
+            </div>
+          </div>
 
-      {error && (
-        <p
-          role="alert"
-          className="text-[13px] m-0 mt-5 px-3 py-2.5 text-warn rounded-sm"
-          style={{ background: 'color-mix(in srgb, var(--warn) 14%, transparent)' }}
-        >
-          {error}
-        </p>
+          {/* Key Stat Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            <StatCard label="Total Tickets" value={recentTickets.length} sub="all tickets" />
+            <StatCard label="Open Tickets" value={recentTickets.filter((t) => t.status === 'Open').length} sub="active" />
+            <StatCard label="Pending Approval" value={approvals.filter((a) => a.status === 'pending').length} sub="awaiting" />
+            <StatCard label="Resolved Tickets" value={recentTickets.filter((t) => t.status === 'Resolved').length} sub="completed" />
+            <StatCard label="In Progress" value={recentTickets.filter((t) => t.status === 'In Progress').length} sub="working" />
+            <StatCard label="SLA Compliance" value="96%" sub="last 7 days" />
+          </div>
+
+          {/* Donut Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+            <DonutChart title="Tickets by Category" total={248} data={categoryData} />
+            <DonutChart title="Tickets by Status" total={248} data={statusData} />
+          </div>
+
+          {/* Assets Overview */}
+          <Card className="!p-3.5">
+            <SectionHeader
+              title="Assets Overview"
+              action={
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('assets')}
+                  className="text-xs text-[#e86024] font-semibold hover:underline cursor-pointer"
+                >
+                  View All
+                </button>
+              }
+            />
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-center mb-2.5">
+              <div className="p-2 rounded-xl bg-[#18181c] border border-white/5">
+                <Laptop size={16} className="mx-auto text-gray-400 mb-0.5" />
+                <div className="text-[10px] text-gray-400">Laptops</div>
+                <div className="text-xs font-bold text-white mt-0.5">120</div>
+              </div>
+              <div className="p-2 rounded-xl bg-[#18181c] border border-white/5">
+                <Monitor size={16} className="mx-auto text-gray-400 mb-0.5" />
+                <div className="text-[10px] text-gray-400">Desktops</div>
+                <div className="text-xs font-bold text-white mt-0.5">85</div>
+              </div>
+              <div className="p-2 rounded-xl bg-[#18181c] border border-white/5">
+                <Server size={16} className="mx-auto text-gray-400 mb-0.5" />
+                <div className="text-[10px] text-gray-400">Servers</div>
+                <div className="text-xs font-bold text-white mt-0.5">28</div>
+              </div>
+              <div className="p-2 rounded-xl bg-[#18181c] border border-white/5">
+                <Wifi size={16} className="mx-auto text-gray-400 mb-0.5" />
+                <div className="text-[10px] text-gray-400">Network</div>
+                <div className="text-xs font-bold text-white mt-0.5">18</div>
+              </div>
+              <div className="p-2 rounded-xl bg-[#18181c] border border-white/5">
+                <Printer size={16} className="mx-auto text-gray-400 mb-0.5" />
+                <div className="text-[10px] text-gray-400">Printers</div>
+                <div className="text-xs font-bold text-white mt-0.5">12</div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
+                  <Calendar size={14} />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">Next maintenance: Server Backup Schedule</div>
+                  <div className="text-[10px] text-gray-400">May 16, 2026 · 01:00 AM</div>
+                </div>
+              </div>
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-bold shrink-0">
+                Scheduled
+              </span>
+            </div>
+          </Card>
+        </div>
       )}
 
-      {/* Counts */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-7">
-        <StatTile label="Total" value={loading ? '—' : counts.total} />
-        {STATUSES.map((s) => (
-          <StatTile
-            key={s}
-            label={s}
-            value={loading ? '—' : counts[s]}
-            color={statusToken(s)}
-          />
-        ))}
-      </div>
+      {activeTab === 'tickets' && (
+        <TicketsQueueView tickets={recentTickets} onStatusChange={changeTicketStatus} onNewTicket={() => setIsTicketModalOpen(true)} />
+      )}
 
-      <hr className="rule" />
+      {activeTab === 'approval' && (
+        <ApprovalCenterView approvals={approvals} onApprove={handleApprove} onReject={handleReject} />
+      )}
 
-      {/* Filter + token lookup */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-wrap gap-2">
-          {['All', ...STATUSES].map((s) => {
-            const active = filter === s && !match;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => {
-                  clearSearch();
-                  setFilter(s);
-                }}
-                aria-pressed={active}
-                className="btn btn-secondary text-[13px] py-1.5"
-                style={
-                  active
-                    ? { background: 'color-mix(in srgb, var(--ink) 10%, transparent)', borderColor: 'var(--ink)' }
-                    : undefined
-                }
-              >
-                {s !== 'All' && (
-                  <span
-                    aria-hidden="true"
-                    className="inline-block w-[7px] h-[7px]"
-                    style={{ background: statusToken(s) }}
-                  />
-                )}
-                {s}
-              </button>
-            );
-          })}
-        </div>
+      {activeTab === 'datarequests' && (
+        <DataRequestsView requests={dataRequests} onNewRequest={() => setIsDataModalOpen(true)} />
+      )}
 
-        <form onSubmit={handleSearch} className="flex items-end gap-2">
-          <label className="field">
-            <span className="label">Find by token</span>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="FT-HR-8X2A7K"
-              className="input w-[190px] font-heading font-extrabold tracking-[0.02em]"
-            />
-          </label>
-          <button type="submit" className="btn btn-secondary py-2.5">
-            Search
-          </button>
-          {(match || searchNote) && (
-            <button type="button" onClick={clearSearch} className="btn btn-ghost py-2.5">
-              Clear
-            </button>
-          )}
-        </form>
-      </div>
+      {(activeTab === 'assets' || activeTab === 'reports' || activeTab === 'settings') && (
+        <ComingSoonView tab={activeTab} />
+      )}
 
-      {searchNote && <p className="text-[13px] text-mut mt-3 mb-0">{searchNote}</p>}
-
-      {/* Queue */}
-      <div className="panel mt-5 overflow-x-auto">
-        {loading ? (
-          <p className="text-sm text-mut px-4 py-8 m-0">Loading your tickets…</p>
-        ) : visible.length === 0 ? (
-          <p className="text-sm text-mut px-4 py-8 m-0">
-            {tickets.length === 0
-              ? "No tickets yet. Raise one and we'll track it for you."
-              : 'Nothing matches that filter.'}
-          </p>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Token</th>
-                <th>Dept</th>
-                <th>Raised by</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Raised</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((t) => (
-                <tr key={`${t.dept_tag}-${t.id}`}>
-                  <td className="font-heading font-extrabold whitespace-nowrap">{t.token}</td>
-                  <td>
-                    <span className="tag border border-line text-mut">{t.dept_tag}</span>
-                  </td>
-                  <td>
-                    <div className="truncate max-w-[26ch]">{t.name}</div>
-                    <div className="text-[12px] text-mut truncate max-w-[26ch]">
-                      {t.department}
-                    </div>
-                  </td>
-                  <td>
-                    <span className="inline-flex items-center gap-2 whitespace-nowrap">
-                      <Dot color={priorityToken(t.priority)} />
-                      {t.priority}
-                    </span>
-                  </td>
-                  <td>
-                    {canUpdate ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Dot color={statusToken(t.status)} />
-                        <select
-                          value={t.status}
-                          onChange={(e) => changeStatus(t, e.target.value)}
-                          aria-label={`Status for ${t.token}`}
-                          className="input py-1.5 px-2 text-[13px] w-auto"
-                        >
-                          {STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-2 whitespace-nowrap">
-                        <Dot color={statusToken(t.status)} />
-                        {t.status}
-                      </span>
-                    )}
-                  </td>
-                  <td className="text-mut whitespace-nowrap" title={exactTime(t.submitted_at)}>
-                    {relativeTime(t.submitted_at)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </DashboardLayout>
+      {/* Modals */}
+      <DataTransferModal
+        isOpen={isDataModalOpen}
+        onClose={() => setIsDataModalOpen(false)}
+        onSubmitSuccess={handleNewDataRequest}
+      />
+      <NewItTicketModal
+        isOpen={isTicketModalOpen}
+        onClose={() => setIsTicketModalOpen(false)}
+        onSubmitSuccess={handleNewTicket}
+      />
+    </ItDeskLayout>
   );
 }

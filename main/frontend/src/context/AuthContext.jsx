@@ -5,8 +5,9 @@ const AuthContext = createContext(null);
 // Where each role lands after signing in (PRD §4.1 — one login UI, role-based routing)
 export const HOME_FOR_ROLE = {
   founder: '/founder/dashboard',
-  hr: '/hr/dashboard',
+  hr: '/hr/overview',
   it: '/it/dashboard',
+  coordinator: '/coordinator/overview',
   employee: '/employee/dashboard',
 };
 

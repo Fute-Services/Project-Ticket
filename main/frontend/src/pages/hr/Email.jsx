@@ -1,0 +1,223 @@
+import { useState } from 'react';
+import { Inbox, Send, FileEdit, LayoutTemplate } from 'lucide-react';
+import HrLayout from '../../components/hr/HrLayout';
+import { Card, SectionHeader, EmptyState } from '../../components/ui';
+import { emails as SEED } from '../../data/hrMockData';
+
+const FOLDERS = [
+  { id: 'inbox', label: 'Inbox', icon: Inbox },
+  { id: 'sent', label: 'Sent', icon: Send },
+  { id: 'drafts', label: 'Drafts', icon: FileEdit },
+  { id: 'templates', label: 'Templates', icon: LayoutTemplate },
+];
+
+export default function Email() {
+  const [emails, setEmails] = useState(SEED);
+  const [folder, setFolder] = useState('inbox');
+  const [selected, setSelected] = useState(SEED.inbox[0]?.id || null);
+  const [replyText, setReplyText] = useState('');
+
+  const list = emails[folder] || [];
+  const activeEmail = folder === 'inbox' ? emails.inbox.find((e) => e.id === selected) : null;
+  const activeDraft = folder === 'drafts' ? emails.drafts.find((d) => d.id === selected) : null;
+
+  function goToFolder(id) {
+    setFolder(id);
+    setSelected(emails[id]?.[0]?.id ?? null);
+    setReplyText('');
+  }
+
+  function sendReply() {
+    if (!replyText.trim() || !activeEmail) return;
+    const message = { from: 'You (HR)', to: activeEmail.from, body: replyText.trim(), time: 'Just now' };
+    setEmails((prev) => ({
+      ...prev,
+      inbox: prev.inbox.map((e) => (e.id === activeEmail.id ? { ...e, unread: false, thread: [...e.thread, message] } : e)),
+      sent: [{ id: `ES-${Date.now()}`, to: activeEmail.from, subject: `Re: ${activeEmail.subject}`, preview: replyText.trim(), time: 'Just now' }, ...prev.sent],
+    }));
+    setReplyText('');
+  }
+
+  function useTemplate(template) {
+    const draft = { id: `ED-${Date.now()}`, to: '', subject: template.subject, preview: '', body: '', time: 'Just now' };
+    setEmails((prev) => ({ ...prev, drafts: [draft, ...prev.drafts] }));
+    setFolder('drafts');
+    setSelected(draft.id);
+  }
+
+  function updateDraft(patch) {
+    setEmails((prev) => ({
+      ...prev,
+      drafts: prev.drafts.map((d) => (d.id === activeDraft.id ? { ...d, ...patch, preview: (patch.body ?? d.body ?? '').slice(0, 80) } : d)),
+    }));
+  }
+
+  function sendDraft() {
+    if (!activeDraft?.to.trim() || !activeDraft?.subject.trim()) return;
+    setEmails((prev) => ({
+      ...prev,
+      drafts: prev.drafts.filter((d) => d.id !== activeDraft.id),
+      sent: [{ id: `ES-${Date.now()}`, to: activeDraft.to, subject: activeDraft.subject, preview: activeDraft.body?.slice(0, 80) || '', time: 'Just now' }, ...prev.sent],
+    }));
+    setSelected(null);
+  }
+
+  function discardDraft() {
+    setEmails((prev) => ({ ...prev, drafts: prev.drafts.filter((d) => d.id !== activeDraft.id) }));
+    setSelected(null);
+  }
+
+  return (
+    <HrLayout>
+      <div className="flex flex-col gap-6 max-w-[1600px] mx-auto">
+        <SectionHeader title="Email Dashboard" subtitle="Every HR email, without leaving the workspace" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[520px]">
+          {/* Folder rail */}
+          <Card className="lg:col-span-2 flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible">
+            {FOLDERS.map((f) => {
+              const Icon = f.icon;
+              const active = folder === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => goToFolder(f.id)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                    active ? 'bg-[#e86024]/15 text-[#e86024] border border-[#e86024]/30' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Icon size={15} />
+                  {f.label}
+                  <span className="ml-auto text-[10px] text-gray-500">{emails[f.id]?.length || 0}</span>
+                </button>
+              );
+            })}
+          </Card>
+
+          {/* List */}
+          <Card className="lg:col-span-4 p-0 overflow-hidden flex flex-col">
+            <div className="overflow-y-auto flex-1">
+              {list.length === 0 ? (
+                <EmptyState text="Nothing here." />
+              ) : (
+                list.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelected(item.id)}
+                    className={`w-full text-left px-4 py-3.5 border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-pointer ${
+                      selected === item.id ? 'bg-white/[0.04]' : ''
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs truncate ${item.unread ? 'font-bold text-white' : 'font-medium text-gray-300'}`}>
+                        {item.from || item.to || item.subject || 'Untitled'}
+                      </span>
+                      <span className="text-[9px] text-gray-500 shrink-0 ml-2">{item.time}</span>
+                    </div>
+                    <div className="text-[11px] text-gray-400 truncate">{item.subject}</div>
+                    {item.preview && <div className="text-[10px] text-gray-600 truncate mt-0.5">{item.preview}</div>}
+                  </button>
+                ))
+              )}
+            </div>
+          </Card>
+
+          {/* Reading / compose pane */}
+          <Card className="lg:col-span-6">
+            {folder === 'inbox' && activeEmail ? (
+              <div className="flex flex-col gap-4">
+                <div>
+                  <div className="text-sm font-bold text-white">{activeEmail.subject}</div>
+                  <div className="text-[11px] text-gray-500 mt-0.5">{activeEmail.from}</div>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {activeEmail.thread.map((msg, i) => (
+                    <div key={i} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-semibold text-white">{msg.from}</span>
+                        <span className="text-[10px] text-gray-500">{msg.time}</span>
+                      </div>
+                      <p className="text-xs text-gray-300 leading-relaxed">{msg.body}</p>
+                    </div>
+                  ))}
+                </div>
+                <textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Write a reply..."
+                  rows={3}
+                  className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+                />
+                <button
+                  type="button"
+                  onClick={sendReply}
+                  disabled={!replyText.trim()}
+                  className="self-end bg-[#e86024] hover:bg-[#d4521a] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer transition-colors"
+                >
+                  Send Reply
+                </button>
+              </div>
+            ) : folder === 'drafts' && activeDraft ? (
+              <div className="flex flex-col gap-3">
+                <input
+                  value={activeDraft.to}
+                  onChange={(e) => updateDraft({ to: e.target.value })}
+                  placeholder="To: recipient@email.com"
+                  className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+                />
+                <input
+                  value={activeDraft.subject}
+                  onChange={(e) => updateDraft({ subject: e.target.value })}
+                  placeholder="Subject"
+                  className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024] font-semibold"
+                />
+                <textarea
+                  value={activeDraft.body || ''}
+                  onChange={(e) => updateDraft({ body: e.target.value })}
+                  placeholder="Write your message..."
+                  rows={8}
+                  className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <button type="button" onClick={discardDraft} className="text-xs text-gray-400 hover:text-white px-3 py-2 cursor-pointer">
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={sendDraft}
+                    disabled={!activeDraft.to.trim() || !activeDraft.subject.trim()}
+                    className="bg-[#e86024] hover:bg-[#d4521a] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer transition-colors"
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            ) : folder === 'templates' ? (
+              <div className="flex flex-col gap-3">
+                {emails.templates.map((t) => (
+                  <div key={t.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-white">{t.name}</div>
+                      <div className="text-[10px] text-gray-500">{t.subject}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => useTemplate(t)}
+                      className="text-[10px] text-[#e86024] font-semibold hover:underline cursor-pointer"
+                    >
+                      Use template
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState text="Select an email to read it here." />
+            )}
+          </Card>
+        </div>
+      </div>
+    </HrLayout>
+  );
+}

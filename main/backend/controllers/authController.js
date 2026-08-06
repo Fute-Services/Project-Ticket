@@ -6,6 +6,7 @@ require('dotenv').config();
 function detectRole(email) {
   if (/hr\.fute/i.test(email)) return 'hr';
   if (/system\.fute/i.test(email) || /system\.futeservice/i.test(email)) return 'it';
+  if (/coordinator\.fute/i.test(email)) return 'coordinator';
   return 'employee'; // founder is set manually in DB
 }
 

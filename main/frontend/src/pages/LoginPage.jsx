@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth, homeFor } from '../context/AuthContext';
 import { loginUser } from '../utils/api';
+import { dummyLogin, DEMO_ACCOUNTS } from '../utils/dummyAuth';
 import AuthLayout from '../components/AuthLayout';
 import IconField from '../components/IconField';
 
@@ -30,24 +31,36 @@ export default function LoginPage() {
     if (error) setError('');
   }
 
+  function signInWithSession(data) {
+    login(
+      {
+        id: data.id,
+        email: data.email,
+        role: data.role,
+        full_name: data.full_name,
+        department: data.department,
+      },
+      data.token,
+      remember
+    );
+    navigate(homeFor(data.role));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const { data } = await loginUser(form);
-      login(
-        {
-          id: data.id,
-          email: data.email,
-          role: data.role,
-          full_name: data.full_name,
-          department: data.department,
-        },
-        data.token,
-        remember
-      );
-      navigate(homeFor(data.role));
+      let data;
+      try {
+        ({ data } = await loginUser(form));
+      } catch (err) {
+        // No backend reachable (Firebase isn't configured here) — fall back
+        // to the local demo accounts instead of dead-ending the user.
+        if (err.response) throw err;
+        ({ data } = dummyLogin(form));
+      }
+      signInWithSession(data);
     } catch (err) {
       setError(
         err.response?.status === 401
@@ -57,6 +70,12 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleDemoLogin(account) {
+    setError('');
+    const { data } = dummyLogin(account);
+    signInWithSession(data);
   }
 
   return (
@@ -151,6 +170,24 @@ export default function LoginPage() {
           Sign up
         </Link>
       </p>
+
+      <div className="mt-5 pt-4 border-t border-white/10">
+        <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
+          Demo mode — no backend needed
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {DEMO_ACCOUNTS.map((account) => (
+            <button
+              key={account.role}
+              type="button"
+              onClick={() => handleDemoLogin(account)}
+              className="text-[11px] font-medium capitalize px-3 py-1.5 rounded-full border border-white/15 text-gray-300 hover:border-[#e86024] hover:text-[#e86024] transition-colors cursor-pointer"
+            >
+              {account.role}
+            </button>
+          ))}
+        </div>
+      </div>
     </AuthLayout>
   );
 }
