@@ -1,13 +1,48 @@
 import { useNavigate } from 'react-router-dom';
-import { ListChecks, Clock3, Loader2, CheckCircle2, AlertTriangle, Plus } from 'lucide-react';
+import {
+  ListChecks,
+  Clock3,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+  Plus,
+  FolderKanban,
+  Figma,
+  Github,
+} from 'lucide-react';
 import CoordinatorLayout from '../../components/coordinator/CoordinatorLayout';
 import { Card, SectionHeader, StatCard, Badge } from '../../components/ui';
 import DonutChart from '../../components/DonutChart';
-import { tasks, TASK_STATUSES } from '../../data/coordinatorMockData';
+import { tasks, projects, TASK_STATUSES } from '../../data/coordinatorMockData';
 
 const TODAY = '2026-08-06';
 
 const STATUS_COLOR = { Pending: '#f97316', 'In Progress': '#3b82f6', Completed: '#10b981' };
+
+const PROJECT_STATUS_TONE = {
+  'On Track': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  'At Risk': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  Delayed: 'bg-red-500/10 text-red-400 border-red-500/20',
+  Completed: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+};
+
+const PROGRESS_BAR = {
+  'On Track': 'from-emerald-500 to-emerald-400',
+  'At Risk': 'from-amber-500 to-amber-400',
+  Delayed: 'from-red-500 to-red-400',
+  Completed: 'from-blue-500 to-blue-400',
+};
+
+// Members render as overlapping initial-avatars; two letters keeps
+// "Priya Nair" → "PN" readable at 24px.
+function initials(name) {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
 
 function toDonutData(rows, key, statuses, colorMap) {
   const total = rows.length || 1;
@@ -26,6 +61,7 @@ export default function CoordinatorOverview() {
   const inProgress = tasks.filter((t) => t.status === 'In Progress').length;
   const completed = tasks.filter((t) => t.status === 'Completed').length;
   const overdue = tasks.filter((t) => t.status !== 'Completed' && t.dueDate < TODAY).length;
+  const activeProjects = projects.filter((p) => p.status !== 'Completed').length;
 
   const statusBreakdown = toDonutData(tasks, 'status', TASK_STATUSES, STATUS_COLOR);
 
@@ -51,7 +87,7 @@ export default function CoordinatorOverview() {
               Dashboard
             </h1>
             <p className="text-xs text-gray-400">
-              {tasks.length} tasks across the team · {overdue} overdue
+              {activeProjects} active projects · {tasks.length} tasks · {overdue} overdue
             </p>
           </div>
           <button
@@ -65,13 +101,96 @@ export default function CoordinatorOverview() {
         </div>
 
         {/* Key Stat Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+          <StatCard icon={FolderKanban} label="Active Projects" value={activeProjects} accent="#a855f7" />
           <StatCard icon={ListChecks} label="Total Tasks" value={tasks.length} accent="#e86024" />
           <StatCard icon={Clock3} label="Pending" value={pending} accent="#f97316" />
           <StatCard icon={Loader2} label="In Progress" value={inProgress} accent="#3b82f6" />
           <StatCard icon={CheckCircle2} label="Completed" value={completed} accent="#10b981" />
           <StatCard icon={AlertTriangle} label="Overdue" value={overdue} accent="#ef4444" />
         </div>
+
+        {/* Active Projects */}
+        <Card>
+          <SectionHeader
+            title="Active Projects"
+            subtitle="Progress, team, and linked design/code assets"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {projects.map((p) => {
+              const projectTasks = tasks.filter((t) => t.projectId === p.id);
+              const done = projectTasks.filter((t) => t.status === 'Completed').length;
+              return (
+                <div key={p.id} className="p-4 rounded-2xl bg-[#18181c] border border-white/5 hover:border-white/15 transition-colors flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-white truncate">{p.name}</div>
+                      <div className="text-[11px] text-gray-500 truncate">{p.client} · due {p.dueDate}</div>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold whitespace-nowrap shrink-0 ${PROJECT_STATUS_TONE[p.status]}`}>
+                      {p.status}
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] mb-1.5">
+                      <span className="text-gray-400">{done}/{projectTasks.length} tasks done</span>
+                      <span className="font-bold text-white">{p.progress}%</span>
+                    </div>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full bg-gradient-to-r ${PROGRESS_BAR[p.status]} rounded-full transition-all`}
+                        style={{ width: `${p.progress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    {/* Team member avatars */}
+                    <div className="flex items-center -space-x-1.5">
+                      {p.members.map((m) => (
+                        <span
+                          key={m}
+                          title={m}
+                          className="w-6 h-6 rounded-full bg-[#e86024]/20 border border-[#e86024]/40 ring-2 ring-[#18181c] flex items-center justify-center text-[9px] font-bold text-[#e86024]"
+                        >
+                          {initials(m)}
+                        </span>
+                      ))}
+                      <span className="pl-3 text-[10px] text-gray-500">{p.members.length} members</span>
+                    </div>
+
+                    {/* Linked assets */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {p.figma && (
+                        <a
+                          href={`https://${p.figma}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={p.figma}
+                          className="w-6 h-6 rounded-lg bg-[#141418] border border-white/10 hover:border-[#e86024]/50 flex items-center justify-center text-gray-400 hover:text-[#e86024] transition-colors"
+                        >
+                          <Figma size={12} />
+                        </a>
+                      )}
+                      {p.repo && (
+                        <a
+                          href={`https://${p.repo}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={p.repo}
+                          className="w-6 h-6 rounded-lg bg-[#141418] border border-white/10 hover:border-[#e86024]/50 flex items-center justify-center text-gray-400 hover:text-[#e86024] transition-colors"
+                        >
+                          <Github size={12} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
 
         {/* Status breakdown + workload by assignee */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

@@ -10,8 +10,10 @@ import {
   ChevronDown,
   Menu,
   Calendar,
+  MessageSquare,
 } from 'lucide-react';
 import { tasks as allTasks } from '../../data/coordinatorMockData';
+import TeamChatDrawer from '../TeamChatDrawer';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/coordinator/overview' },
@@ -35,6 +37,7 @@ export default function CoordinatorLayout({ children }) {
   const [query, setQuery] = useState('');
   const [dateRangeLabel, setDateRangeLabel] = useState('Today');
   const [showHeaderProfileMenu, setShowHeaderProfileMenu] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const searchIndex = useMemo(buildSearchIndex, []);
   const results = useMemo(() => {
@@ -201,6 +204,16 @@ export default function CoordinatorLayout({ children }) {
               )}
             </div>
 
+            {/* Team Chat Hub Button */}
+            <button
+              type="button"
+              onClick={() => setIsChatOpen(true)}
+              className="h-10 px-3 rounded-xl bg-[#e86024]/10 hover:bg-[#e86024]/20 border border-[#e86024]/30 text-[#e86024] text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shrink-0"
+            >
+              <MessageSquare size={14} />
+              <span className="hidden sm:inline">Team Chat</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setDateRangeLabel((l) => DATE_RANGES[(DATE_RANGES.indexOf(l) + 1) % DATE_RANGES.length])}
@@ -244,6 +257,8 @@ export default function CoordinatorLayout({ children }) {
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">{children}</main>
       </div>
+
+      <TeamChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 }

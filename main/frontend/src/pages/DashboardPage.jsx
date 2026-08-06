@@ -6,6 +6,15 @@ import DataTransferModal from '../components/DataTransferModal';
 import NewItTicketModal from '../components/NewItTicketModal';
 import { Card, SectionHeader, StatCard } from '../components/ui';
 import {
+  assets,
+  ASSET_TYPES,
+  slaWeekly,
+  resolutionByCategory,
+  engineerPerformance,
+  defaultItSettings,
+  TICKET_PRIORITIES,
+} from '../data/itMockData';
+import {
   Ticket,
   Clock,
   CheckCircle2,
@@ -18,7 +27,8 @@ import {
   Wifi,
   Plus,
   Calendar,
-  Package,
+  Search,
+  Download,
 } from 'lucide-react';
 
 const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
@@ -231,24 +241,428 @@ function DataRequestsView({ requests, onNewRequest }) {
   );
 }
 
-const COMING_SOON_LABEL = {
-  assets: 'Asset Management',
-  reports: 'Reports & Logs',
-  settings: 'Settings',
+const ASSET_TYPE_ICON = {
+  Laptop,
+  Desktop: Monitor,
+  Server,
+  Network: Wifi,
+  Printer,
 };
 
-// Honest placeholder — same principle as the disabled "Forgot password" on
-// the login page: no backing data/backend exists for this yet, so say so
-// instead of showing fake numbers that look live.
-function ComingSoonView({ tab }) {
+const ASSET_STATUS_COLOR = {
+  'In Use': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  Available: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  'Under Repair': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  Retired: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+};
+
+function AssetsView() {
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [query, setQuery] = useState('');
+
+  const visible = assets.filter((a) => {
+    if (typeFilter !== 'All' && a.type !== typeFilter) return false;
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      a.id.toLowerCase().includes(q) ||
+      a.model.toLowerCase().includes(q) ||
+      a.assignedTo.toLowerCase().includes(q) ||
+      a.department.toLowerCase().includes(q)
+    );
+  });
+
+  // Warranty is "expiring" if it lapses within 90 days of the demo date —
+  // the whole point of tracking it is catching that before it lapses.
+  const soon = new Date('2026-08-06');
+  soon.setDate(soon.getDate() + 90);
+  const expiring = assets.filter((a) => new Date(a.warrantyEnd) <= soon && a.status !== 'Retired').length;
+
   return (
     <div className="w-full flex flex-col gap-6">
-      <div className="bg-[#141418] border border-white/5 rounded-3xl p-10 flex flex-col items-center text-center gap-2">
-        <Package size={28} className="text-gray-600 mb-2" />
-        <h2 className="text-lg font-bold text-white">{COMING_SOON_LABEL[tab]} isn't available yet</h2>
-        <p className="text-xs text-gray-500 max-w-sm">
-          This module isn't built yet. It's tracked in the IT department requirements doc for a future pass.
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Asset Management</h1>
+        <p className="text-xs text-gray-400">
+          {assets.length} assets tracked · {expiring} warranty expiring within 90 days
         </p>
+      </div>
+
+      {/* Counts per type */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {ASSET_TYPES.map((type) => {
+          const Icon = ASSET_TYPE_ICON[type];
+          const count = assets.filter((a) => a.type === type).length;
+          const inUse = assets.filter((a) => a.type === type && a.status === 'In Use').length;
+          return (
+            <div key={type} className="bg-[#141418] border border-white/5 rounded-2xl p-3.5 text-center">
+              <Icon size={18} className="mx-auto text-gray-400 mb-1.5" />
+              <div className="text-[10px] text-gray-400">{type}s</div>
+              <div className="text-lg font-bold text-white mt-0.5">{count}</div>
+              <div className="text-[10px] text-emerald-400">{inUse} in use</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <Card>
+        <div className="flex flex-col md:flex-row gap-3 mb-5">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by asset ID, model, user, or department..."
+              className="w-full bg-[#18181c] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-5">
+          {['All', ...ASSET_TYPES].map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTypeFilter(t)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                typeFilter === t ? 'bg-[#e86024] text-white' : 'bg-[#18181c] border border-white/10 text-gray-400 hover:text-white'
+              }`}
+            >
+              {t === 'All' ? 'All' : `${t}s`}
+            </button>
+          ))}
+        </div>
+
+        {visible.length === 0 ? (
+          <p className="text-xs text-gray-500 py-8 text-center">No assets match this filter.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 text-gray-400 uppercase text-[10px] tracking-wider">
+                  <th className="py-3 px-3">Asset ID</th>
+                  <th className="py-3 px-3">Model</th>
+                  <th className="py-3 px-3">Assigned To</th>
+                  <th className="py-3 px-3">Department</th>
+                  <th className="py-3 px-3">Purchased</th>
+                  <th className="py-3 px-3">Warranty Until</th>
+                  <th className="py-3 px-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {visible.map((a) => {
+                  const expiringSoon = new Date(a.warrantyEnd) <= soon && a.status !== 'Retired';
+                  return (
+                    <tr key={a.id} className="hover:bg-white/[0.02]">
+                      <td className="py-3.5 px-3 font-bold text-[#e86024]">{a.id}</td>
+                      <td className="py-3.5 px-3 text-white">{a.model}</td>
+                      <td className="py-3.5 px-3 text-gray-300">{a.assignedTo}</td>
+                      <td className="py-3.5 px-3 text-gray-400">{a.department}</td>
+                      <td className="py-3.5 px-3 text-gray-500">{a.purchaseDate}</td>
+                      <td className={`py-3.5 px-3 ${expiringSoon ? 'text-amber-400 font-semibold' : 'text-gray-500'}`}>
+                        {a.warrantyEnd}
+                      </td>
+                      <td className="py-3.5 px-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold whitespace-nowrap ${ASSET_STATUS_COLOR[a.status]}`}>
+                          {a.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function ReportsView() {
+  const totalMet = slaWeekly.reduce((s, w) => s + w.met, 0);
+  const totalBreached = slaWeekly.reduce((s, w) => s + w.breached, 0);
+  const slaPct = Math.round((totalMet / (totalMet + totalBreached)) * 100);
+  const avgResolution = (slaWeekly.reduce((s, w) => s + w.avgHours, 0) / slaWeekly.length).toFixed(1);
+  const maxWeekTotal = Math.max(...slaWeekly.map((w) => w.met + w.breached));
+
+  function exportCsv() {
+    const headers = ['Week', 'SLA Met', 'SLA Breached', 'Avg Resolution (hrs)'];
+    const rows = slaWeekly.map((w) => [w.week, w.met, w.breached, w.avgHours]);
+    const escape = (v) => `"${String(v).replace(/"/g, '""')}"`;
+    const csv = [headers.map(escape).join(','), ...rows.map((r) => r.map(escape).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'it-sla-report.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="w-full flex flex-col gap-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Reports & Logs</h1>
+          <p className="text-xs text-gray-400">SLA compliance and resolution velocity, last 6 weeks</p>
+        </div>
+        <button
+          type="button"
+          onClick={exportCsv}
+          className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
+        >
+          <Download size={14} />
+          <span>Export CSV</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <StatCard icon={ShieldCheck} label="SLA Compliance" value={`${slaPct}%`} sub="last 6 weeks" accent="#10b981" />
+        <StatCard icon={CheckCircle2} label="Tickets Resolved" value={totalMet + totalBreached} sub="last 6 weeks" accent="#3b82f6" />
+        <StatCard icon={AlertTriangle} label="SLA Breaches" value={totalBreached} sub="needs review" accent="#ef4444" />
+        <StatCard icon={Clock} label="Avg Resolution" value={`${avgResolution}h`} sub="mean time to resolve" accent="#f97316" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Card>
+          <SectionHeader title="Weekly SLA Performance" subtitle="Met vs breached per week" />
+          <div className="flex items-end justify-between gap-2 h-[160px] pt-2">
+            {slaWeekly.map((w) => {
+              const total = w.met + w.breached;
+              return (
+                <div key={w.week} className="flex-1 flex flex-col items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400 font-semibold">{total}</span>
+                  <div
+                    className="w-full max-w-[26px] flex flex-col justify-end rounded-t-lg overflow-hidden"
+                    style={{ height: `${(total / maxWeekTotal) * 110}px` }}
+                  >
+                    <div className="w-full bg-red-500/70" style={{ height: `${(w.breached / total) * 100}%` }} />
+                    <div className="w-full bg-emerald-500/80" style={{ height: `${(w.met / total) * 100}%` }} />
+                  </div>
+                  <span className="text-[10px] text-gray-500 font-bold">{w.week}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-4 pt-3 mt-3 border-t border-white/5 text-[10px] text-gray-400">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Met</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" /> Breached</span>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionHeader title="Resolution Time by Category" subtitle="Average hours to close" />
+          <div className="flex flex-col gap-3">
+            {resolutionByCategory.map((c) => {
+              const maxHours = Math.max(...resolutionByCategory.map((r) => r.avgHours));
+              return (
+                <div key={c.category} className="flex items-center gap-3">
+                  <span className="text-[11px] text-gray-300 w-40 shrink-0 truncate">{c.category}</span>
+                  <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#e86024] to-amber-400 rounded-full"
+                      style={{ width: `${(c.avgHours / maxHours) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] font-bold text-white w-12 text-right shrink-0">{c.avgHours}h</span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+
+      <Card>
+        <SectionHeader title="Engineer Performance" subtitle="Resolution volume and SLA adherence" />
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-white/10 text-gray-400 uppercase text-[10px] tracking-wider">
+                <th className="py-3 px-3">Engineer</th>
+                <th className="py-3 px-3">Tickets Resolved</th>
+                <th className="py-3 px-3">Avg Resolution</th>
+                <th className="py-3 px-3">SLA Adherence</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {engineerPerformance.map((e) => (
+                <tr key={e.engineer} className="hover:bg-white/[0.02]">
+                  <td className="py-3.5 px-3 font-bold text-white">{e.engineer}</td>
+                  <td className="py-3.5 px-3 text-gray-300">{e.resolved}</td>
+                  <td className="py-3.5 px-3 text-gray-400">{e.avgHours}h</td>
+                  <td className="py-3.5 px-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${e.slaPct >= 95 ? 'bg-emerald-500' : e.slaPct >= 90 ? 'bg-amber-500' : 'bg-red-500'}`}
+                          style={{ width: `${e.slaPct}%` }}
+                        />
+                      </div>
+                      <span className="text-[11px] font-bold text-white">{e.slaPct}%</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function Toggle({ checked, onChange, label, hint }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="w-full flex items-center justify-between gap-4 p-3 rounded-2xl bg-[#18181c] border border-white/5 hover:border-white/15 transition-colors cursor-pointer text-left"
+    >
+      <div className="min-w-0">
+        <div className="text-xs font-semibold text-white">{label}</div>
+        {hint && <div className="text-[11px] text-gray-500 mt-0.5">{hint}</div>}
+      </div>
+      <span
+        className={`w-9 h-5 rounded-full shrink-0 flex items-center px-0.5 transition-colors ${
+          checked ? 'bg-[#e86024] justify-end' : 'bg-white/10 justify-start'
+        }`}
+      >
+        <span className="w-4 h-4 rounded-full bg-white" />
+      </span>
+    </button>
+  );
+}
+
+function SettingsView() {
+  const [settings, setSettings] = useState(defaultItSettings);
+  const [saved, setSaved] = useState(false);
+
+  function set(key, value) {
+    setSettings((s) => ({ ...s, [key]: value }));
+    setSaved(false);
+  }
+
+  const slaFields = [
+    { key: 'slaCriticalHours', label: 'Critical' },
+    { key: 'slaHighHours', label: 'High' },
+    { key: 'slaMediumHours', label: 'Medium' },
+    { key: 'slaLowHours', label: 'Low' },
+  ];
+
+  return (
+    <div className="w-full flex flex-col gap-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Settings</h1>
+          <p className="text-xs text-gray-400">Service desk configuration</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {saved && <span className="text-[11px] text-emerald-400 font-semibold">Applied for this session</span>}
+          <button
+            type="button"
+            onClick={() => setSaved(true)}
+            className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
+          >
+            <CheckCircle2 size={14} />
+            <span>Apply Changes</span>
+          </button>
+        </div>
+      </div>
+
+      {/* No settings endpoint exists on the backend yet, so say plainly that
+          these don't persist rather than implying a save that never happens. */}
+      <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-amber-500/[0.07] border border-amber-500/20">
+        <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+        <p className="text-[11px] text-amber-200/90 leading-relaxed">
+          These preferences apply to the current session only. Persisting them needs a settings endpoint on the
+          backend, which isn't built yet — they'll reset on reload.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Card>
+          <SectionHeader title="SLA Targets" subtitle="Hours to resolve, by ticket priority" />
+          <div className="grid grid-cols-2 gap-3">
+            {slaFields.map(({ key, label }) => (
+              <label key={key} className="flex flex-col gap-1.5 text-xs">
+                <span className="text-gray-400 font-medium">{label}</span>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min={1}
+                    value={settings[key]}
+                    onChange={(e) => set(key, Number(e.target.value))}
+                    className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 pr-12 text-xs text-white focus:outline-none focus:border-[#e86024] transition-colors"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">
+                    hours
+                  </span>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-white/5">
+            <label className="flex flex-col gap-1.5 text-xs">
+              <span className="text-gray-400 font-medium">Default priority for new tickets</span>
+              <select
+                value={settings.defaultTicketPriority}
+                onChange={(e) => set('defaultTicketPriority', e.target.value)}
+                className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#e86024] cursor-pointer"
+              >
+                {TICKET_PRIORITIES.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </Card>
+
+        <div className="flex flex-col gap-5">
+          <Card>
+            <SectionHeader title="Notifications" />
+            <div className="flex flex-col gap-2.5">
+              <Toggle
+                checked={settings.notifyOnCritical}
+                onChange={(v) => set('notifyOnCritical', v)}
+                label="Alert on critical tickets"
+                hint="Notify the on-call engineer immediately"
+              />
+              <Toggle
+                checked={settings.notifyOnApproval}
+                onChange={(v) => set('notifyOnApproval', v)}
+                label="Alert on approval requests"
+                hint="Notify approvers when a request needs sign-off"
+              />
+            </div>
+          </Card>
+
+          <Card>
+            <SectionHeader title="Workflow" />
+            <div className="flex flex-col gap-2.5">
+              <Toggle
+                checked={settings.autoAssignTickets}
+                onChange={(v) => set('autoAssignTickets', v)}
+                label="Auto-assign new tickets"
+                hint="Route by category to the least-loaded engineer"
+              />
+              <Toggle
+                checked={settings.requireApprovalForDataTransfer}
+                onChange={(v) => set('requireApprovalForDataTransfer', v)}
+                label="Require approval for data transfers"
+                hint="Server-to-server copies need sign-off before running"
+              />
+              <Toggle
+                checked={settings.requireApprovalForSoftware}
+                onChange={(v) => set('requireApprovalForSoftware', v)}
+                label="Require approval for software installs"
+                hint="License-bearing software needs sign-off"
+              />
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -550,9 +964,11 @@ export default function DashboardPage() {
         <DataRequestsView requests={dataRequests} onNewRequest={() => setIsDataModalOpen(true)} />
       )}
 
-      {(activeTab === 'assets' || activeTab === 'reports' || activeTab === 'settings') && (
-        <ComingSoonView tab={activeTab} />
-      )}
+      {activeTab === 'assets' && <AssetsView />}
+
+      {activeTab === 'reports' && <ReportsView />}
+
+      {activeTab === 'settings' && <SettingsView />}
 
       {/* Modals */}
       <DataTransferModal

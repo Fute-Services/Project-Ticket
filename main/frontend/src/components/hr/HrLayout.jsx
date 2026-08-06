@@ -29,6 +29,7 @@ import {
   meetings,
   notifications as allNotifications,
 } from '../../data/hrMockData';
+import TeamChatDrawer from '../TeamChatDrawer';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/hr/overview' },
@@ -66,6 +67,7 @@ export default function HrLayout({ children }) {
   const [query, setQuery] = useState('');
   const [dateRangeLabel, setDateRangeLabel] = useState('Today');
   const [showHeaderProfileMenu, setShowHeaderProfileMenu] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const searchIndex = useMemo(buildSearchIndex, []);
   const results = useMemo(() => {
@@ -257,6 +259,16 @@ export default function HrLayout({ children }) {
               </span>
             </button>
 
+            {/* Team Chat Hub Button */}
+            <button
+              type="button"
+              onClick={() => setIsChatOpen(true)}
+              className="h-9 px-3 rounded-xl bg-[#e86024]/10 hover:bg-[#e86024]/20 border border-[#e86024]/30 text-[#e86024] text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shrink-0"
+            >
+              <MessageSquare size={14} />
+              <span className="hidden sm:inline">Team Chat</span>
+            </button>
+
             {/* Calendar Date Pill */}
             <button
               type="button"
@@ -302,6 +314,8 @@ export default function HrLayout({ children }) {
 
         <main className="flex-1 p-3 lg:p-4 min-w-0 overflow-hidden flex flex-col justify-between h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)]">{children}</main>
       </div>
+
+      <TeamChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 }

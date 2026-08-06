@@ -8,6 +8,7 @@ import {
   Bell,
   LogOut,
   ChevronDown,
+  MessageSquare,
 } from 'lucide-react';
 import { employees, candidates, interviews } from '../data/hrMockData';
 
