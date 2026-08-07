@@ -62,10 +62,10 @@ export const projects = [
 ];
 
 export const tasks = [
-  { id: 'TK-901', projectId: 'PRJ-01', title: 'Build responsive dashboard grid', assignee: 'Devansh Gupta', priority: 'High', status: 'In Progress', dueDate: '2026-08-07', comments: 2, attachments: 0, figma: 'figma.com/file/northwind-portal?node=142-88', pr: 'github.com/fute/northwind-portal/pull/214' },
-  { id: 'TK-902', projectId: 'PRJ-01', title: 'Design settings page mockups', assignee: 'Priya Nair', priority: 'High', status: 'Pending', dueDate: '2026-08-06', comments: 1, attachments: 1, figma: 'figma.com/file/northwind-portal?node=201-14', pr: '' },
-  { id: 'TK-903', projectId: 'PRJ-02', title: 'Fix push notification crash on iOS', assignee: 'Devansh Gupta', priority: 'High', status: 'Pending', dueDate: '2026-08-10', comments: 0, attachments: 0, figma: '', pr: 'github.com/fute/mobile-app/pull/57' },
-  { id: 'TK-904', projectId: 'PRJ-03', title: 'Write Helm charts for staging', assignee: 'Arjun Verma', priority: 'Medium', status: 'Completed', dueDate: '2026-07-28', comments: 3, attachments: 2, figma: '', pr: 'github.com/fute/infra-k8s/pull/88' },
-  { id: 'TK-905', projectId: 'PRJ-04', title: 'Map onboarding checklist to HRMS fields', assignee: 'Sneha Iyer', priority: 'Medium', status: 'In Progress', dueDate: '2026-08-08', comments: 1, attachments: 0, figma: 'figma.com/file/hr-onboarding?node=8-2', pr: '' },
-  { id: 'TK-906', projectId: 'PRJ-02', title: 'Update app icon set for dark mode', assignee: 'Priya Nair', priority: 'Low', status: 'Pending', dueDate: '2026-08-14', comments: 0, attachments: 3, figma: 'figma.com/file/fute-mobile-v2?node=33-7', pr: '' },
+  { id: 'TK-901', projectId: 'PRJ-01', title: 'Build responsive dashboard grid', assignee: 'Devansh Gupta', priority: 'High', status: 'In Progress', dueDate: '2026-08-07', duration: '3 days', comments: 2, attachments: 0, figma: 'figma.com/file/northwind-portal?node=142-88', pr: 'github.com/fute/northwind-portal/pull/214' },
+  { id: 'TK-902', projectId: 'PRJ-01', title: 'Design settings page mockups', assignee: 'Priya Nair', priority: 'High', status: 'Pending', dueDate: '2026-08-06', duration: '2 days', comments: 1, attachments: 1, figma: 'figma.com/file/northwind-portal?node=201-14', pr: '' },
+  { id: 'TK-903', projectId: 'PRJ-02', title: 'Fix push notification crash on iOS', assignee: 'Devansh Gupta', priority: 'High', status: 'Pending', dueDate: '2026-08-10', duration: '1 day', comments: 0, attachments: 0, figma: '', pr: 'github.com/fute/mobile-app/pull/57' },
+  { id: 'TK-904', projectId: 'PRJ-03', title: 'Write Helm charts for staging', assignee: 'Arjun Verma', priority: 'Medium', status: 'Completed', dueDate: '2026-07-28', duration: '4 days', comments: 3, attachments: 2, figma: '', pr: 'github.com/fute/infra-k8s/pull/88' },
+  { id: 'TK-905', projectId: 'PRJ-04', title: 'Map onboarding checklist to HRMS fields', assignee: 'Sneha Iyer', priority: 'Medium', status: 'In Progress', dueDate: '2026-08-08', duration: '5 days', comments: 1, attachments: 0, figma: 'figma.com/file/hr-onboarding?node=8-2', pr: '' },
+  { id: 'TK-906', projectId: 'PRJ-02', title: 'Update app icon set for dark mode', assignee: 'Priya Nair', priority: 'Low', status: 'Pending', dueDate: '2026-08-14', duration: '2 days', comments: 0, attachments: 3, figma: 'figma.com/file/fute-mobile-v2?node=33-7', pr: '' },
 ];

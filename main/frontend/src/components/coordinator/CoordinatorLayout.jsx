@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LayoutGrid,
   ListChecks,
+  FolderKanban,
   Search,
   Bell,
   LogOut,
@@ -17,6 +18,7 @@ import TeamChatDrawer from '../TeamChatDrawer';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/coordinator/overview' },
+  { label: 'Projects', icon: FolderKanban, path: '/coordinator/projects' },
   { label: 'Tasks', icon: ListChecks, path: '/coordinator/tasks' },
 ];
 
@@ -36,7 +38,6 @@ export default function CoordinatorLayout({ children }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [query, setQuery] = useState('');
   const [dateRangeLabel, setDateRangeLabel] = useState('Today');
-  const [showHeaderProfileMenu, setShowHeaderProfileMenu] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const searchIndex = useMemo(buildSearchIndex, []);
@@ -82,7 +83,7 @@ export default function CoordinatorLayout({ children }) {
           <nav className="flex flex-col gap-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
               return (
                 <button
                   key={item.label}
@@ -145,12 +146,12 @@ export default function CoordinatorLayout({ children }) {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <header className="h-16 border-b border-white/[0.07] px-4 sm:px-6 lg:px-8 flex items-center justify-between shrink-0 bg-[#09090b]/90 backdrop-blur-md sticky top-0 z-20">
+        <header className="h-16 border-b border-white/10 px-4 sm:px-6 lg:px-8 flex items-center justify-between shrink-0 bg-white/[0.04] backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] sticky top-0 z-20">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               type="button"
               onClick={() => setMobileNavOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-[#16161a] border border-white/10 text-gray-300 cursor-pointer shrink-0"
+              className="lg:hidden p-2 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 text-gray-300 cursor-pointer shrink-0"
             >
               <Menu size={16} />
             </button>
@@ -162,7 +163,7 @@ export default function CoordinatorLayout({ children }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search tasks..."
-                className="h-10 bg-[#16161a] border border-white/10 rounded-xl pl-10 pr-4 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024] w-full transition-colors"
+                className="h-10 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl pl-10 pr-4 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024] focus:bg-white/[0.07] w-full transition-colors"
               />
               {results.length > 0 && (
                 <div className="absolute top-full left-0 mt-2 w-full bg-[#18181c] border border-white/10 rounded-xl shadow-xl overflow-hidden z-30">
@@ -192,7 +193,7 @@ export default function CoordinatorLayout({ children }) {
               <button
                 type="button"
                 onClick={() => setShowNotifs((p) => !p)}
-                className="relative w-10 h-10 rounded-xl bg-[#16161a] border border-white/10 hover:border-white/20 text-gray-300 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                className="relative w-10 h-10 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 transition-colors flex items-center justify-center cursor-pointer shrink-0"
               >
                 <Bell size={16} />
               </button>
@@ -208,49 +209,31 @@ export default function CoordinatorLayout({ children }) {
             <button
               type="button"
               onClick={() => setIsChatOpen(true)}
-              className="h-10 px-3 rounded-xl bg-[#e86024]/10 hover:bg-[#e86024]/20 border border-[#e86024]/30 text-[#e86024] text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shrink-0"
+              className="h-10 px-3 rounded-xl bg-gradient-to-b from-[#3a3a3f] to-[#151517] border border-black text-white text-xs font-bold flex items-center gap-2 shadow-[0_2px_0_#000,0_4px_8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)] hover:from-[#46464b] hover:to-[#1c1c1f] active:translate-y-[1px] active:shadow-[0_1px_0_#000,0_2px_4px_rgba(0,0,0,0.4),inset_0_1px_2px_rgba(0,0,0,0.4)] transition-all cursor-pointer shrink-0"
             >
-              <MessageSquare size={14} />
-              <span className="hidden sm:inline">Team Chat</span>
+              <MessageSquare size={14} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]" />
+              <span className="hidden sm:inline drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]">Team Chat</span>
             </button>
 
             <button
               type="button"
               onClick={() => setDateRangeLabel((l) => DATE_RANGES[(DATE_RANGES.indexOf(l) + 1) % DATE_RANGES.length])}
-              className="h-10 hidden sm:flex items-center gap-2 px-3.5 rounded-xl bg-[#16161a] border border-white/10 hover:border-white/20 text-xs text-gray-300 font-medium shrink-0 cursor-pointer transition-colors"
+              className="h-10 hidden sm:flex items-center gap-2 px-3.5 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/20 text-xs text-gray-300 font-medium shrink-0 cursor-pointer transition-colors"
             >
               <Calendar size={14} className="text-[#e86024]" />
               <span>{dateRangeLabel}</span>
               <ChevronDown size={12} className="text-gray-400" />
             </button>
 
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowHeaderProfileMenu((p) => !p)}
-                className="h-10 flex items-center gap-2.5 px-3 rounded-xl bg-[#16161a] border border-white/10 hover:border-white/20 shrink-0 cursor-pointer transition-colors"
-              >
-                <div className="w-6 h-6 rounded-full bg-[#e86024]/20 border border-[#e86024]/40 flex items-center justify-center font-bold text-[10px] text-[#e86024]">
-                  {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'C'}
-                </div>
-                <div className="hidden xl:flex flex-col text-left">
-                  <span className="text-[11px] font-semibold text-white leading-none">{user?.full_name || 'Project Coordinator'}</span>
-                  <span className="text-[9px] text-gray-400">{ROLE_LABEL[user?.role] || 'Coordinator'}</span>
-                </div>
-                <ChevronDown size={12} className="text-gray-400" />
-              </button>
-              {showHeaderProfileMenu && (
-                <div className="absolute top-full right-0 mt-2 w-[180px] bg-[#18181c] border border-white/10 rounded-xl p-1.5 shadow-xl z-50">
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left cursor-pointer"
-                  >
-                    <LogOut size={14} />
-                    <span>Sign out</span>
-                  </button>
-                </div>
-              )}
+            {/* Display only; sign out lives in the sidebar profile card */}
+            <div className="h-10 flex items-center gap-2.5 px-3 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 shrink-0">
+              <div className="w-6 h-6 rounded-full bg-[#e86024]/20 border border-[#e86024]/40 flex items-center justify-center font-bold text-[10px] text-[#e86024]">
+                {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'C'}
+              </div>
+              <div className="hidden xl:flex flex-col text-left">
+                <span className="text-[11px] font-semibold text-white leading-none">{user?.full_name || 'Project Coordinator'}</span>
+                <span className="text-[9px] text-gray-400">{ROLE_LABEL[user?.role] || 'Coordinator'}</span>
+              </div>
             </div>
           </div>
         </header>

@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTickets } from '../context/TicketContext';
+import { useTaskProject } from '../context/TaskProjectContext';
 import ItDeskLayout from '../components/ItDeskLayout';
 import NewItTicketModal from '../components/NewItTicketModal';
-import { StatCard } from '../components/ui';
+import { Card, SectionHeader, StatCard, Badge } from '../components/ui';
 import { Plus } from 'lucide-react';
 
 const TICKET_STATUS_BADGE = {
@@ -70,9 +71,65 @@ function MyTicketsView({ tickets, onNewTicket }) {
   );
 }
 
+function MyTasksView({ tasks, projects }) {
+  return (
+    <div className="w-full flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">My Tasks & Projects</h1>
+        <p className="text-xs text-gray-400">{tasks.length} tasks · {projects.length} projects you're on</p>
+      </div>
+
+      <Card>
+        <SectionHeader title="My Projects" />
+        {projects.length === 0 ? (
+          <p className="text-xs text-gray-500 py-4 text-center">You're not on any active projects yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {projects.map((p) => (
+              <div key={p.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-white truncate">{p.name}</span>
+                  <span className="text-[10px] text-gray-500">{p.progress}%</span>
+                </div>
+                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden mb-1.5">
+                  <div className="h-full bg-gradient-to-r from-[#e86024] to-amber-400 rounded-full" style={{ width: `${p.progress}%` }} />
+                </div>
+                <div className="text-[10px] text-gray-500">{p.client} · due {p.dueDate}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <SectionHeader title="My Tasks" />
+        {tasks.length === 0 ? (
+          <p className="text-xs text-gray-500 py-4 text-center">No tasks assigned to you yet.</p>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {tasks.map((t) => (
+              <div key={t.id} className="p-3 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-white truncate">{t.title}</div>
+                  <div className="text-[11px] text-gray-400 truncate">due {t.dueDate}{t.duration ? ` · ${t.duration}` : ''}</div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge value={t.priority} />
+                  <Badge value={t.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
   const { tickets, addTicket } = useTickets();
+  const { tasks, projects } = useTaskProject();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
@@ -81,6 +138,22 @@ export default function EmployeeDashboardPage() {
   const myTickets = useMemo(
     () => tickets.filter((t) => t.user === (user?.full_name || 'You')),
     [tickets, user]
+  );
+
+  // Tasks/projects come from the same shared context the Coordinator
+  // assigns from — scope to this employee by name.
+  const myTasks = useMemo(
+    () => tasks.filter((t) => t.assignee === user?.full_name),
+    [tasks, user]
+  );
+  const myProjects = useMemo(
+    () => projects.filter((p) => p.members.includes(user?.full_name)),
+    [projects, user]
+  );
+
+  const myProjectChannels = useMemo(
+    () => myProjects.map((p) => ({ id: `project-${p.id}`, name: p.name, desc: `${p.members.length} members + coordinator` })),
+    [myProjects]
   );
 
   function handleNewTicket(req) {
@@ -93,7 +166,13 @@ export default function EmployeeDashboardPage() {
   );
 
   return (
-    <ItDeskLayout activeTab={activeTab} setActiveTab={setActiveTab} searchIndex={searchIndex} role="employee">
+    <ItDeskLayout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      searchIndex={searchIndex}
+      role="employee"
+      projectChannels={myProjectChannels}
+    >
       {activeTab === 'dashboard' && (
         <div className="w-full flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -155,6 +234,8 @@ export default function EmployeeDashboardPage() {
       {activeTab === 'tickets' && (
         <MyTicketsView tickets={myTickets} onNewTicket={() => setIsTicketModalOpen(true)} />
       )}
+
+      {activeTab === 'tasks' && <MyTasksView tasks={myTasks} projects={myProjects} />}
 
       <NewItTicketModal
         isOpen={isTicketModalOpen}

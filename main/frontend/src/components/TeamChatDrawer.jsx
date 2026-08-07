@@ -39,10 +39,21 @@ const INITIAL_MESSAGES = {
   ],
 };
 
-export default function TeamChatDrawer({ isOpen, onClose }) {
+export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [] }) {
   const { user } = useAuth();
+  const channels = [...INITIAL_CHANNELS, ...projectChannels];
   const [activeChannel, setActiveChannel] = useState('general');
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+  const [messages, setMessages] = useState(() => {
+    const seeded = { ...INITIAL_MESSAGES };
+    projectChannels.forEach((ch) => {
+      if (!seeded[ch.id]) {
+        seeded[ch.id] = [
+          { id: 1, sender: 'Project Coordinator', role: 'Project Coordinator', text: `Welcome to ${ch.name}! Use this channel to coordinate with your project team.`, time: '09:00 AM' },
+        ];
+      }
+    });
+    return seeded;
+  });
   const [inputText, setInputText] = useState('');
 
   if (!isOpen) return null;
@@ -67,12 +78,13 @@ export default function TeamChatDrawer({ isOpen, onClose }) {
     setInputText('');
   }
 
-  const currentChannelObj = INITIAL_CHANNELS.find((c) => c.id === activeChannel);
+  const currentChannelObj = channels.find((c) => c.id === activeChannel);
   const channelMessages = messages[activeChannel] || [];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
-      <div className="w-full max-w-2xl bg-[#111115] border-l border-white/10 h-full flex flex-col shadow-2xl text-white font-sans animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative w-full max-w-2xl h-[85vh] max-h-[720px] bg-[#111115] border border-white/10 rounded-3xl flex flex-col shadow-2xl text-white font-sans overflow-hidden">
         {/* Top Header */}
         <div className="h-14 px-4 border-b border-white/10 flex items-center justify-between bg-[#16161c] shrink-0">
           <div className="flex items-center gap-2.5">
@@ -99,7 +111,7 @@ export default function TeamChatDrawer({ isOpen, onClose }) {
           <div className="w-48 bg-[#0d0d10] border-r border-white/5 p-3 flex flex-col gap-3 shrink-0">
             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">CHANNELS</div>
             <div className="flex flex-col gap-1">
-              {INITIAL_CHANNELS.map((ch) => {
+              {channels.map((ch) => {
                 const isActive = activeChannel === ch.id;
                 return (
                   <button

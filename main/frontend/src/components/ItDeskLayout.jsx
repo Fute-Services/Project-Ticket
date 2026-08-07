@@ -16,7 +16,6 @@ import {
   BookOpen,
   Bell,
   FileText,
-  Settings,
   Search,
   Calendar,
   LogOut,
@@ -26,6 +25,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import TeamChatDrawer from './TeamChatDrawer';
+import AppleDock from './AppleDock';
 
 const ROLE_LABEL = {
   founder: 'Founder / Admin',
@@ -49,15 +49,15 @@ const IT_NAV_ITEMS = (approvalCount) => [
   { id: 'datarequests', label: 'Data Requests', icon: Server },
   { id: 'assets', label: 'Asset Management', icon: Monitor },
   { id: 'reports', label: 'Reports & Logs', icon: BarChart2 },
-  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 const EMPLOYEE_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
   { id: 'tickets', label: 'My Tickets', icon: Ticket },
+  { id: 'tasks', label: 'My Tasks', icon: CheckSquare },
 ];
 
-export default function ItDeskLayout({ activeTab, setActiveTab, children, searchIndex = [], role = 'it', approvalCount = 0 }) {
+export default function ItDeskLayout({ activeTab, setActiveTab, children, searchIndex = [], role = 'it', approvalCount = 0, projectChannels = [] }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -207,7 +207,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
       {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen max-h-screen overflow-hidden">
         {/* Top Header Bar */}
-        <header className="h-14 border-b border-white/5 px-4 lg:px-6 flex items-center justify-between shrink-0 bg-[#0c0c0e]/90 backdrop-blur-md sticky top-0 z-30">
+        <header className="h-14 border-b border-white/10 px-4 lg:px-6 flex items-center justify-between shrink-0 bg-white/[0.04] backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] sticky top-0 z-30">
           {/* Search Box */}
           <div className="relative flex items-center">
             <Search size={15} className="absolute left-3.5 text-gray-400 pointer-events-none z-10" />
@@ -216,7 +216,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search tickets, requests, approvals..."
-              className="h-9 bg-[#16161a] border border-white/10 rounded-xl pl-9 pr-4 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024] w-[260px] sm:w-[320px] transition-colors"
+              className="h-9 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl pl-9 pr-4 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024] focus:bg-white/[0.07] w-[260px] sm:w-[320px] transition-colors"
             />
             {results.length > 0 && (
               <div className="absolute top-full left-0 mt-2 w-[320px] bg-[#18181c] border border-white/10 rounded-xl shadow-xl overflow-hidden z-30">
@@ -243,7 +243,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
               <button
                 type="button"
                 onClick={() => setShowNotifs((p) => !p)}
-                className="relative w-9 h-9 rounded-xl bg-[#16161a] border border-white/10 hover:border-white/20 text-gray-300 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                className="relative w-9 h-9 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 transition-colors flex items-center justify-center cursor-pointer shrink-0"
               >
                 <Bell size={15} />
                 <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#e86024] text-white text-[8px] font-bold rounded-full flex items-center justify-center border-2 border-[#0c0c0e]">
@@ -269,16 +269,16 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
             <button
               type="button"
               onClick={() => setIsChatOpen(true)}
-              className="h-9 px-3 rounded-xl bg-[#e86024]/10 hover:bg-[#e86024]/20 border border-[#e86024]/30 text-[#e86024] text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+              className="h-9 px-3 rounded-xl bg-gradient-to-b from-[#3a3a3f] to-[#151517] border border-black text-white text-xs font-bold flex items-center gap-2 shadow-[0_2px_0_#000,0_4px_8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)] hover:from-[#46464b] hover:to-[#1c1c1f] active:translate-y-[1px] active:shadow-[0_1px_0_#000,0_2px_4px_rgba(0,0,0,0.4),inset_0_1px_2px_rgba(0,0,0,0.4)] transition-all cursor-pointer"
             >
-              <MessageSquare size={14} />
-              <span className="hidden sm:inline">Team Chat</span>
+              <MessageSquare size={14} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]" />
+              <span className="hidden sm:inline drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]">Team Chat</span>
             </button>
 
             <button
               type="button"
               onClick={() => setDateRangeLabel((l) => DATE_RANGES[(DATE_RANGES.indexOf(l) + 1) % DATE_RANGES.length])}
-              className="h-9 flex items-center gap-2 px-3 rounded-xl bg-[#16161a] border border-white/10 hover:border-white/20 text-xs text-gray-300 font-medium shrink-0 cursor-pointer transition-colors"
+              className="h-9 flex items-center gap-2 px-3 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/20 text-xs text-gray-300 font-medium shrink-0 cursor-pointer transition-colors"
             >
               <Calendar size={13} className="text-[#e86024]" />
               <span>{dateRangeLabel === 'Exact Date' ? currentDateStr : dateRangeLabel}</span>
@@ -288,10 +288,10 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
         </header>
 
         {/* View Content — Zero Page Scrollbar */}
-        <main className="flex-1 p-3 lg:p-4 min-w-0 overflow-hidden flex flex-col justify-between h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)]">{children}</main>
+        <main className="flex-1 p-3 lg:p-4 min-w-0 overflow-y-auto flex flex-col h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)]">{children}</main>
       </div>
 
-      <TeamChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <TeamChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} projectChannels={projectChannels} />
     </div>
   );
 }

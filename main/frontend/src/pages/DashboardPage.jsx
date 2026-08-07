@@ -1,22 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTickets } from '../context/TicketContext';
+import { useApprovals } from '../context/ApprovalContext';
 import ItDeskLayout from '../components/ItDeskLayout';
 import DonutChart from '../components/DonutChart';
 import DataTransferModal from '../components/DataTransferModal';
-import NewItTicketModal from '../components/NewItTicketModal';
+import AssetFormModal from '../components/AssetFormModal';
 import { Card, SectionHeader, StatCard } from '../components/ui';
 import {
-  assets,
+  assets as SEED_ASSETS,
   ASSET_TYPES,
   slaWeekly,
   resolutionByCategory,
-  engineerPerformance,
-  defaultItSettings,
-  TICKET_PRIORITIES,
 } from '../data/itMockData';
 import {
-  Ticket,
   Clock,
   CheckCircle2,
   AlertTriangle,
@@ -27,14 +24,17 @@ import {
   Printer,
   Wifi,
   Plus,
-  Calendar,
+  Pencil,
+  Trash2,
   Search,
   Download,
+  Mail,
+  BadgeCheck,
 } from 'lucide-react';
 
 const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
-function TicketsQueueView({ tickets, onStatusChange, onNewTicket }) {
+function TicketsQueueView({ tickets, onStatusChange }) {
   const [filter, setFilter] = useState('All');
   const visible = filter === 'All' ? tickets : tickets.filter((t) => t.status === filter);
 
@@ -45,14 +45,6 @@ function TicketsQueueView({ tickets, onStatusChange, onNewTicket }) {
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Tickets Queue</h1>
           <p className="text-xs text-gray-400">{tickets.length} total tickets</p>
         </div>
-        <button
-          type="button"
-          onClick={onNewTicket}
-          className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
-        >
-          <Plus size={16} />
-          <span>New Ticket</span>
-        </button>
       </div>
 
       <div className="bg-[#141418] border border-white/5 rounded-3xl p-5">
@@ -114,52 +106,82 @@ function TicketsQueueView({ tickets, onStatusChange, onNewTicket }) {
   );
 }
 
-function ApprovalCenterView({ approvals, onApprove, onReject }) {
-  const pending = approvals.filter((a) => a.status === 'pending');
-  const decided = approvals.filter((a) => a.status !== 'pending');
+const APPROVAL_FORM_EMPTY = { title: '', sub: '', requestedBy: '', priority: 'medium' };
+
+function ApprovalCenterView() {
+  const { approvals, submitApproval } = useApprovals();
+  const itApprovals = approvals.filter((a) => a.source === 'IT');
+  const pendingFounder = itApprovals.filter((a) => a.status === 'pending_founder');
+  const decided = itApprovals.filter((a) => a.status !== 'pending_founder');
+  const [form, setForm] = useState(APPROVAL_FORM_EMPTY);
+
+  function submit(e) {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+    submitApproval({ ...form, source: 'IT' });
+    setForm(APPROVAL_FORM_EMPTY);
+  }
 
   return (
     <div className="w-full flex flex-col gap-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Approval Center</h1>
-        <p className="text-xs text-gray-400">{pending.length} pending · {decided.length} decided</p>
+        <p className="text-xs text-gray-400">{pendingFounder.length} awaiting founder sign-off · {decided.length} decided</p>
       </div>
 
+      <Card>
+        <h3 className="font-extrabold text-sm text-white mb-3">Send for Founder Approval</h3>
+        <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input
+            required
+            value={form.title}
+            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            placeholder="Request title"
+            className="bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+          />
+          <input
+            value={form.requestedBy}
+            onChange={(e) => setForm((f) => ({ ...f, requestedBy: e.target.value }))}
+            placeholder="Requested by"
+            className="bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+          />
+          <input
+            value={form.sub}
+            onChange={(e) => setForm((f) => ({ ...f, sub: e.target.value }))}
+            placeholder="Details"
+            className="sm:col-span-2 bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+          />
+          <button
+            type="submit"
+            className="sm:col-span-2 bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+          >
+            Send for Founder Approval
+          </button>
+        </form>
+      </Card>
+
       <div className="bg-[#141418] border border-white/5 rounded-3xl p-5">
-        <h3 className="font-extrabold text-sm text-white mb-4">Pending Approval</h3>
-        {pending.length === 0 ? (
-          <p className="text-xs text-gray-500 py-4">Nothing waiting on you.</p>
+        <h3 className="font-extrabold text-sm text-white mb-4">Awaiting Founder Sign-off</h3>
+        {pendingFounder.length === 0 ? (
+          <p className="text-xs text-gray-500 py-4">Nothing waiting on the founder right now.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-            {pending.map((app) => (
+            {pendingFounder.map((app) => (
               <div key={app.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between">
                 <div className="min-w-0 pr-2">
                   <div className="text-xs font-bold text-white truncate">{app.title}</div>
                   <div className="text-[11px] text-gray-400 truncate">{app.sub}</div>
-                  <div className="text-[10px] text-gray-500">Requested by {app.user} · {app.time}</div>
+                  <div className="text-[10px] text-gray-500">Requested by {app.requestedBy} · {app.timestamp}</div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => onApprove(app.id)}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold hover:bg-emerald-500/25 transition-colors cursor-pointer"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onReject(app.id)}
-                    className="px-2.5 py-1 rounded-lg bg-red-500/15 text-red-400 border border-red-500/30 text-[10px] font-bold hover:bg-red-500/25 transition-colors cursor-pointer"
-                  >
-                    Reject
-                  </button>
-                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/20">
+                  Pending Founder
+                </span>
               </div>
             ))}
           </div>
         )}
 
-        <h3 className="font-extrabold text-sm text-white mb-4">Approval History</h3>
+        <h3 className="font-extrabold text-sm text-white mb-4">Decision History</h3>
         {decided.length === 0 ? (
           <p className="text-xs text-gray-500 py-4">No decisions yet.</p>
         ) : (
@@ -168,7 +190,7 @@ function ApprovalCenterView({ approvals, onApprove, onReject }) {
               <div key={app.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between">
                 <div className="min-w-0 pr-2">
                   <div className="text-xs font-bold text-white truncate">{app.title}</div>
-                  <div className="text-[10px] text-gray-500">{app.user} · {app.time}</div>
+                  <div className="text-[10px] text-gray-500">{app.requestedBy} · {app.timestamp}</div>
                 </div>
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 ${
@@ -258,8 +280,11 @@ const ASSET_STATUS_COLOR = {
 };
 
 function AssetsView() {
+  const [assets, setAssets] = useState(SEED_ASSETS);
   const [typeFilter, setTypeFilter] = useState('All');
   const [query, setQuery] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState(null);
 
   const visible = assets.filter((a) => {
     if (typeFilter !== 'All' && a.type !== typeFilter) return false;
@@ -279,13 +304,43 @@ function AssetsView() {
   soon.setDate(soon.getDate() + 90);
   const expiring = assets.filter((a) => new Date(a.warrantyEnd) <= soon && a.status !== 'Retired').length;
 
+  function openAddModal() {
+    setEditingAsset(null);
+    setModalOpen(true);
+  }
+
+  function openEditModal(asset) {
+    setEditingAsset(asset);
+    setModalOpen(true);
+  }
+
+  function handleSubmit(asset) {
+    setAssets((prev) =>
+      editingAsset ? prev.map((a) => (a.id === editingAsset.id ? asset : a)) : [asset, ...prev]
+    );
+  }
+
+  function handleDelete(id) {
+    setAssets((prev) => prev.filter((a) => a.id !== id));
+  }
+
   return (
     <div className="w-full flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Asset Management</h1>
-        <p className="text-xs text-gray-400">
-          {assets.length} assets tracked · {expiring} warranty expiring within 90 days
-        </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Asset Management</h1>
+          <p className="text-xs text-gray-400">
+            {assets.length} assets tracked · {expiring} warranty expiring within 90 days
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={openAddModal}
+          className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
+        >
+          <Plus size={15} />
+          <span>Add Asset</span>
+        </button>
       </div>
 
       {/* Counts per type */}
@@ -347,6 +402,7 @@ function AssetsView() {
                   <th className="py-3 px-3">Purchased</th>
                   <th className="py-3 px-3">Warranty Until</th>
                   <th className="py-3 px-3">Status</th>
+                  <th className="py-3 px-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -367,6 +423,26 @@ function AssetsView() {
                           {a.status}
                         </span>
                       </td>
+                      <td className="py-3.5 px-3">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(a)}
+                            className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 text-gray-300 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(a.id)}
+                            className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 flex items-center justify-center cursor-pointer transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -375,6 +451,14 @@ function AssetsView() {
           </div>
         )}
       </Card>
+
+      <AssetFormModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSubmit={handleSubmit}
+        initialAsset={editingAsset}
+        nextId={`AST-${1000 + assets.length + 1}`}
+      />
     </div>
   );
 }
@@ -474,197 +558,6 @@ function ReportsView() {
           </div>
         </Card>
       </div>
-
-      <Card>
-        <SectionHeader title="Engineer Performance" subtitle="Resolution volume and SLA adherence" />
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-white/10 text-gray-400 uppercase text-[10px] tracking-wider">
-                <th className="py-3 px-3">Engineer</th>
-                <th className="py-3 px-3">Tickets Resolved</th>
-                <th className="py-3 px-3">Avg Resolution</th>
-                <th className="py-3 px-3">SLA Adherence</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {engineerPerformance.map((e) => (
-                <tr key={e.engineer} className="hover:bg-white/[0.02]">
-                  <td className="py-3.5 px-3 font-bold text-white">{e.engineer}</td>
-                  <td className="py-3.5 px-3 text-gray-300">{e.resolved}</td>
-                  <td className="py-3.5 px-3 text-gray-400">{e.avgHours}h</td>
-                  <td className="py-3.5 px-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${e.slaPct >= 95 ? 'bg-emerald-500' : e.slaPct >= 90 ? 'bg-amber-500' : 'bg-red-500'}`}
-                          style={{ width: `${e.slaPct}%` }}
-                        />
-                      </div>
-                      <span className="text-[11px] font-bold text-white">{e.slaPct}%</span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function Toggle({ checked, onChange, label, hint }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className="w-full flex items-center justify-between gap-4 p-3 rounded-2xl bg-[#18181c] border border-white/5 hover:border-white/15 transition-colors cursor-pointer text-left"
-    >
-      <div className="min-w-0">
-        <div className="text-xs font-semibold text-white">{label}</div>
-        {hint && <div className="text-[11px] text-gray-500 mt-0.5">{hint}</div>}
-      </div>
-      <span
-        className={`w-9 h-5 rounded-full shrink-0 flex items-center px-0.5 transition-colors ${
-          checked ? 'bg-[#e86024] justify-end' : 'bg-white/10 justify-start'
-        }`}
-      >
-        <span className="w-4 h-4 rounded-full bg-white" />
-      </span>
-    </button>
-  );
-}
-
-function SettingsView() {
-  const [settings, setSettings] = useState(defaultItSettings);
-  const [saved, setSaved] = useState(false);
-
-  function set(key, value) {
-    setSettings((s) => ({ ...s, [key]: value }));
-    setSaved(false);
-  }
-
-  const slaFields = [
-    { key: 'slaCriticalHours', label: 'Critical' },
-    { key: 'slaHighHours', label: 'High' },
-    { key: 'slaMediumHours', label: 'Medium' },
-    { key: 'slaLowHours', label: 'Low' },
-  ];
-
-  return (
-    <div className="w-full flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Settings</h1>
-          <p className="text-xs text-gray-400">Service desk configuration</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {saved && <span className="text-[11px] text-emerald-400 font-semibold">Applied for this session</span>}
-          <button
-            type="button"
-            onClick={() => setSaved(true)}
-            className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
-          >
-            <CheckCircle2 size={14} />
-            <span>Apply Changes</span>
-          </button>
-        </div>
-      </div>
-
-      {/* No settings endpoint exists on the backend yet, so say plainly that
-          these don't persist rather than implying a save that never happens. */}
-      <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-amber-500/[0.07] border border-amber-500/20">
-        <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
-        <p className="text-[11px] text-amber-200/90 leading-relaxed">
-          These preferences apply to the current session only. Persisting them needs a settings endpoint on the
-          backend, which isn't built yet — they'll reset on reload.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Card>
-          <SectionHeader title="SLA Targets" subtitle="Hours to resolve, by ticket priority" />
-          <div className="grid grid-cols-2 gap-3">
-            {slaFields.map(({ key, label }) => (
-              <label key={key} className="flex flex-col gap-1.5 text-xs">
-                <span className="text-gray-400 font-medium">{label}</span>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min={1}
-                    value={settings[key]}
-                    onChange={(e) => set(key, Number(e.target.value))}
-                    className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 pr-12 text-xs text-white focus:outline-none focus:border-[#e86024] transition-colors"
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">
-                    hours
-                  </span>
-                </div>
-              </label>
-            ))}
-          </div>
-
-          <div className="mt-4 pt-4 border-t border-white/5">
-            <label className="flex flex-col gap-1.5 text-xs">
-              <span className="text-gray-400 font-medium">Default priority for new tickets</span>
-              <select
-                value={settings.defaultTicketPriority}
-                onChange={(e) => set('defaultTicketPriority', e.target.value)}
-                className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#e86024] cursor-pointer"
-              >
-                {TICKET_PRIORITIES.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </Card>
-
-        <div className="flex flex-col gap-5">
-          <Card>
-            <SectionHeader title="Notifications" />
-            <div className="flex flex-col gap-2.5">
-              <Toggle
-                checked={settings.notifyOnCritical}
-                onChange={(v) => set('notifyOnCritical', v)}
-                label="Alert on critical tickets"
-                hint="Notify the on-call engineer immediately"
-              />
-              <Toggle
-                checked={settings.notifyOnApproval}
-                onChange={(v) => set('notifyOnApproval', v)}
-                label="Alert on approval requests"
-                hint="Notify approvers when a request needs sign-off"
-              />
-            </div>
-          </Card>
-
-          <Card>
-            <SectionHeader title="Workflow" />
-            <div className="flex flex-col gap-2.5">
-              <Toggle
-                checked={settings.autoAssignTickets}
-                onChange={(v) => set('autoAssignTickets', v)}
-                label="Auto-assign new tickets"
-                hint="Route by category to the least-loaded engineer"
-              />
-              <Toggle
-                checked={settings.requireApprovalForDataTransfer}
-                onChange={(v) => set('requireApprovalForDataTransfer', v)}
-                label="Require approval for data transfers"
-                hint="Server-to-server copies need sign-off before running"
-              />
-              <Toggle
-                checked={settings.requireApprovalForSoftware}
-                onChange={(v) => set('requireApprovalForSoftware', v)}
-                label="Require approval for software installs"
-                hint="License-bearing software needs sign-off"
-              />
-            </div>
-          </Card>
-        </div>
-      </div>
     </div>
   );
 }
@@ -673,55 +566,10 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
-  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
 
-  // Approval Requests state
-  const [approvals, setApprovals] = useState([
-    {
-      id: 1,
-      title: 'Software Installation',
-      sub: 'Visual Studio Code',
-      user: 'Mike Johnson',
-      time: '1h ago',
-      status: 'pending',
-    },
-    {
-      id: 2,
-      title: 'Data Transfer',
-      sub: 'Server 70 to Server 131',
-      user: 'Robert Brown',
-      time: '2h ago',
-      status: 'pending',
-    },
-    {
-      id: 3,
-      title: 'New Network Request',
-      sub: 'Additional LAN Port',
-      user: 'Sarah Wilson',
-      time: '3h ago',
-      status: 'pending',
-    },
-    {
-      id: 4,
-      title: 'VPN Access Request',
-      sub: 'New VPN for John Doe',
-      user: 'John Doe',
-      time: '5h ago',
-      status: 'pending',
-    },
-  ]);
-
-  function handleApprove(id) {
-    setApprovals((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: 'approved' } : item))
-    );
-  }
-
-  function handleReject(id) {
-    setApprovals((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: 'rejected' } : item))
-    );
-  }
+  const { approvals } = useApprovals();
+  const itPendingFounder = approvals.filter((a) => a.source === 'IT' && a.status === 'pending_founder').length;
 
   // Data Requests state
   const [dataRequests, setDataRequests] = useState([
@@ -763,16 +611,12 @@ export default function DashboardPage() {
 
   // Shared with the Employee dashboard — a ticket raised there appears
   // here immediately, and a status change made here reflects there too.
-  const { tickets: recentTickets, addTicket, changeStatus: changeTicketStatus } = useTickets();
-
-  function handleNewTicket(req) {
-    addTicket(req, user?.full_name);
-  }
+  const { tickets: recentTickets, changeStatus: changeTicketStatus } = useTickets();
 
   const searchIndex = useMemo(
     () => [
       ...recentTickets.map((t) => ({ group: 'Tickets', label: `${t.token} — ${t.title}`, sub: `${t.user} · ${t.status}`, tab: 'tickets' })),
-      ...approvals.map((a) => ({ group: 'Approvals', label: a.title, sub: `${a.user} · ${a.status}`, tab: 'approval' })),
+      ...approvals.filter((a) => a.source === 'IT').map((a) => ({ group: 'Approvals', label: a.title, sub: `${a.requestedBy} · ${a.status}`, tab: 'approval' })),
       ...dataRequests.map((d) => ({ group: 'Data Requests', label: d.path, sub: `${d.name} · ${d.status}`, tab: 'datarequests' })),
     ],
     [recentTickets, approvals, dataRequests]
@@ -784,32 +628,31 @@ export default function DashboardPage() {
       setActiveTab={setActiveTab}
       searchIndex={searchIndex}
       role="it"
-      approvalCount={approvals.filter((a) => a.status === 'pending').length}
+      approvalCount={itPendingFounder}
     >
       {activeTab === 'dashboard' && (
-        <div className="w-full flex flex-col gap-3.5 h-full max-h-full justify-between overflow-hidden">
+        <div className="w-full flex flex-col gap-3.5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-none mb-1">IT Service Desk</h1>
               <p className="text-[11px] text-gray-400">Overview of active tickets, pending approvals, and IT infrastructure.</p>
             </div>
             <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setIsDataModalOpen(true)}
-                className="bg-[#18181c] border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer"
-              >
-                <Server size={15} />
-                <span>Request Data Transfer</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsTicketModalOpen(true)}
-                className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
-              >
-                <Plus size={15} />
-                <span>New Ticket</span>
-              </button>
+              {emailVerified ? (
+                <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2">
+                  <BadgeCheck size={15} />
+                  <span>Verified</span>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEmailVerified(true)}
+                  className="bg-[#18181c] border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Mail size={15} />
+                  <span>Send Verification Email</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -817,7 +660,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
             <StatCard label="Total Tickets" value={recentTickets.length} sub="all tickets" />
             <StatCard label="Open Tickets" value={recentTickets.filter((t) => t.status === 'Open').length} sub="active" />
-            <StatCard label="Pending Approval" value={approvals.filter((a) => a.status === 'pending').length} sub="awaiting" />
+            <StatCard label="Pending Approval" value={itPendingFounder} sub="awaiting founder" />
             <StatCard label="Resolved Tickets" value={recentTickets.filter((t) => t.status === 'Resolved').length} sub="completed" />
             <StatCard label="In Progress" value={recentTickets.filter((t) => t.status === 'In Progress').length} sub="working" />
             <StatCard label="SLA Compliance" value="96%" sub="last 7 days" />
@@ -871,32 +714,15 @@ export default function DashboardPage() {
                 <div className="text-xs font-bold text-white mt-0.5">12</div>
               </div>
             </div>
-
-            <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shrink-0">
-                  <Calendar size={14} />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white">Next maintenance: Server Backup Schedule</div>
-                  <div className="text-[10px] text-gray-400">May 16, 2026 · 01:00 AM</div>
-                </div>
-              </div>
-              <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-bold shrink-0">
-                Scheduled
-              </span>
-            </div>
           </Card>
         </div>
       )}
 
       {activeTab === 'tickets' && (
-        <TicketsQueueView tickets={recentTickets} onStatusChange={changeTicketStatus} onNewTicket={() => setIsTicketModalOpen(true)} />
+        <TicketsQueueView tickets={recentTickets} onStatusChange={changeTicketStatus} />
       )}
 
-      {activeTab === 'approval' && (
-        <ApprovalCenterView approvals={approvals} onApprove={handleApprove} onReject={handleReject} />
-      )}
+      {activeTab === 'approval' && <ApprovalCenterView />}
 
       {activeTab === 'datarequests' && (
         <DataRequestsView requests={dataRequests} onNewRequest={() => setIsDataModalOpen(true)} />
@@ -906,18 +732,11 @@ export default function DashboardPage() {
 
       {activeTab === 'reports' && <ReportsView />}
 
-      {activeTab === 'settings' && <SettingsView />}
-
       {/* Modals */}
       <DataTransferModal
         isOpen={isDataModalOpen}
         onClose={() => setIsDataModalOpen(false)}
         onSubmitSuccess={handleNewDataRequest}
-      />
-      <NewItTicketModal
-        isOpen={isTicketModalOpen}
-        onClose={() => setIsTicketModalOpen(false)}
-        onSubmitSuccess={handleNewTicket}
       />
     </ItDeskLayout>
   );

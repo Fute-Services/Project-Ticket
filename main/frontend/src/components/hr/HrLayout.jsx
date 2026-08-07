@@ -6,14 +6,10 @@ import {
   LayoutGrid,
   UserSearch,
   CalendarClock,
-  CalendarDays,
   Clock as ClockIcon,
-  Plane,
   Mail,
   Contact,
   BarChart2,
-  MessageSquare,
-  ScrollText,
   Search,
   Bell,
   LogOut,
@@ -26,23 +22,17 @@ import {
   candidates,
   employees,
   interviews,
-  meetings,
   notifications as allNotifications,
 } from '../../data/hrMockData';
-import TeamChatDrawer from '../TeamChatDrawer';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/hr/overview' },
   { label: 'Directory', icon: Contact, path: '/hr/directory' },
   { label: 'Candidates', icon: UserSearch, path: '/hr/candidates' },
   { label: 'Interviews', icon: CalendarClock, path: '/hr/interviews' },
-  { label: 'Meetings', icon: CalendarDays, path: '/hr/meetings' },
   { label: 'Attendance', icon: ClockIcon, path: '/hr/attendance' },
-  { label: 'Leave', icon: Plane, path: '/hr/leave' },
   { label: 'Email', icon: Mail, path: '/hr/email' },
-  { label: 'Feedback', icon: MessageSquare, path: '/hr/feedback' },
   { label: 'Reports', icon: BarChart2, path: '/hr/reports' },
-  { label: 'Activity Log', icon: ScrollText, path: '/hr/activity' },
 ];
 
 function buildSearchIndex() {
@@ -50,7 +40,6 @@ function buildSearchIndex() {
     ...candidates.map((c) => ({ group: 'Candidates', label: c.name, sub: c.appliedFor, path: '/hr/candidates' })),
     ...employees.map((e) => ({ group: 'Employees', label: e.name, sub: e.designation, path: '/hr/directory' })),
     ...interviews.map((i) => ({ group: 'Interviews', label: `${i.candidate} - ${i.type}`, sub: `${i.date} ${i.time}`, path: '/hr/interviews' })),
-    ...meetings.map((m) => ({ group: 'Meetings', label: m.title, sub: m.date, path: '/hr/meetings' })),
   ];
 }
 
@@ -66,8 +55,6 @@ export default function HrLayout({ children }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [query, setQuery] = useState('');
   const [dateRangeLabel, setDateRangeLabel] = useState('Today');
-  const [showHeaderProfileMenu, setShowHeaderProfileMenu] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const searchIndex = useMemo(buildSearchIndex, []);
   const results = useMemo(() => {
@@ -172,12 +159,12 @@ export default function HrLayout({ children }) {
 
       {/* Main Workspace */}
       <div className="flex-1 flex flex-col min-w-0 h-screen max-h-screen overflow-hidden">
-        <header className="h-14 border-b border-white/[0.07] px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#09090b]/90 backdrop-blur-md sticky top-0 z-20">
+        <header className="h-14 border-b border-white/10 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-white/[0.04] backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] sticky top-0 z-20">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               type="button"
               onClick={() => setMobileNavOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-[#16161a] border border-white/10 text-gray-300 cursor-pointer shrink-0"
+              className="lg:hidden p-2 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 text-gray-300 cursor-pointer shrink-0"
             >
               <Menu size={16} />
             </button>
@@ -189,7 +176,7 @@ export default function HrLayout({ children }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search employees, candidates, tickets..."
-                className="h-9 bg-[#16161a] border border-white/10 rounded-xl pl-9 pr-4 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024] w-full transition-colors"
+                className="h-9 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl pl-9 pr-4 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024] focus:bg-white/[0.07] w-full transition-colors"
               />
               {results.length > 0 && (
                 <div className="absolute top-full left-0 mt-2 w-full bg-[#18181c] border border-white/10 rounded-xl shadow-xl overflow-hidden z-30">
@@ -220,7 +207,7 @@ export default function HrLayout({ children }) {
               <button
                 type="button"
                 onClick={() => setShowNotifs((p) => !p)}
-                className="relative w-9 h-9 rounded-xl bg-[#16161a] border border-white/10 hover:border-white/20 text-gray-300 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                className="relative w-9 h-9 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 transition-colors flex items-center justify-center cursor-pointer shrink-0"
               >
                 <Bell size={15} />
                 <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#e86024] text-white text-[8px] font-bold rounded-full flex items-center justify-center border-2 border-[#09090b]">
@@ -251,7 +238,7 @@ export default function HrLayout({ children }) {
             <button
               type="button"
               onClick={() => goTo('/hr/email')}
-              className="relative w-9 h-9 rounded-xl bg-[#16161a] border border-white/10 hover:border-white/20 text-gray-300 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+              className="relative w-9 h-9 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 transition-colors flex items-center justify-center cursor-pointer shrink-0"
             >
               <Mail size={15} />
               <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#e86024] text-white text-[8px] font-bold rounded-full flex items-center justify-center border-2 border-[#09090b]">
@@ -259,63 +246,32 @@ export default function HrLayout({ children }) {
               </span>
             </button>
 
-            {/* Team Chat Hub Button */}
-            <button
-              type="button"
-              onClick={() => setIsChatOpen(true)}
-              className="h-9 px-3 rounded-xl bg-[#e86024]/10 hover:bg-[#e86024]/20 border border-[#e86024]/30 text-[#e86024] text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shrink-0"
-            >
-              <MessageSquare size={14} />
-              <span className="hidden sm:inline">Team Chat</span>
-            </button>
-
             {/* Calendar Date Pill */}
             <button
               type="button"
               onClick={() => setDateRangeLabel((l) => DATE_RANGES[(DATE_RANGES.indexOf(l) + 1) % DATE_RANGES.length])}
-              className="h-9 hidden sm:flex items-center gap-2 px-3 rounded-xl bg-[#16161a] border border-white/10 hover:border-white/20 text-xs text-gray-300 font-medium shrink-0 cursor-pointer transition-colors"
+              className="h-9 hidden sm:flex items-center gap-2 px-3 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/20 text-xs text-gray-300 font-medium shrink-0 cursor-pointer transition-colors"
             >
               <Calendar size={13} className="text-[#e86024]" />
               <span>{dateRangeLabel}</span>
               <ChevronDown size={11} className="text-gray-400" />
             </button>
 
-            {/* User Profile Pill */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowHeaderProfileMenu((p) => !p)}
-                className="h-9 flex items-center gap-2 px-2.5 rounded-xl bg-[#16161a] border border-white/10 hover:border-white/20 shrink-0 cursor-pointer transition-colors"
-              >
-                <div className="w-6 h-6 rounded-full bg-[#e86024]/20 border border-[#e86024]/40 flex items-center justify-center font-bold text-[10px] text-[#e86024]">
-                  {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'H'}
-                </div>
-                <div className="hidden xl:flex flex-col text-left">
-                  <span className="text-[11px] font-semibold text-white leading-none">{user?.full_name || 'HR Manager'}</span>
-                  <span className="text-[9px] text-gray-400">{ROLE_LABEL[user?.role] || 'HR'}</span>
-                </div>
-                <ChevronDown size={11} className="text-gray-400" />
-              </button>
-              {showHeaderProfileMenu && (
-                <div className="absolute top-full right-0 mt-2 w-[180px] bg-[#18181c] border border-white/10 rounded-xl p-1.5 shadow-xl z-50">
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left cursor-pointer"
-                  >
-                    <LogOut size={14} />
-                    <span>Sign out</span>
-                  </button>
-                </div>
-              )}
+            {/* User Profile Pill — display only; sign out lives in the sidebar profile card */}
+            <div className="h-9 flex items-center gap-2 px-2.5 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 shrink-0">
+              <div className="w-6 h-6 rounded-full bg-[#e86024]/20 border border-[#e86024]/40 flex items-center justify-center font-bold text-[10px] text-[#e86024]">
+                {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'H'}
+              </div>
+              <div className="hidden xl:flex flex-col text-left">
+                <span className="text-[11px] font-semibold text-white leading-none">{user?.full_name || 'HR Manager'}</span>
+                <span className="text-[9px] text-gray-400">{ROLE_LABEL[user?.role] || 'HR'}</span>
+              </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 p-3 lg:p-4 min-w-0 overflow-hidden flex flex-col justify-between h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)]">{children}</main>
+        <main className="flex-1 p-3 lg:p-4 min-w-0 overflow-y-auto flex flex-col h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)]">{children}</main>
       </div>
-
-      <TeamChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 }

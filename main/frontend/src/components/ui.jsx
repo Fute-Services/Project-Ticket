@@ -93,15 +93,30 @@ export function MiniSparkline({ color = '#e86024' }) {
 // The one StatCard used everywhere. `sub` is a plain caption line; pass
 // `change` instead when the card also wants a trend sparkline (dashboard
 // home views) — the two are mutually exclusive so cards never show both.
-export function StatCard({ label, value, sub, change }) {
+// `icon` + `accent` are optional — when passed, a small colored icon badge
+// renders above the value using `accent` as its tint.
+export function StatCard({ label, value, sub, change, icon: Icon, accent }) {
   return (
     <div className="bg-[#141418] border border-white/10 rounded-xl p-3 flex flex-col justify-between min-h-[70px] hover:border-white/20 transition-all">
-      <div className="text-[11px] font-semibold text-gray-400 truncate tracking-wide leading-tight">
-        {label}
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[11px] font-semibold text-gray-400 truncate tracking-wide leading-tight">
+          {label}
+        </div>
+        {Icon && (
+          <div
+            className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+            style={{ backgroundColor: `${accent || '#e86024'}1a`, color: accent || '#e86024' }}
+          >
+            <Icon size={13} />
+          </div>
+        )}
       </div>
 
       <div className="flex items-baseline gap-2 mt-1.5 min-w-0">
-        <span className="text-2xl font-black text-white tracking-tight leading-none shrink-0">
+        <span
+          className="text-2xl font-black text-white tracking-tight leading-none shrink-0"
+          style={accent ? { color: accent } : undefined}
+        >
           {value}
         </span>
         {sub && (

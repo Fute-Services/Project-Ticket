@@ -12,9 +12,9 @@ export function isFounderApproval(request) {
   return employee?.department === 'Human Resources' || employee?.department === 'IT';
 }
 
-// Shared across HR's Leave page and the Founder's Leave Approvals tab so a
-// decision made in either place is immediately reflected in the other —
-// both pages read/write the same state instead of separate local copies.
+// Shared with the Founder's Pending Leaves Approval view — HR no longer has
+// its own leave-approval page, so the Founder is currently the only place
+// any leave request (from any department) gets decided.
 export function LeaveProvider({ children }) {
   const [leaveRequests, setLeaveRequests] = useState(SEED);
 

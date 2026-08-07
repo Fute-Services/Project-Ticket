@@ -2,18 +2,20 @@ import { useState } from 'react';
 import { Plus, MessageSquare, Paperclip, Figma, Github } from 'lucide-react';
 import CoordinatorLayout from '../../components/coordinator/CoordinatorLayout';
 import { Card, SectionHeader, Badge, Pill, Modal, Field, inputClass } from '../../components/ui';
-import { tasks as SEED, projects, TASK_STATUSES, TASK_PRIORITIES } from '../../data/coordinatorMockData';
+import { TASK_STATUSES, TASK_PRIORITIES } from '../../data/coordinatorMockData';
 import { employees } from '../../data/hrMockData';
+import { useTaskProject } from '../../context/TaskProjectContext';
 
-const EMPTY_FORM = {
+const EMPTY_FORM = (projects) => ({
   title: '',
-  projectId: projects[0].id,
+  projectId: projects[0]?.id || '',
   assignee: employees[0].name,
   priority: 'Medium',
   dueDate: '',
+  duration: '',
   figma: '',
   pr: '',
-};
+});
 
 // Link fields are pasted as either a bare domain or a full URL — normalise
 // so href always works without doubling up the scheme.
@@ -22,22 +24,17 @@ function toHref(link) {
 }
 
 export default function Tasks() {
-  const [tasks, setTasks] = useState(SEED);
+  const { tasks, projects, addTask, moveTask } = useTaskProject();
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(() => EMPTY_FORM(projects));
   const [projectFilter, setProjectFilter] = useState('All');
 
   const visible = projectFilter === 'All' ? tasks : tasks.filter((t) => t.projectId === projectFilter);
 
-  function moveTask(id, status) {
-    setTasks((rows) => rows.map((t) => (t.id === id ? { ...t, status } : t)));
-  }
-
   function submit(e) {
     e.preventDefault();
-    const id = `TK-${900 + tasks.length + 1}`;
-    setTasks((rows) => [{ id, status: 'Pending', comments: 0, attachments: 0, ...form }, ...rows]);
-    setForm(EMPTY_FORM);
+    addTask(form);
+    setForm(EMPTY_FORM(projects));
     setShowModal(false);
   }
 
@@ -94,7 +91,7 @@ export default function Tasks() {
                           {project && (
                             <div className="text-[10px] text-[#e86024] font-semibold mb-1 truncate">{project.name}</div>
                           )}
-                          <div className="text-[10px] text-gray-500 mb-2.5">{t.assignee} · due {t.dueDate}</div>
+                          <div className="text-[10px] text-gray-500 mb-2.5">{t.assignee} · due {t.dueDate}{t.duration ? ` · ${t.duration}` : ''}</div>
 
                           {(t.figma || t.pr) && (
                             <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
@@ -183,6 +180,14 @@ export default function Tasks() {
               <input required type="date" value={form.dueDate} onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))} className={inputClass} />
             </Field>
           </div>
+          <Field label="Duration">
+            <input
+              value={form.duration}
+              onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
+              className={inputClass}
+              placeholder="e.g. 3 days"
+            />
+          </Field>
           <Field label="Figma design link (optional)">
             <input
               value={form.figma}

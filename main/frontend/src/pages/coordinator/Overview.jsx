@@ -13,7 +13,8 @@ import {
 import CoordinatorLayout from '../../components/coordinator/CoordinatorLayout';
 import { Card, SectionHeader, StatCard, Badge } from '../../components/ui';
 import DonutChart from '../../components/DonutChart';
-import { tasks, projects, TASK_STATUSES } from '../../data/coordinatorMockData';
+import { TASK_STATUSES } from '../../data/coordinatorMockData';
+import { useTaskProject } from '../../context/TaskProjectContext';
 
 const TODAY = '2026-08-06';
 
@@ -56,6 +57,7 @@ function toDonutData(rows, key, statuses, colorMap) {
 
 export default function CoordinatorOverview() {
   const navigate = useNavigate();
+  const { tasks, projects } = useTaskProject();
 
   const pending = tasks.filter((t) => t.status === 'Pending').length;
   const inProgress = tasks.filter((t) => t.status === 'In Progress').length;
@@ -121,7 +123,14 @@ export default function CoordinatorOverview() {
               const projectTasks = tasks.filter((t) => t.projectId === p.id);
               const done = projectTasks.filter((t) => t.status === 'Completed').length;
               return (
-                <div key={p.id} className="p-4 rounded-2xl bg-[#18181c] border border-white/5 hover:border-white/15 transition-colors flex flex-col gap-3">
+                <div
+                  key={p.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/coordinator/projects/${p.id}`)}
+                  onKeyDown={(e) => e.key === 'Enter' && navigate(`/coordinator/projects/${p.id}`)}
+                  className="p-4 rounded-2xl bg-[#18181c] border border-white/5 hover:border-white/15 transition-colors flex flex-col gap-3 text-left cursor-pointer"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-white truncate">{p.name}</div>
@@ -168,6 +177,7 @@ export default function CoordinatorOverview() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={p.figma}
+                          onClick={(e) => e.stopPropagation()}
                           className="w-6 h-6 rounded-lg bg-[#141418] border border-white/10 hover:border-[#e86024]/50 flex items-center justify-center text-gray-400 hover:text-[#e86024] transition-colors"
                         >
                           <Figma size={12} />
@@ -179,6 +189,7 @@ export default function CoordinatorOverview() {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={p.repo}
+                          onClick={(e) => e.stopPropagation()}
                           className="w-6 h-6 rounded-lg bg-[#141418] border border-white/10 hover:border-[#e86024]/50 flex items-center justify-center text-gray-400 hover:text-[#e86024] transition-colors"
                         >
                           <Github size={12} />
