@@ -1,0 +1,32 @@
+import { Toaster as Sonner } from 'sonner';
+import { useTheme } from '@/context/ThemeContext';
+
+type ToasterProps = React.ComponentProps<typeof Sonner>;
+
+/**
+ * shadcn ships this wired to `next-themes`. This app already has its own
+ * ThemeContext driving the `.dark` class, so it reads from that instead —
+ * one theme source of truth, and one fewer dependency.
+ */
+const Toaster = ({ ...props }: ToasterProps) => {
+  const { theme } = useTheme() ?? { theme: 'light' };
+
+  return (
+    <Sonner
+      theme={theme as ToasterProps['theme']}
+      className="toaster group"
+      toastOptions={{
+        classNames: {
+          toast:
+            'group toast group-[.toaster]:bg-card group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow',
+          description: 'group-[.toast]:text-muted-foreground',
+          actionButton: 'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
+          cancelButton: 'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
+        },
+      }}
+      {...props}
+    />
+  );
+};
+
+export { Toaster };

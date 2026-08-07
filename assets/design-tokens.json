@@ -1,88 +1,88 @@
 {
-  "brand": "Fute Services — Modernist",
+  "brand": "ClaudeKit Marketing - Primary",
   "primitive": {
     "color": {
       "primary": {
         "50": {
-          "$value": "#FFF2EF",
+          "$value": "#FDF1E7",
           "$type": "color"
         },
         "100": {
-          "$value": "#FFF2EF",
+          "$value": "#FDF1E7",
           "$type": "color"
         },
         "200": {
-          "$value": "#FFC9AC",
+          "$value": "#FADFC5",
           "$type": "color"
         },
         "300": {
-          "$value": "#FF9679",
+          "$value": "#F4C093",
           "$type": "color"
         },
         "400": {
-          "$value": "#FF6346",
+          "$value": "#EC9A5D",
           "$type": "color"
         },
         "500": {
-          "$value": "#EC3013",
+          "$value": "#E86024",
           "$type": "color"
         },
         "600": {
-          "$value": "#DD2B0F",
+          "$value": "#D4521A",
           "$type": "color"
         },
         "700": {
-          "$value": "#A00000",
+          "$value": "#B33F10",
           "$type": "color"
         },
         "800": {
-          "$value": "#790000",
+          "$value": "#8A2E0A",
           "$type": "color"
         },
         "900": {
-          "$value": "#530000",
+          "$value": "#571C05",
           "$type": "color"
         }
       },
       "secondary": {
         "50": {
-          "$value": "#FFF2EF",
+          "$value": "#FBF5E7",
           "$type": "color"
         },
         "100": {
-          "$value": "#FFF2EF",
+          "$value": "#FBF5E7",
           "$type": "color"
         },
         "200": {
-          "$value": "#FFF4E0",
+          "$value": "#F3E4C0",
           "$type": "color"
         },
         "300": {
-          "$value": "#FFC1AD",
+          "$value": "#E7CD8E",
           "$type": "color"
         },
         "400": {
-          "$value": "#FF8E7A",
+          "$value": "#D9B563",
           "$type": "color"
         },
         "500": {
-          "$value": "#E15B47",
+          "$value": "#CDA34C",
           "$type": "color"
         },
         "600": {
-          "$value": "#C94B39",
+          "$value": "#A9843A",
           "$type": "color"
         },
         "700": {
-          "$value": "#950F00",
+          "$value": "#7F632B",
           "$type": "color"
         },
         "800": {
-          "$value": "#6E0000",
+          "$value": "#59461E",
           "$type": "color"
         },
         "900": {
-          "$value": "#480000",
+          "$value": "#3A2E14",
           "$type": "color"
         }
       },

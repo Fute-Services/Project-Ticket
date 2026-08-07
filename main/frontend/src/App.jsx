@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { LeaveProvider } from './context/LeaveContext';
 import { TicketProvider } from './context/TicketContext';
@@ -9,6 +10,7 @@ import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import EmployeeDashboardPage from './pages/EmployeeDashboardPage';
 import RequireAuth from './components/RequireAuth';
+import { Toaster } from './components/ui/sonner';
 import HrOverview from './pages/hr/Overview';
 import HrCandidates from './pages/hr/Candidates';
 import HrInterviews from './pages/hr/Interviews';
@@ -45,7 +47,8 @@ const COORDINATOR_ROUTES = [
 
 export default function App() {
   return (
-    <AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
       <LeaveProvider>
       <TicketProvider>
       <ApprovalProvider>
@@ -103,11 +106,13 @@ export default function App() {
           ))}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <Toaster position="bottom-right" richColors closeButton />
       </BrowserRouter>
       </TaskProjectProvider>
       </ApprovalProvider>
       </TicketProvider>
       </LeaveProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

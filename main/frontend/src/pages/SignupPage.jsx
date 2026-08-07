@@ -98,10 +98,10 @@ export default function SignupPage() {
 
   return (
     <AuthLayout>
-      <h1 className="text-3xl sm:text-[36px] font-extrabold tracking-tight text-white mb-1 leading-tight text-center">
+      <h1 className="text-3xl sm:text-[36px] font-semibold tracking-tight text-foreground mb-1 leading-tight text-center">
         Create Your Account
       </h1>
-      <p className="text-xs sm:text-sm text-gray-400 mb-4 text-center">
+      <p className="text-xs sm:text-sm text-muted-foreground mb-4 text-center">
         Join us and start your journey with the team.
       </p>
 
@@ -130,7 +130,7 @@ export default function SignupPage() {
         <div className="flex flex-col gap-1.5 w-full">
           <label
             htmlFor="signup-department"
-            className="text-[11px] font-semibold tracking-wider text-gray-400 uppercase select-none"
+            className="text-xs font-semibold tracking-wider text-muted-foreground uppercase select-none"
           >
             Department
           </label>
@@ -138,14 +138,14 @@ export default function SignupPage() {
             <Building2
               aria-hidden="true"
               size={18}
-              className="absolute left-3.5 text-gray-400 pointer-events-none shrink-0"
+              className="absolute left-3.5 text-muted-foreground pointer-events-none shrink-0"
             />
             <select
               id="signup-department"
               required
               value={form.department}
               onChange={(e) => update('department', e.target.value)}
-              className="w-full bg-[#18181c] border border-white/10 rounded-xl pl-11 pr-3.5 py-3 text-sm text-white focus:outline-none focus:border-orange-500 transition-colors cursor-pointer"
+              className="w-full bg-muted border border-border rounded-xl pl-11 pr-3.5 py-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors cursor-pointer"
             >
               <option value="" disabled>
                 Select your department
@@ -174,7 +174,7 @@ export default function SignupPage() {
               type="button"
               onClick={() => setShowPass((p) => !p)}
               aria-label={showPass ? 'Hide password' : 'Show password'}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPass ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
             </button>
@@ -196,7 +196,7 @@ export default function SignupPage() {
               type="button"
               onClick={() => setShowConfirmPass((p) => !p)}
               aria-label={showConfirmPass ? 'Hide password' : 'Show password'}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showConfirmPass ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
             </button>
@@ -212,20 +212,20 @@ export default function SignupPage() {
               setAgreeTerms(e.target.checked);
               if (error) setError('');
             }}
-            className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-[#e86024] focus:ring-0 accent-[#e86024] cursor-pointer shrink-0"
+            className="w-4 h-4 rounded border-muted bg-muted text-primary focus:ring-0 accent-primary cursor-pointer shrink-0"
           />
-          <label htmlFor="terms" className="text-gray-400 cursor-pointer select-none text-[11px]">
+          <label htmlFor="terms" className="text-muted-foreground cursor-pointer select-none text-xs">
             I agree to the{' '}
-            <span className="text-[#e86024] font-medium hover:underline">Terms of Service</span>
+            <span className="text-primary font-medium hover:underline">Terms of Service</span>
             {' '}and{' '}
-            <span className="text-[#e86024] font-medium hover:underline">Privacy Policy</span>
+            <span className="text-primary font-medium hover:underline">Privacy Policy</span>
           </label>
         </div>
 
         {error && (
           <div
             role="alert"
-            className="text-xs px-4 py-2 text-orange-300 bg-orange-950/40 border border-orange-800/60 rounded-xl text-center"
+            className="text-xs px-4 py-2 text-primary bg-primary/10/40 border border-primary/60 rounded-xl text-center"
           >
             {error}
           </div>
@@ -234,23 +234,23 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#e86024] hover:bg-[#ff6e2e] text-white font-bold py-3 px-5 rounded-full flex items-center justify-between shadow-[0_0_25px_rgba(232,96,36,0.45)] hover:shadow-[0_0_35px_rgba(255,110,46,0.75)] transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer group mt-1 disabled:opacity-50"
+          className="w-full bg-primary hover:bg-primary text-primary-foreground font-bold py-3 px-5 rounded-full flex items-center justify-between shadow-[0_0_25px_rgba(232,96,36,0.45)] hover:shadow-[0_0_35px_rgba(255,110,46,0.75)] transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer group mt-1 disabled:opacity-50"
         >
           <span className="text-sm font-bold pl-2">
             {loading ? 'Creating account…' : 'Sign Up'}
           </span>
           <span
             aria-hidden="true"
-            className="w-8 h-8 rounded-full bg-white text-[#e86024] flex items-center justify-center shrink-0 shadow-md group-hover:translate-x-1 transition-transform duration-300"
+            className="w-8 h-8 rounded-full bg-primary-foreground text-primary flex items-center justify-center shrink-0 shadow-md group-hover:translate-x-1 transition-transform duration-300"
           >
             <ArrowRight size={16} />
           </span>
         </button>
       </form>
 
-      <p className="text-xs text-gray-400 mt-3 text-center">
+      <p className="text-xs text-muted-foreground mt-3 text-center">
         Already have an account?{' '}
-        <Link to="/" className="font-semibold text-[#e86024] hover:underline">
+        <Link to="/" className="font-semibold text-primary hover:underline">
           Sign in
         </Link>
       </p>

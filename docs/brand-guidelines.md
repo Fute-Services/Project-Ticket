@@ -1,23 +1,31 @@
 # Fute Services — Brand Guidelines
 
-**Theme: Modernist**
+**Theme: Modernist (warm)**
 
-Ported from the Claude Design project *"Fute Services design prototype"*
-(design system `modernist`). That project is upstream; this file documents it
-for humans, and `assets/design-tokens.*` mirror it for tooling.
+This file documents the system **as the product actually implements it**.
 
 ```
-Claude Design · modernist          ← upstream source of truth
-        ↓  ported by hand
-docs/brand-guidelines.md           ← you are here
+main/frontend/src/styles/tokens.css   ← source of truth (the app reads this)
+        ↓  documented by hand
+docs/brand-guidelines.md              ← you are here
         ↓  node scripts/sync-brand-to-tokens.cjs
-assets/design-tokens.json
-        ↓  node scripts/tokens-to-css.cjs
-assets/design-tokens.css
+assets/design-tokens.json             ← tooling mirror (not read by the app)
 ```
 
-The app consumes `main/frontend/src/styles/tokens.css`, which carries the same
-values. Change the design upstream, then re-port — never edit component files.
+> **Caveat on the sync script.** `sync-brand-to-tokens.cjs` only round-trips
+> three values per role — base, dark, and light — and fills the rest of each
+> 50–900 ramp with a brightness curve. Those generated mid- and dark-tones do
+> **not** match the hand-tuned ramps in `tokens.css` (the curve pushes the dark
+> end toward maroon instead of the warm browns the product ships). After
+> running it, re-seed the ramps from `tokens.css` rather than accepting the
+> generated values.
+
+> **History.** This started as a port of a red, zero-radius "Modernist" design
+> prototype. The product moved away from that: the accent is now warm orange,
+> corners are rounded, and surfaces are darker. Earlier revisions of this file
+> still described the red/square system and claimed `tokens.css` carried the
+> same values — it did not. The values below are read off `tokens.css` and the
+> shipped components.
 
 ---
 
@@ -25,34 +33,37 @@ values. Change the design upstream, then re-port — never edit component files.
 
 | Element | Value |
 |---------|-------|
-| Primary Color | #EC3013 |
-| Secondary Color | #E15B47 |
+| Primary Color | #E86024 |
+| Secondary Color | #C7A34D |
 | Accent Color | #4FAE7C |
 | Heading Font | Archivo |
 | Body Font | Archivo |
-| Base Radius | 0px |
+| Base Radius | 12px |
 
 ---
 
 ## Brand Concept
 
-Modernist is a **monochrome system with one red**. The neutrals do the work;
-the red is reserved for the single most important thing on any screen.
+A **near-black interface carried by one warm accent**. The neutrals do the
+work; the orange is reserved for the primary action and the thing that needs
+attention.
 
-Three rules, and they are not negotiable:
+Three rules that hold across the product:
 
-1. **No radius.** Every corner is square. Rounding softens the system into
-   something generic — it is the fastest way to make this look like every other
-   dashboard.
-2. **2px rules.** Structural dividers are 2px; hairlines within a group are 1px.
-   The weight difference is what creates hierarchy without boxes everywhere.
-3. **One red.** If two things on a screen are red, neither is urgent.
+1. **One accent.** `--acc` orange marks the primary action, the brand mark, and
+   P1 priority. If two things on a screen are orange, neither reads as primary.
+2. **Tint, don't fill.** Icon badges are a 10%-alpha tint of their colour with
+   the icon in the full colour — not a saturated gradient fill. Gradient tiles
+   read as decoration and flatten hierarchy when every card has one.
+3. **Colour must mean something.** Department accents, status, and priority all
+   map to a fixed hex. Colour applied for variety alone is noise.
 
 **We are:** direct, structural, unfussy, confident.
-**We are not:** playful, gradient-happy, glassy, decorative.
+**We are not:** decorative for its own sake, or reliant on colour to carry
+meaning that the layout should carry.
 
-This is internal business software. Someone opens it because something is
-wrong. The interface should get out of the way.
+This is internal business software. Someone opens it because something needs
+doing. The interface should get out of the way.
 
 ---
 
@@ -62,17 +73,19 @@ wrong. The interface should get out of the way.
 
 | Color | Hex | RGB | Usage |
 |-------|-----|-----|-------|
-| Fute Red | #EC3013 | 236, 48, 19 | Primary actions, brand mark, links, urgent state |
-| Fute Red Dark | #DD2B0F | 221, 43, 15 | Hover on primary |
-| Fute Red Light | #FFF2EF | 255, 242, 239 | Tinted backgrounds on light surfaces |
+| Fute Orange | #E86024 | 232, 96, 36 | Primary actions, brand mark, links, P1 priority |
+| Fute Orange Dark | #D4521A | 212, 82, 26 | Hover on primary |
+| Fute Orange Light | #FDF1E7 | 253, 241, 231 | Tinted backgrounds on light surfaces |
+
+Full ramp in `tokens.css` as `--acc-100 … --acc-900`.
 
 ### Secondary Colors
 
 | Color | Hex | RGB | Usage |
 |-------|-----|-----|-------|
-| Ember | #E15B47 | 225, 91, 71 | Tonal support beside the primary — charts, secondary series |
-| Ember Dark | #C94B39 | 201, 75, 57 | Ember on light surfaces |
-| Ember Light | #FFF2EF | 255, 242, 239 | Rare, tinted fills |
+| Muted Gold | #C7A34D | 199, 163, 77 | Tonal support beside the primary — charts, secondary series, warm rules |
+| Muted Gold Dark | #A9843A | 169, 132, 58 | Gold on light surfaces |
+| Muted Gold Light | #FBF5E7 | 251, 245, 231 | Rare, tinted fills |
 
 ### Accent Colors
 
@@ -81,55 +94,77 @@ wrong. The interface should get out of the way.
 | Signal Green | #4FAE7C | 79, 174, 124 | Resolved / healthy state |
 | Signal Green Dark | #2F7D55 | 47, 125, 85 | The same on light surfaces |
 
-> **Read this before using Secondary or Accent.** Modernist is deliberately a
-> one-red system. Ember and Signal Green exist for tonal support and status —
-> they are not a second and third brand colour. If a screen needs three colours
-> to make its point, the layout is doing too little work.
+> **Read this before using Secondary or Accent.** This is deliberately a
+> one-accent system. Muted Gold and Signal Green exist for tonal support and
+> status — they are not a second and third brand colour. If a screen needs
+> three colours to make its point, the layout is doing too little work.
 
 ### Neutrals
 
 | Token | Hex | Usage |
 |-------|-----|-------|
-| `--bg` | #141314 | Page |
-| `--sf` | #1A1919 | Raised surface, sidebar, filter bars |
-| `--pn` | #1F1E1E | Inputs, panels, menus |
-| `--ink` | #F1EFEE | Text |
-| `--mut` | #8D8988 | Secondary text, captions, timestamps |
-| `--line` | rgba(241,239,238,0.12) | Borders and rules |
+| `--bg` | #0C0C0E | Page |
+| `--sf` | #141418 | Raised surface, cards, sidebar, filter bars |
+| `--pn` | #1A1A1F | Inputs, panels, menus |
+| `--ink` | #F5F1EC | Text |
+| `--mut` | #8E8E93 | Secondary text, captions, timestamps |
+| `--line` | rgba(255,255,255,0.10) | Borders and rules |
 
 Neutral ramp for anything in between: `#F8F4F4 #EAE7E7 #D7D3D3 #BAB6B6
 #9B9797 #7D7979 #605D5D #444141 #2D2B2B`.
 
-**Dark is the product default.** A light set is defined under
-`:root[data-theme="light"]` and stays unused until a theme toggle exists.
+**Dark is the product default.** No light theme ships today; a light set would
+go under `:root[data-theme="light"]`.
 
 ### Status Colors
 
-Status is never communicated by text alone — colour plus a dot, always.
+Status is never communicated by text alone — colour plus a dot or word, always.
 
 | Status | Token | Hex |
 |--------|-------|-----|
 | Pending | `--warn` | #D9A13C |
-| In Progress | `--info` | #7D9EDE |
+| In Progress | `--info` | #6BAFC2 |
 | Completed | `--ok` | #4FAE7C |
 
 ### Priority Colors
 
 | Priority | Hex | Promise |
 |----------|-----|---------|
-| P1 — High | #EC3013 | Response within 2 hours |
+| P1 — High | #E86024 | Response within 2 hours |
 | P2 — Medium | #D9A13C | Response within 24 hours |
-| P3 — Low | #8D8988 | Response within 3 days |
+| P3 — Low | #8E8E93 | Response within 3 days |
 
-P1 uses the brand red. That is the one place urgency and brand share a colour,
-and it is why nothing else on a queue screen may be red.
+P1 uses the brand orange. That is the one place urgency and brand share a
+colour, and it is why nothing else on a queue screen may be orange.
+
+### Department Accents
+
+Departments are identified by a left-border stripe and a tinted icon badge, not
+a gradient fill. One hex each, fixed:
+
+| Department | Hex |
+|------------|-----|
+| HR | #6366F1 |
+| IT | #06B6D4 |
+| Sales | #10B981 |
+| Developers | #A855F7 |
+| Marketing | #F97316 |
+| Branding | #EC4899 |
+| Production | #64748B |
+
+These are wayfinding, not brand colours — they never appear as a page's
+primary action.
 
 ### Accessibility
 
 - Body text contrast: 4.5:1 minimum against its own surface, not the page.
 - `--mut` is for non-essential copy only — never the sole label of a control.
 - Colour is always paired with a dot, shape, or word.
-- Focus is a 2px `--acc` outline at 2px offset. Never remove it.
+- Focus is a 2px `--acc` outline at 2px offset. **Never remove it.**
+  Tailwind's `focus:outline-none` out-specifies the global `:focus-visible`
+  rule, so `globals.css` re-asserts the ring with a higher-specificity
+  selector. If you add `focus:outline-none` to a control, that recovery rule
+  is what keeps it accessible — don't defeat it.
 
 ---
 
@@ -151,14 +186,27 @@ and it is why nothing else on a queue screen may be red.
 Display type sets tight (-0.04em). At 46px and up, default tracking reads
 loose and undermines the system's density.
 
+Dashboard chrome runs smaller than this scale — section labels sit at 11px
+uppercase in `--mut`, card titles at 12–13px. The table above governs content
+and marketing surfaces; dense operational screens compress it.
+
 Ticket tokens (`FT-HR-8X2A7K`) are always set in the heading weight and never
 reflow — they are identifiers people read aloud and type.
 
 ---
 
-## Spacing & Elevation
+## Spacing, Radius & Elevation
 
 Spacing scale: `4 · 8 · 12 · 16 · 24 · 32`.
+
+| Token | Value | Use |
+|-------|-------|-----|
+| `--radius-sm` | 8px | Inputs, small controls, icon badges |
+| `--radius` | 12px | Default panel and card radius |
+
+Cards in the dashboards run larger — `rounded-2xl` (16px) for content cards,
+`rounded-3xl` (24px) for the sidebar shell. Keep to those two so cards read as
+one family.
 
 | Shadow | Value | Use |
 |--------|-------|-----|
@@ -166,19 +214,28 @@ Spacing scale: `4 · 8 · 12 · 16 · 24 · 32`.
 | `--shadow-md` | 0 3px 10px | Menus, popovers |
 | `--shadow-lg` | 0 12px 32px | Dialogs |
 
-Elevation is restrained here. Modernist separates things with **rules and
-surface colour first**, shadow only when something genuinely floats above the
-page. Do not reintroduce the layered-glow style this replaced.
+Elevation is restrained. Separate things with **rules and surface colour
+first**; use shadow only when something genuinely floats above the page.
 
 ---
 
 ## Components
 
-Build on these classes (`main/frontend/src/styles/globals.css`) rather than
-ad-hoc utilities, so a token change reaches every screen at once:
+Build on these classes (`main/frontend/src/styles/globals.css`) and shared
+components rather than ad-hoc utilities, so a token change reaches every
+screen at once:
 
-`.btn` (`.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-block`) · `.field`
-+ `.label` + `.input` · `.panel` · `.rule` · `.tag` · `.table` · `.kicker`
+**CSS classes:** `.btn` (`.btn-primary`, `.btn-secondary`, `.btn-ghost`,
+`.btn-block`) · `.field` + `.label` + `.input` · `.panel` · `.rule` · `.tag` ·
+`.table` · `.kicker`
+
+**React components** (`main/frontend/src/components/ui.jsx` and siblings):
+`Card` · `SectionHeader` · `StatCard` · `Badge` · `Pill` · `Modal` · `Field` ·
+`Drawer` · `EmptyState` · `DonutChart` · `DataTable`
+
+`DataTable` is the one table used across the dashboards — it carries sortable
+headers, a sticky header row, paging, and empty states. Don't hand-roll a
+`<table>`; a new list gets those affordances for free by using it.
 
 `.btn-block` left-aligns its label. That is intentional and comes from the
 design — do not centre it.
@@ -187,7 +244,7 @@ design — do not centre it.
 
 ## Logo Usage
 
-**Mark:** a 26px solid `--acc` square.
+**Mark:** a 26px solid `--acc` rounded square (`--radius-sm`).
 **Wordmark:** "Fute Services" in Archivo 800, 15px, beside the mark with 10px
 between them.
 
@@ -197,8 +254,7 @@ between them.
 - The mark alone is fine as a favicon or avatar.
 
 ### Incorrect
-- Don't round the square. It is square because the system is square.
-- Don't gradient-fill it, outline it, or add a shadow.
+- Don't gradient-fill it, outline it, or add a glow.
 - Don't recolour it per department — HR and IT are tags, not brands.
 - Don't set the wordmark in any other family or weight.
 
@@ -237,14 +293,16 @@ Rules:
 - Second person, active voice.
 - Never expose raw server messages, stack traces, or status codes.
 - Relative time for recent events; the exact timestamp lives in the tooltip.
+- Empty states name the reason and offer the next action. "No assets match
+  *"foo"*" beats "No results".
 
 ---
 
 ## AI Image Generation
 
 **Base prompt:** editorial product photography, matte surfaces, hard directional
-light, deep near-black background (#141314), a single saturated red accent
-(#EC3013), generous negative space, square framing, no gradients, no glow.
+light, deep near-black background (#0C0C0E), a single warm orange accent
+(#E86024), generous negative space, square framing, no glow.
 
 **Mood keywords:** structural, direct, confident, industrial, restrained,
 high-contrast, modernist, unfussy.
@@ -258,13 +316,16 @@ smiling office workers, multiple competing accent colours.
 
 Before shipping any screen:
 
-- [ ] Every corner is square — no `rounded-*` anywhere
-- [ ] Exactly one red thing on the screen
-- [ ] Structural dividers 2px, in-group hairlines 1px
-- [ ] Status and priority show colour **and** a dot
+- [ ] Exactly one orange thing — the primary action
+- [ ] Icon badges are tinted (10% alpha + full-colour icon), not gradient fills
+- [ ] Radius is `rounded-2xl` for cards, `rounded-3xl` for shells — no third value
+- [ ] Every colour maps to a documented meaning (status, priority, department)
+- [ ] Status and priority show colour **and** a dot or word
 - [ ] Timestamps relative, exact value on hover
 - [ ] Error copy is human — no codes, no raw server text
-- [ ] Focus ring visible on every interactive element
+- [ ] Empty states explain the cause and offer an action
+- [ ] Focus ring visible on every interactive element, including custom controls
 - [ ] `prefers-reduced-motion` renders a still, usable screen
+- [ ] Lists use `DataTable`, not a hand-rolled `<table>`
 - [ ] Built on the component classes, not one-off utilities
 - [ ] Nothing asks the user for what the account already knows

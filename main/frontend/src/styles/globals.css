@@ -9,6 +9,7 @@
   *::before,
   *::after {
     box-sizing: border-box;
+    border-color: hsl(var(--border));
   }
 
   html,
@@ -19,12 +20,13 @@
 
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--ink);
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.5;
     font-weight: 400;
+    -webkit-font-smoothing: antialiased;
   }
 
   h1,
@@ -35,38 +37,40 @@
   h6 {
     font-family: var(--font-heading);
     font-weight: var(--heading-weight);
-    line-height: 1.12;
-    letter-spacing: -0.015em;
+    line-height: 1.25;
+    letter-spacing: -0.011em;
     margin: 0 0 var(--space-2);
   }
 
   a {
-    color: var(--acc);
+    color: hsl(var(--primary));
     text-underline-offset: 3px;
   }
   a:hover {
-    color: var(--acc-700);
+    color: hsl(var(--primary-hover));
   }
 
   :focus {
     outline: none;
   }
   :focus-visible {
-    outline: 2px solid var(--acc);
+    outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
   }
   ::selection {
-    background: color-mix(in srgb, var(--acc) 30%, transparent);
+    background: hsl(var(--primary) / 0.25);
   }
 
   ::-webkit-scrollbar {
     width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--n-700);
+    background: hsl(var(--border));
+    border-radius: 4px;
   }
 }
 
@@ -74,28 +78,31 @@
   /* Scrolls if content overflows, but never shows a scrollbar — used on the
      dashboard sidebars so the nav can still reach every item on short
      viewports without a visible scroll track. */
-  .no-scrollbar {
+  .no-scrollbar,
+  .scrollbar-none {
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
-  .no-scrollbar::-webkit-scrollbar {
+  .no-scrollbar::-webkit-scrollbar,
+  .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
 }
 
 @layer components {
   /* ══════════════════════════════════════════════════════════════════════
-     Components — ported from the design system. Rounded corners, 2px rules,
-     one accent. Keep new UI on these classes rather than ad-hoc utilities,
-     so a token change reaches every screen.
+     Legacy component classes. shadcn/ui primitives in src/components/ui/
+     supersede these — prefer those for anything new. These stay until the
+     screens still using them are migrated, and are kept token-driven so they
+     theme correctly in the meantime.
      ══════════════════════════════════════════════════════════════════════ */
 
   /* — kicker: the small uppercase label above a heading — */
   .kicker {
-    font-size: 10.5px;
-    letter-spacing: 0.14em;
+    font-size: 11px;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--mut);
+    color: hsl(var(--muted-foreground));
   }
 
   /* — buttons — */
@@ -107,46 +114,41 @@
     cursor: pointer;
     text-decoration: none;
     font-family: var(--font-heading);
-    font-weight: var(--heading-weight);
+    font-weight: 500;
     font-size: 14px;
     line-height: 1.2;
-    color: var(--ink);
+    color: hsl(var(--foreground));
     background: transparent;
     border: 1px solid transparent;
     padding: var(--space-2) calc(var(--space-3) * 1.2);
-    border-radius: var(--radius);
-    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out,
-      transform 120ms ease-out;
+    border-radius: var(--radius-sm);
+    transition: background 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
   }
   .btn:disabled {
-    opacity: 0.45;
+    opacity: 0.5;
     cursor: not-allowed;
   }
   .btn-primary {
-    background: var(--acc);
-    color: #f3f2f2;
-    box-shadow: 0 1px 2px color-mix(in srgb, var(--bg) 25%, transparent);
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    box-shadow: var(--shadow);
   }
   .btn-primary:hover:not(:disabled) {
-    background: var(--acc-600);
-    transform: translateY(-1px);
-  }
-  .btn-primary:active:not(:disabled) {
-    background: var(--acc-700);
-    transform: translateY(0);
+    background: hsl(var(--primary-hover));
   }
   .btn-secondary {
-    border-color: var(--line);
+    border-color: hsl(var(--border));
+    background: hsl(var(--card));
   }
   .btn-secondary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--ink) 7%, transparent);
+    background: hsl(var(--muted));
   }
   .btn-ghost {
-    color: var(--acc);
+    color: hsl(var(--primary));
     padding-inline: var(--space-1);
   }
   .btn-ghost:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--acc) 10%, transparent);
+    background: hsl(var(--accent));
   }
   .btn-block {
     width: 100%;
@@ -159,34 +161,34 @@
   .field {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
   }
   .field > .label {
-    font-size: 10.5px;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-    color: var(--mut);
+    font-size: 13px;
+    font-weight: 500;
+    color: hsl(var(--foreground));
   }
   .input {
     width: 100%;
     font: inherit;
     font-size: 14px;
-    padding: 11px 12px;
-    color: var(--ink);
-    caret-color: var(--acc);
-    background: var(--pn);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
+    padding: 9px 12px;
+    color: hsl(var(--foreground));
+    caret-color: hsl(var(--primary));
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--input));
+    border-radius: var(--radius-sm);
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
   }
   .input::placeholder {
-    color: color-mix(in srgb, var(--mut) 70%, transparent);
+    color: hsl(var(--muted-foreground));
   }
   .input:hover {
-    border-color: color-mix(in srgb, var(--ink) 35%, transparent);
+    border-color: hsl(var(--muted-foreground) / 0.5);
   }
   .input:focus-visible {
-    border-color: var(--acc);
-    outline: 2px solid var(--acc);
+    border-color: hsl(var(--ring));
+    outline: 2px solid hsl(var(--ring));
     outline-offset: 1px;
   }
   textarea.input {
@@ -199,28 +201,28 @@
 
   /* — surfaces — */
   .panel {
-    background: var(--sf);
-    border: 1px solid var(--line);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     border-radius: var(--radius);
+    box-shadow: var(--shadow);
   }
 
-  /* Structural divider, warmed with a trace of gold so it sits in the palette
-     rather than reading as plain grey. */
   .rule {
-    height: 2px;
+    height: 1px;
     border: 0;
     margin: var(--space-4) 0;
-    background: color-mix(in srgb, var(--sec) 30%, var(--line));
+    background: hsl(var(--border));
   }
 
   /* — tags — */
   .tag {
     display: inline-flex;
     align-items: center;
-    font-size: 11px;
-    letter-spacing: 0.02em;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
     padding: 3px 10px;
-    border-radius: var(--radius);
+    border-radius: 999px;
   }
 
   /* — tables — */
@@ -231,19 +233,18 @@
   }
   .table th {
     text-align: left;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--mut);
+    font-size: 12px;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
     padding: var(--space-2);
-    border-bottom: 2px solid var(--line);
+    border-bottom: 1px solid hsl(var(--border));
   }
   .table td {
-    padding: var(--space-2);
-    border-bottom: 1px solid var(--line);
+    padding: var(--space-3) var(--space-2);
+    border-bottom: 1px solid hsl(var(--border));
   }
   .table tbody tr:hover {
-    background: color-mix(in srgb, var(--ink) 4%, transparent);
+    background: hsl(var(--muted));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -256,3 +257,11 @@
     }
   }
 }
+
+/* The `html .focus\:outline-none:focus-visible` specificity hack that used to
+   live here is gone. It existed because ~32 controls used Tailwind's
+   `focus:outline-none`, which killed the keyboard focus ring app-wide. Those
+   controls now use `focus-visible:ring-1 focus-visible:ring-ring` instead, so
+   each carries its own visible indicator and the global override is no longer
+   doing any work. The base `:focus-visible` rule above still covers anything
+   that doesn't opt out. */

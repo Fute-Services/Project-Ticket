@@ -25,6 +25,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import TeamChatDrawer from './TeamChatDrawer';
+import ThemeToggle from './ThemeToggle';
 import AppleDock from './AppleDock';
 
 const ROLE_LABEL = {
@@ -95,18 +96,18 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
   });
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white flex flex-col lg:flex-row font-sans selection:bg-orange-500/30 selection:text-orange-200">
+    <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row font-sans selection:bg-primary/30 selection:text-primary">
       {/* Left Sidebar — Fixed Height with Zero Scrollbar */}
       <aside
         className={`${
           collapsed ? 'w-full lg:w-[64px]' : 'w-full lg:w-[195px] xl:w-[200px]'
-        } m-3 lg:h-[calc(100vh-1.5rem)] lg:sticky lg:top-3 bg-[#111115] border border-white/[0.07] rounded-3xl flex flex-col justify-between shrink-0 p-3 transition-all duration-300 overflow-hidden`}
+        } m-3 lg:h-[calc(100vh-1.5rem)] lg:sticky lg:top-3 bg-background border border-border rounded-lg flex flex-col justify-between shrink-0 p-3 transition-all duration-300 overflow-hidden`}
       >
         <div>
           {/* Brand Header */}
           {!collapsed && (
-            <div className="px-3 py-2 mb-3 border-b border-white/[0.06]">
-              <div className="font-bold text-sm tracking-tight text-white leading-none">
+            <div className="px-3 py-2 mb-3 border-b border-border">
+              <div className="font-bold text-sm tracking-tight text-foreground leading-none">
                 {role === 'employee' ? 'Employee Portal' : 'IT Dashboard'}
               </div>
             </div>
@@ -126,17 +127,17 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
                     collapsed ? 'justify-center px-0' : 'px-3 justify-between'
                   } ${
                     isActive
-                      ? 'bg-gradient-to-r from-[#ff5b00] to-[#ff6a00] text-white shadow-[0_0_15px_rgba(255,91,0,0.4)] border border-orange-400/40 font-black'
-                      : 'bg-[#18181c] text-gray-300 border border-white/10 hover:border-white/20 hover:text-white hover:bg-[#22222a]'
+                      ? 'bg-primary text-primary-foreground shadow border border-primary/40 font-semibold'
+                      : 'bg-muted text-muted-foreground border border-border hover:border-muted-foreground/40 hover:text-foreground hover:bg-accent'
                   }`}
                   title={item.label}
                 >
                   <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2.5 min-w-0'}`}>
-                    <Icon size={16} className={isActive ? 'text-white' : 'text-gray-400'} />
+                    <Icon size={16} className={isActive ? 'text-primary-foreground' : 'text-muted-foreground'} />
                     {!collapsed && <span className="truncate">{item.label}</span>}
                   </div>
                   {!collapsed && item.badge && (
-                    <span className={`w-4 h-4 rounded-full font-bold text-[9px] flex items-center justify-center shrink-0 ${isActive ? 'bg-white text-[#ff5b00]' : 'bg-[#ff5b00] text-white'}`}>
+                    <span className={`w-4 h-4 rounded-full font-bold text-[9px] flex items-center justify-center shrink-0 ${isActive ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'}`}>
                       {item.badge}
                     </span>
                   )}
@@ -147,43 +148,43 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
         </div>
 
         {/* Sidebar Footer */}
-        <div className="flex flex-col gap-2 pt-3 border-t border-white/[0.07]">
+        <div className="flex flex-col gap-2 pt-3 border-t border-border">
           {/* User Profile Card */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setShowProfileMenu((prev) => !prev)}
-              className={`w-full flex items-center rounded-xl bg-[#17171c] border border-white/[0.06] hover:border-white/10 transition-colors cursor-pointer ${
+              className={`w-full flex items-center rounded-xl bg-muted border border-border hover:border-muted-foreground/40 transition-colors cursor-pointer ${
                 collapsed ? 'justify-center p-1.5' : 'justify-between p-2.5'
               }`}
             >
               <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2.5 min-w-0'}`}>
                 <div className="relative flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-[#e86024]/20 border border-[#e86024]/40 flex items-center justify-center font-bold text-xs text-[#e86024] shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center font-bold text-xs text-primary shrink-0">
                     {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'J'}
                   </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#17171c]" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary border-2 border-muted" />
                 </div>
                 {!collapsed && (
                   <div className="min-w-0 flex-1 text-left">
-                    <div className="text-xs font-semibold text-white truncate">
+                    <div className="text-xs font-semibold text-foreground truncate">
                       {user?.full_name || 'John Anderson'}
                     </div>
-                    <div className="text-[10px] text-gray-400 truncate">
+                    <div className="text-[10px] text-muted-foreground truncate">
                       {ROLE_LABEL[user?.role] || 'IT Manager'}
                     </div>
                   </div>
                 )}
               </div>
-              {!collapsed && <ChevronDown size={14} className="text-gray-400 shrink-0" />}
+              {!collapsed && <ChevronDown size={14} className="text-muted-foreground shrink-0" />}
             </button>
 
             {showProfileMenu && (
-              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-[#17171c] border border-white/10 rounded-xl p-1.5 shadow-2xl z-50">
+              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-muted border border-border rounded-xl p-1.5 shadow-2xl z-50">
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left cursor-pointer whitespace-nowrap"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-colors text-left cursor-pointer whitespace-nowrap"
                 >
                   <LogOut size={14} className="shrink-0" />
                   <span>Sign out</span>
@@ -196,7 +197,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
           <button
             type="button"
             onClick={() => setCollapsed((prev) => !prev)}
-            className="w-full p-2 rounded-xl bg-[#17171c] border border-white/[0.06] text-gray-400 hover:text-white flex items-center justify-center gap-2 text-xs font-medium transition-colors cursor-pointer"
+            className="w-full p-2 rounded-xl bg-muted border border-border text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 text-xs font-medium transition-colors cursor-pointer"
           >
             {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
             {!collapsed && <span>Collapse Menu</span>}
@@ -207,29 +208,29 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
       {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen max-h-screen overflow-hidden">
         {/* Top Header Bar */}
-        <header className="h-14 border-b border-white/10 px-4 lg:px-6 flex items-center justify-between shrink-0 bg-white/[0.04] backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] sticky top-0 z-30">
+        <header className="h-14 border border-border/60 rounded-xl mx-3 mt-3 px-4 lg:px-6 flex items-center justify-between shrink-0 bg-card/60 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)] sticky top-3 z-30">
           {/* Search Box */}
           <div className="relative flex items-center">
-            <Search size={15} className="absolute left-3.5 text-gray-400 pointer-events-none z-10" />
+            <Search size={15} className="absolute left-3.5 text-muted-foreground pointer-events-none z-10" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search tickets, requests, approvals..."
-              className="h-9 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl pl-9 pr-4 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024] focus:bg-white/[0.07] w-[260px] sm:w-[320px] transition-colors"
+              className="h-9 bg-muted backdrop-blur-md border border-border rounded-xl pl-9 pr-4 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:bg-muted w-[260px] sm:w-[320px] transition-colors"
             />
             {results.length > 0 && (
-              <div className="absolute top-full left-0 mt-2 w-[320px] bg-[#18181c] border border-white/10 rounded-xl shadow-xl overflow-hidden z-30">
+              <div className="absolute top-full left-0 mt-2 w-[320px] bg-muted border border-border rounded-xl shadow-xl overflow-hidden z-30">
                 {results.map((r, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => goToResult(r.tab)}
-                    className="w-full flex items-center justify-between px-3.5 py-2 text-left hover:bg-white/5 transition-colors cursor-pointer border-b border-white/5 last:border-0"
+                    className="w-full flex items-center justify-between px-3.5 py-2 text-left hover:bg-accent transition-colors cursor-pointer border-b border-border last:border-0"
                   >
                     <div className="min-w-0">
-                      <div className="text-xs font-semibold text-white truncate">{r.label}</div>
-                      <div className="text-[10px] text-gray-500 truncate">{r.sub}</div>
+                      <div className="text-xs font-semibold text-foreground truncate">{r.label}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">{r.sub}</div>
                     </div>
                   </button>
                 ))}
@@ -239,25 +240,26 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
 
           {/* Header Right Actions */}
           <div className="flex items-center gap-2.5">
+            <ThemeToggle />
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowNotifs((p) => !p)}
-                className="relative w-9 h-9 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                className="relative w-9 h-9 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-muted-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
               >
                 <Bell size={15} />
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#e86024] text-white text-[8px] font-bold rounded-full flex items-center justify-center border-2 border-[#0c0c0e]">
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full flex items-center justify-center border-2 border-background">
                   {NOTIFICATIONS.length}
                 </span>
               </button>
               {showNotifs && (
-                <div className="absolute top-full right-0 mt-2 w-[300px] bg-[#18181c] border border-white/10 rounded-2xl shadow-xl overflow-hidden z-30">
-                  <div className="px-4 py-2.5 border-b border-white/5 text-xs font-bold text-white">Notifications</div>
+                <div className="absolute top-full right-0 mt-2 w-[300px] bg-muted border border-border rounded-lg shadow-xl overflow-hidden z-30">
+                  <div className="px-4 py-2.5 border-b border-border text-xs font-bold text-foreground">Notifications</div>
                   <div className="max-h-[300px] overflow-y-auto">
                     {NOTIFICATIONS.map((n) => (
-                      <div key={n.id} className="p-3 border-b border-white/5 last:border-0 hover:bg-white/5">
-                        <div className="text-xs font-semibold text-white">{n.text}</div>
-                        <div className="text-[9px] text-gray-500 mt-1">{n.time}</div>
+                      <div key={n.id} className="p-3 border-b border-border last:border-0 hover:bg-accent">
+                        <div className="text-xs font-semibold text-foreground">{n.text}</div>
+                        <div className="text-[9px] text-muted-foreground mt-1">{n.time}</div>
                       </div>
                     ))}
                   </div>
@@ -269,7 +271,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
             <button
               type="button"
               onClick={() => setIsChatOpen(true)}
-              className="h-9 px-3 rounded-xl bg-gradient-to-b from-[#3a3a3f] to-[#151517] border border-black text-white text-xs font-bold flex items-center gap-2 shadow-[0_2px_0_#000,0_4px_8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)] hover:from-[#46464b] hover:to-[#1c1c1f] active:translate-y-[1px] active:shadow-[0_1px_0_#000,0_2px_4px_rgba(0,0,0,0.4),inset_0_1px_2px_rgba(0,0,0,0.4)] transition-all cursor-pointer"
+              className="h-9 px-3 rounded-xl bg-card border border-border text-foreground text-xs font-medium flex items-center gap-2 shadow hover:bg-accent transition-all cursor-pointer"
             >
               <MessageSquare size={14} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]" />
               <span className="hidden sm:inline drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]">Team Chat</span>
@@ -278,11 +280,11 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
             <button
               type="button"
               onClick={() => setDateRangeLabel((l) => DATE_RANGES[(DATE_RANGES.indexOf(l) + 1) % DATE_RANGES.length])}
-              className="h-9 flex items-center gap-2 px-3 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:border-white/20 text-xs text-gray-300 font-medium shrink-0 cursor-pointer transition-colors"
+              className="h-9 flex items-center gap-2 px-3 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-xs text-muted-foreground font-medium shrink-0 cursor-pointer transition-colors"
             >
-              <Calendar size={13} className="text-[#e86024]" />
+              <Calendar size={13} className="text-primary" />
               <span>{dateRangeLabel === 'Exact Date' ? currentDateStr : dateRangeLabel}</span>
-              <ChevronDown size={11} className="text-gray-400" />
+              <ChevronDown size={11} className="text-muted-foreground" />
             </button>
           </div>
         </header>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, StatCard, EmptyState } from '../../components/ui';
+import DataTable from '../../components/DataTable';
 import { Users2, UserCheck, UserX, Clock3 } from 'lucide-react';
 import { employees, attendanceRecords, ATTENDANCE_STATUSES } from '../../data/hrMockData';
 
@@ -8,11 +9,11 @@ const TODAY = '2026-08-06';
 const MONTH_DATES = ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05'];
 
 const DOT_COLOR = {
-  Present: 'bg-emerald-400',
-  Absent: 'bg-red-400',
-  Late: 'bg-amber-400',
-  'Half Day': 'bg-blue-400',
-  'Work From Home': 'bg-purple-400',
+  Present: 'bg-primary',
+  Absent: 'bg-destructive',
+  Late: 'bg-warning',
+  'Half Day': 'bg-muted',
+  'Work From Home': 'bg-muted',
 };
 
 // Working hours are derived from check-in/out rather than stored, so the
@@ -34,18 +35,33 @@ function formatHours(hours) {
 export default function Attendance() {
   const [selectedEmployee, setSelectedEmployee] = useState(employees[0].id);
 
-  const todayRecords = useMemo(
-    () => employees.map((e) => attendanceRecords.find((a) => a.employeeId === e.id && a.date === TODAY) || null),
+  // One flat row per employee, with today's record merged in. Flattening the
+  // join here (rather than pairing two arrays by index at render time) is what
+  // lets the table sort on any column without the two lists drifting apart.
+  const todayRows = useMemo(
+    () =>
+      employees.map((e) => {
+        const record = attendanceRecords.find((a) => a.employeeId === e.id && a.date === TODAY) || null;
+        return {
+          id: e.id,
+          name: e.name,
+          department: e.department,
+          checkIn: record?.checkIn || '—',
+          checkOut: record?.checkOut || '—',
+          hours: workingHours(record),
+          status: record?.status || null,
+        };
+      }),
     []
   );
 
   const counts = useMemo(() => {
     const c = { Present: 0, Absent: 0, Late: 0, 'Half Day': 0, 'Work From Home': 0 };
-    todayRecords.forEach((r) => {
-      if (r) c[r.status] = (c[r.status] || 0) + 1;
+    todayRows.forEach((r) => {
+      if (r.status) c[r.status] = (c[r.status] || 0) + 1;
     });
     return c;
-  }, [todayRecords]);
+  }, [todayRows]);
 
   const employeeHistory = attendanceRecords.filter((a) => a.employeeId === selectedEmployee);
 
@@ -64,35 +80,27 @@ export default function Attendance() {
 
         <Card>
           <SectionHeader title="Today's Attendance" subtitle={TODAY} />
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 text-gray-400 uppercase text-[10px] tracking-wider">
-                  <th className="py-3 px-3">Employee</th>
-                  <th className="py-3 px-3">Department</th>
-                  <th className="py-3 px-3">Check In</th>
-                  <th className="py-3 px-3">Check Out</th>
-                  <th className="py-3 px-3">Working Hours</th>
-                  <th className="py-3 px-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {employees.map((e, i) => {
-                  const r = todayRecords[i];
-                  return (
-                    <tr key={e.id} className="hover:bg-white/[0.02]">
-                      <td className="py-3.5 px-3 font-bold text-white">{e.name}</td>
-                      <td className="py-3.5 px-3 text-gray-400">{e.department}</td>
-                      <td className="py-3.5 px-3 text-gray-400">{r?.checkIn || '—'}</td>
-                      <td className="py-3.5 px-3 text-gray-400">{r?.checkOut || '—'}</td>
-                      <td className="py-3.5 px-3 text-gray-300 font-semibold">{formatHours(workingHours(r))}</td>
-                      <td className="py-3.5 px-3">{r ? <Badge value={r.status} /> : <span className="text-gray-600">No record</span>}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            rows={todayRows}
+            pageSize={10}
+            emptyMessage="No employees on record yet."
+            columns={[
+              { key: 'name', label: 'Employee', render: (r) => <span className="font-bold text-foreground">{r.name}</span> },
+              { key: 'department', label: 'Department', render: (r) => <span className="text-muted-foreground">{r.department}</span> },
+              { key: 'checkIn', label: 'Check In', render: (r) => <span className="text-muted-foreground">{r.checkIn}</span> },
+              { key: 'checkOut', label: 'Check Out', render: (r) => <span className="text-muted-foreground">{r.checkOut}</span> },
+              {
+                key: 'hours',
+                label: 'Working Hours',
+                render: (r) => <span className="text-muted-foreground font-semibold">{formatHours(r.hours)}</span>,
+              },
+              {
+                key: 'status',
+                label: 'Status',
+                render: (r) => (r.status ? <Badge value={r.status} /> : <span className="text-muted-foreground">No record</span>),
+              },
+            ]}
+          />
         </Card>
 
         <Card>
@@ -105,7 +113,7 @@ export default function Attendance() {
               <select
                 value={selectedEmployee}
                 onChange={(e) => setSelectedEmployee(e.target.value)}
-                className="bg-[#18181c] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#e86024] cursor-pointer"
+                className="bg-muted border border-border rounded-xl px-3 py-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
               >
                 {employees.map((e) => (
                   <option key={e.id} value={e.id}>{e.name}</option>
@@ -119,10 +127,10 @@ export default function Attendance() {
               const rec = employeeHistory.find((a) => a.date === d);
               return (
                 <div key={d} className="flex flex-col items-center gap-1.5">
-                  <div className="text-[10px] text-gray-500">{d.slice(-2)}</div>
+                  <div className="text-xs text-muted-foreground">{d.slice(-2)}</div>
                   <div
                     title={rec?.status || 'No record'}
-                    className={`w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center ${rec ? DOT_COLOR[rec.status] + '/20' : 'bg-white/5'}`}
+                    className={`w-8 h-8 rounded-lg border border-border flex items-center justify-center ${rec ? DOT_COLOR[rec.status] + '/20' : 'bg-muted'}`}
                   >
                     {rec && <span className={`w-2 h-2 rounded-full ${DOT_COLOR[rec.status]}`} />}
                   </div>
@@ -136,10 +144,10 @@ export default function Attendance() {
           ) : (
             <div className="flex flex-col gap-2">
               {employeeHistory.map((r, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-[#18181c] border border-white/5">
-                  <span className="text-xs text-gray-300">{r.date}</span>
-                  <span className="text-[10px] text-gray-500">{r.checkIn} — {r.checkOut}</span>
-                  <span className="text-[10px] text-gray-400 font-semibold">{formatHours(workingHours(r))}</span>
+                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border">
+                  <span className="text-xs text-muted-foreground">{r.date}</span>
+                  <span className="text-xs text-muted-foreground">{r.checkIn} — {r.checkOut}</span>
+                  <span className="text-xs text-muted-foreground font-semibold">{formatHours(workingHours(r))}</span>
                   <Badge value={r.status} />
                 </div>
               ))}
@@ -147,7 +155,7 @@ export default function Attendance() {
           )}
         </Card>
 
-        <div className="flex flex-wrap gap-3 text-[10px] text-gray-500">
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
           {ATTENDANCE_STATUSES.map((s) => (
             <div key={s} className="flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${DOT_COLOR[s]}`} /> {s}

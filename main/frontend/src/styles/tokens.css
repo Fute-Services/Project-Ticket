@@ -1,56 +1,99 @@
-/* Modernist — ported from the Claude Design project
-   "Fute Services design prototype" (_ds/modernist-.../styles.css).
+/* Design tokens — orange on black.
    Edit here, not in component files.
 
-   The system's three rules: no radius, 2px rules, one red. */
+   The palette is deliberately two colours: one orange accent and a
+   black/neutral ramp. Everything that used to carry its own hue (department
+   accents, chart series, status tints) now resolves to orange or neutral.
+
+   One exception, kept on purpose: `--destructive` stays red. Delete and
+   reject have to be visually distinct from approve and save, and orange
+   can't carry that difference when orange is also the primary action colour.
+
+   `.dark` is the black-first set; `:root` is the light counterpart so the
+   theme toggle still works. Values are bare HSL triplets — no hsl() wrapper —
+   so Tailwind can compose them as hsl(var(--x) / <alpha>) and opacity
+   modifiers like bg-primary/90 keep working. */
 
 :root {
-  /* Primary — warm amber. Actions, links, the brand mark, P1 priority. Back
-     to the system's original one-accent-on-near-black idea, just in a warm
-     hue instead of red. */
-  /* Primary — bright brand orange (#e86024) */
-  --acc: #e86024;
-  --acc-100: #fdf1e7;
-  --acc-200: #fadfc5;
-  --acc-300: #f4c093;
-  --acc-400: #ec9a5d;
-  --acc-500: #e86024;
-  --acc-600: #d4521a;
-  --acc-700: #b33f10;
-  --acc-800: #8a2e0a;
-  --acc-900: #571c05;
+  /* Light mode. Two things were wrong here and both are fixed below.
 
-  /* Secondary — muted gold */
-  --sec: #c7a34d;
-  --sec-100: #fbf5e7;
-  --sec-200: #f3e4c0;
-  --sec-300: #e7cd8e;
-  --sec-400: #d9b563;
-  --sec-500: #cda34c;
-  --sec-600: #a9843a;
-  --sec-700: #7f632b;
-  --sec-800: #59461e;
-  --sec-900: #3a2e14;
+     1. Surfaces had no depth. `--card` and `--background` were both pure
+        white, so every card on every dashboard was distinguished from the
+        page by a 1px border and nothing else — the whole app read as flat
+        paper. Dark mode never had this problem (card 8% sits above
+        background 4%). The page is now a warm off-white and cards are pure
+        white, so cards lift instead of dissolve.
 
-  /* Neutral ramp */
-  --n-100: #f8f4f4;
-  --n-200: #eae7e7;
-  --n-300: #d7d3d3;
-  --n-400: #bab6b6;
-  --n-500: #9b9797;
-  --n-600: #7d7979;
-  --n-700: #605d5d;
-  --n-800: #444141;
-  --n-900: #2d2b2b;
+     2. The accent was too light to read as text. #e86024 on white is
+        3.4:1 — below the 4.5:1 AA floor, and `text-primary` appears 183
+        times. Same story for warning at ~2.5:1 across 44 uses. Light-mode
+        primary is therefore a deeper orange; the vivid #e86024 stays in
+        dark mode where it has the contrast to carry text. Shifting accent
+        lightness per theme is normal — a hue bright enough for a black
+        background is never dark enough for a white one.
 
-  /* Status */
-  --ok: #4fae7c;
-  --warn: #d9a13c;
-  --info: #6bafc2;
+     The neutrals carry a trace of the orange hue rather than being pure
+     grey, so surfaces sit with the accent instead of against it. */
 
-  --font-heading: 'Archivo', system-ui, sans-serif;
-  --font-body: 'Archivo', system-ui, sans-serif;
-  --heading-weight: 800;
+  --background: 30 20% 98%;
+  --foreground: 20 10% 10%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 20 10% 10%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 10% 10%;
+
+  --muted: 30 12% 95%;
+  --muted-foreground: 20 6% 38%; /* 6.2:1 on card */
+
+  --secondary: 30 12% 95%;
+  --secondary-foreground: 20 10% 10%;
+
+  --accent: 24 100% 95%;
+  --accent-foreground: 22 89% 38%; /* 4.7:1 on --accent */
+
+  --border: 28 12% 86%;
+  --input: 28 12% 86%;
+  --ring: 20 82% 45%;
+
+  /* Fute orange, darkened for white surfaces: 4.75:1 both as text on card
+     and as white text on the filled button. */
+  --primary: 20 85% 42%;
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 20 88% 35%;
+
+  /* Status. Success/warning/info stay orange or neutral so the palette
+     holds; destructive stays red because it has to read as dangerous.
+     Warning is a deep amber, not a bright one — bright amber on white is
+     ~2.5:1 and was illegible everywhere it appeared. */
+  --success: 20 85% 42%;
+  --success-foreground: 0 0% 100%;
+  --warning: 28 95% 36%; /* 4.9:1 on card */
+  --warning-foreground: 0 0% 100%;
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --info: 0 0% 42%;
+  --info-foreground: 0 0% 100%;
+
+  /* Chart series step orange down to neutral. Light mode runs *darker*
+     than dark mode, not lighter — the previous ramp ended at 76% lightness,
+     which on a white page was a slice you couldn't see. */
+  --chart-1: 20 85% 45%;
+  --chart-2: 25 78% 56%;
+  --chart-3: 32 62% 66%;
+  --chart-4: 0 0% 45%;
+  --chart-5: 0 0% 25%;
+  --chart-6: 0 0% 58%;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --font-heading: 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --heading-weight: 600;
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -58,23 +101,51 @@
   --space-4: 16px;
   --space-6: 24px;
   --space-8: 32px;
-
-  --radius-sm: 8px;
-  --radius: 12px;
-
-  --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
-  --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
-  --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
 }
 
-:root {
-  --bg: #0c0c0e;
-  --sf: #141418;
-  --pn: #1a1a1f;
-  --ink: #f5f1ec;
-  --line: rgba(255, 255, 255, 0.1);
-  --mut: #8e8e93;
-  --ok: #4fae7c;
-  --warn: #d9a13c;
-  --info: #6bafc2;
+.dark {
+  /* Dark: black surfaces, orange accent */
+  --background: 0 0% 4%;
+  --foreground: 0 0% 96%;
+
+  --card: 0 0% 8%;
+  --card-foreground: 0 0% 96%;
+
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 96%;
+
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 60%;
+
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 96%;
+
+  --accent: 20 60% 16%;
+  --accent-foreground: 20 90% 70%;
+
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 20 82% 53%;
+
+  --primary: 20 82% 53%;
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 22 88% 60%;
+
+  --success: 20 82% 53%;
+  --success-foreground: 0 0% 100%;
+  --warning: 30 90% 58%;
+  --warning-foreground: 0 0% 4%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --info: 0 0% 65%;
+  --info-foreground: 0 0% 4%;
+
+  --chart-1: 20 82% 58%;
+  --chart-2: 25 75% 68%;
+  --chart-3: 30 55% 78%;
+  --chart-4: 0 0% 62%;
+  --chart-5: 0 0% 42%;
+  --chart-6: 0 0% 78%;
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }

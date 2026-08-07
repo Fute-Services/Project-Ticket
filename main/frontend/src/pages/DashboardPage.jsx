@@ -2,10 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTickets } from '../context/TicketContext';
 import { useApprovals } from '../context/ApprovalContext';
+import { toast } from 'sonner';
 import ItDeskLayout from '../components/ItDeskLayout';
 import DonutChart from '../components/DonutChart';
 import DataTransferModal from '../components/DataTransferModal';
 import AssetFormModal from '../components/AssetFormModal';
+import DataTable from '../components/DataTable';
+import { BarChartCard, LineChartCard } from '../components/charts';
 import { Card, SectionHeader, StatCard } from '../components/ui';
 import {
   assets as SEED_ASSETS,
@@ -26,7 +29,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Search,
   Download,
   Mail,
   BadgeCheck,
@@ -42,12 +44,12 @@ function TicketsQueueView({ tickets, onStatusChange }) {
     <div className="w-full flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Tickets Queue</h1>
-          <p className="text-xs text-gray-400">{tickets.length} total tickets</p>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Tickets Queue</h1>
+          <p className="text-xs text-muted-foreground">{tickets.length} total tickets</p>
         </div>
       </div>
 
-      <div className="bg-[#141418] border border-white/5 rounded-3xl p-5">
+      <div className="bg-card border border-border rounded-lg p-5">
         <div className="flex flex-wrap gap-2 mb-5">
           {['All', ...TICKET_STATUSES].map((s) => (
             <button
@@ -55,7 +57,7 @@ function TicketsQueueView({ tickets, onStatusChange }) {
               type="button"
               onClick={() => setFilter(s)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                filter === s ? 'bg-[#e86024] text-white' : 'bg-[#18181c] border border-white/10 text-gray-400 hover:text-white'
+                filter === s ? 'bg-primary text-primary-foreground' : 'bg-muted border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
               {s}
@@ -63,44 +65,43 @@ function TicketsQueueView({ tickets, onStatusChange }) {
           ))}
         </div>
 
-        {visible.length === 0 ? (
-          <p className="text-xs text-gray-500 py-8 text-center">No tickets match this filter.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 text-gray-400 uppercase text-[10px] tracking-wider">
-                  <th className="py-3 px-3">Token</th>
-                  <th className="py-3 px-3">Issue</th>
-                  <th className="py-3 px-3">Requester</th>
-                  <th className="py-3 px-3">Department</th>
-                  <th className="py-3 px-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {visible.map((t) => (
-                  <tr key={t.id} className="hover:bg-white/[0.02]">
-                    <td className="py-3.5 px-3 font-bold text-[#e86024]">{t.token}</td>
-                    <td className="py-3.5 px-3 text-white">{t.title}</td>
-                    <td className="py-3.5 px-3 text-gray-300">{t.user}</td>
-                    <td className="py-3.5 px-3 text-gray-400">{t.dept}</td>
-                    <td className="py-3.5 px-3">
-                      <select
-                        value={t.status}
-                        onChange={(e) => onStatusChange(t.id, e.target.value)}
-                        className="bg-[#18181c] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#e86024] cursor-pointer"
-                      >
-                        {TICKET_STATUSES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          rows={visible}
+          pageSize={12}
+          emptyMessage={
+            filter === 'All'
+              ? 'No tickets have been raised yet. They appear here as employees submit them.'
+              : `No tickets are currently ${filter.toLowerCase()}.`
+          }
+          columns={[
+            {
+              key: 'token',
+              label: 'Token',
+              width: '110px',
+              render: (t) => <span className="font-bold text-primary">{t.token}</span>,
+            },
+            { key: 'title', label: 'Issue', render: (t) => <span className="text-foreground">{t.title}</span> },
+            { key: 'user', label: 'Requester', render: (t) => <span className="text-muted-foreground">{t.user}</span> },
+            { key: 'dept', label: 'Department', render: (t) => <span className="text-muted-foreground">{t.dept}</span> },
+            {
+              key: 'status',
+              label: 'Status',
+              width: '150px',
+              render: (t) => (
+                <select
+                  value={t.status}
+                  onChange={(e) => onStatusChange(t.id, e.target.value)}
+                  aria-label={`Status for ticket ${t.token}`}
+                  className="bg-muted border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                >
+                  {TICKET_STATUSES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              ),
+            },
+          ]}
+        />
       </div>
     </div>
   );
@@ -117,63 +118,69 @@ function ApprovalCenterView() {
 
   function submit(e) {
     e.preventDefault();
-    if (!form.title.trim()) return;
+    if (!form.title.trim()) {
+      toast.error('Give the request a title', {
+        description: 'The founder needs to know what they are approving.',
+      });
+      return;
+    }
     submitApproval({ ...form, source: 'IT' });
     setForm(APPROVAL_FORM_EMPTY);
+    toast.success('Sent for founder approval', { description: form.title });
   }
 
   return (
     <div className="w-full flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Approval Center</h1>
-        <p className="text-xs text-gray-400">{pendingFounder.length} awaiting founder sign-off · {decided.length} decided</p>
+        <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Approval Center</h1>
+        <p className="text-xs text-muted-foreground">{pendingFounder.length} awaiting founder sign-off · {decided.length} decided</p>
       </div>
 
       <Card>
-        <h3 className="font-extrabold text-sm text-white mb-3">Send for Founder Approval</h3>
+        <h3 className="font-semibold text-sm text-foreground mb-3">Send for Founder Approval</h3>
         <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input
             required
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             placeholder="Request title"
-            className="bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+            className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
           <input
             value={form.requestedBy}
             onChange={(e) => setForm((f) => ({ ...f, requestedBy: e.target.value }))}
             placeholder="Requested by"
-            className="bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+            className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
           <input
             value={form.sub}
             onChange={(e) => setForm((f) => ({ ...f, sub: e.target.value }))}
             placeholder="Details"
-            className="sm:col-span-2 bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+            className="sm:col-span-2 bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
           <button
             type="submit"
-            className="sm:col-span-2 bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+            className="sm:col-span-2 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
           >
             Send for Founder Approval
           </button>
         </form>
       </Card>
 
-      <div className="bg-[#141418] border border-white/5 rounded-3xl p-5">
-        <h3 className="font-extrabold text-sm text-white mb-4">Awaiting Founder Sign-off</h3>
+      <div className="bg-card border border-border rounded-lg p-5">
+        <h3 className="font-semibold text-sm text-foreground mb-4">Awaiting Founder Sign-off</h3>
         {pendingFounder.length === 0 ? (
-          <p className="text-xs text-gray-500 py-4">Nothing waiting on the founder right now.</p>
+          <p className="text-xs text-muted-foreground py-4">Nothing waiting on the founder right now.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             {pendingFounder.map((app) => (
-              <div key={app.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between">
+              <div key={app.id} className="p-3.5 rounded-lg bg-muted border border-border flex items-center justify-between">
                 <div className="min-w-0 pr-2">
-                  <div className="text-xs font-bold text-white truncate">{app.title}</div>
-                  <div className="text-[11px] text-gray-400 truncate">{app.sub}</div>
-                  <div className="text-[10px] text-gray-500">Requested by {app.requestedBy} · {app.timestamp}</div>
+                  <div className="text-xs font-bold text-foreground truncate">{app.title}</div>
+                  <div className="text-xs text-muted-foreground truncate">{app.sub}</div>
+                  <div className="text-xs text-muted-foreground">Requested by {app.requestedBy} · {app.timestamp}</div>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/20">
+                <span className="text-xs px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 bg-warning/10 text-warning border-warning/20">
                   Pending Founder
                 </span>
               </div>
@@ -181,22 +188,22 @@ function ApprovalCenterView() {
           </div>
         )}
 
-        <h3 className="font-extrabold text-sm text-white mb-4">Decision History</h3>
+        <h3 className="font-semibold text-sm text-foreground mb-4">Decision History</h3>
         {decided.length === 0 ? (
-          <p className="text-xs text-gray-500 py-4">No decisions yet.</p>
+          <p className="text-xs text-muted-foreground py-4">No decisions yet.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {decided.map((app) => (
-              <div key={app.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between">
+              <div key={app.id} className="p-3.5 rounded-lg bg-muted border border-border flex items-center justify-between">
                 <div className="min-w-0 pr-2">
-                  <div className="text-xs font-bold text-white truncate">{app.title}</div>
-                  <div className="text-[10px] text-gray-500">{app.requestedBy} · {app.timestamp}</div>
+                  <div className="text-xs font-bold text-foreground truncate">{app.title}</div>
+                  <div className="text-xs text-muted-foreground">{app.requestedBy} · {app.timestamp}</div>
                 </div>
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 ${
+                  className={`text-xs px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 ${
                     app.status === 'approved'
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                      : 'bg-red-500/10 text-red-400 border-red-500/20'
+                      ? 'bg-primary/10 text-primary border-primary/20'
+                      : 'bg-destructive/10 text-destructive border-destructive/20'
                   }`}
                 >
                   {app.status}
@@ -215,42 +222,42 @@ function DataRequestsView({ requests, onNewRequest }) {
     <div className="w-full flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Data Requests</h1>
-          <p className="text-xs text-gray-400">{requests.length} transfer requests</p>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Data Requests</h1>
+          <p className="text-xs text-muted-foreground">{requests.length} transfer requests</p>
         </div>
         <button
           type="button"
           onClick={onNewRequest}
-          className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
+          className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
         >
           <Server size={15} />
           <span>New Data Request</span>
         </button>
       </div>
 
-      <div className="bg-[#141418] border border-white/5 rounded-3xl p-5">
+      <div className="bg-card border border-border rounded-lg p-5">
         {requests.length === 0 ? (
-          <p className="text-xs text-gray-500 py-8 text-center">No data transfer requests yet.</p>
+          <p className="text-xs text-muted-foreground py-8 text-center">No data transfer requests yet.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {requests.map((d) => (
-              <div key={d.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between">
+              <div key={d.id} className="p-3.5 rounded-lg bg-muted border border-border flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-warning/10 border border-warning/20 flex items-center justify-center text-warning shrink-0">
                     <Server size={15} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-white truncate">{d.path}</div>
-                    <div className="text-[10px] text-gray-400 truncate">{d.name}</div>
+                    <div className="text-xs font-bold text-foreground truncate">{d.path}</div>
+                    <div className="text-xs text-muted-foreground truncate">{d.name}</div>
                   </div>
                 </div>
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold shrink-0 ${
+                  className={`text-xs px-2 py-0.5 rounded-full border font-semibold shrink-0 ${
                     d.status === 'Completed'
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      ? 'bg-primary/10 text-primary border-primary/20'
                       : d.status === 'In Progress'
-                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                      : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                      ? 'bg-muted/10 text-muted-foreground border-muted/20'
+                      : 'bg-warning/10 text-warning border-warning/20'
                   }`}
                 >
                   {d.status}
@@ -273,30 +280,21 @@ const ASSET_TYPE_ICON = {
 };
 
 const ASSET_STATUS_COLOR = {
-  'In Use': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  Available: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  'Under Repair': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  Retired: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+  'In Use': 'bg-primary/10 text-primary border-primary/20',
+  Available: 'bg-muted/10 text-muted-foreground border-muted/20',
+  'Under Repair': 'bg-warning/10 text-warning border-warning/20',
+  Retired: 'bg-muted/10 text-muted-foreground border-muted/20',
 };
 
 function AssetsView() {
   const [assets, setAssets] = useState(SEED_ASSETS);
   const [typeFilter, setTypeFilter] = useState('All');
-  const [query, setQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
 
-  const visible = assets.filter((a) => {
-    if (typeFilter !== 'All' && a.type !== typeFilter) return false;
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      a.id.toLowerCase().includes(q) ||
-      a.model.toLowerCase().includes(q) ||
-      a.assignedTo.toLowerCase().includes(q) ||
-      a.department.toLowerCase().includes(q)
-    );
-  });
+  // Only the type filter lives here now — free-text search is DataTable's job,
+  // so the two aren't implemented twice with subtly different behaviour.
+  const visible = assets.filter((a) => typeFilter === 'All' || a.type === typeFilter);
 
   // Warranty is "expiring" if it lapses within 90 days of the demo date —
   // the whole point of tracking it is catching that before it lapses.
@@ -315,28 +313,38 @@ function AssetsView() {
   }
 
   function handleSubmit(asset) {
-    setAssets((prev) =>
-      editingAsset ? prev.map((a) => (a.id === editingAsset.id ? asset : a)) : [asset, ...prev]
-    );
+    const isEdit = !!editingAsset;
+    setAssets((prev) => (isEdit ? prev.map((a) => (a.id === editingAsset.id ? asset : a)) : [asset, ...prev]));
+    toast.success(isEdit ? `Saved ${asset.id}` : `Added ${asset.id}`, { description: asset.model });
   }
 
+  // Deleting an asset can't be undone from this screen, so the toast carries
+  // an Undo rather than just reporting the loss after the fact.
   function handleDelete(id) {
+    const removed = assets.find((a) => a.id === id);
     setAssets((prev) => prev.filter((a) => a.id !== id));
+    toast.success(`Deleted ${id}`, {
+      description: removed?.model,
+      action: {
+        label: 'Undo',
+        onClick: () => setAssets((prev) => (prev.some((a) => a.id === id) ? prev : [removed, ...prev])),
+      },
+    });
   }
 
   return (
     <div className="w-full flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Asset Management</h1>
-          <p className="text-xs text-gray-400">
+          <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Asset Management</h1>
+          <p className="text-xs text-muted-foreground">
             {assets.length} assets tracked · {expiring} warranty expiring within 90 days
           </p>
         </div>
         <button
           type="button"
           onClick={openAddModal}
-          className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
+          className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
         >
           <Plus size={15} />
           <span>Add Asset</span>
@@ -350,37 +358,25 @@ function AssetsView() {
           const count = assets.filter((a) => a.type === type).length;
           const inUse = assets.filter((a) => a.type === type && a.status === 'In Use').length;
           return (
-            <div key={type} className="bg-[#141418] border border-white/5 rounded-2xl p-3.5 text-center">
-              <Icon size={18} className="mx-auto text-gray-400 mb-1.5" />
-              <div className="text-[10px] text-gray-400">{type}s</div>
-              <div className="text-lg font-bold text-white mt-0.5">{count}</div>
-              <div className="text-[10px] text-emerald-400">{inUse} in use</div>
+            <div key={type} className="bg-card border border-border rounded-lg p-3.5 text-center">
+              <Icon size={18} className="mx-auto text-muted-foreground mb-1.5" />
+              <div className="text-xs text-muted-foreground">{type}s</div>
+              <div className="text-lg font-bold text-foreground mt-0.5">{count}</div>
+              <div className="text-xs text-primary">{inUse} in use</div>
             </div>
           );
         })}
       </div>
 
       <Card>
-        <div className="flex flex-col md:flex-row gap-3 mb-5">
-          <div className="relative flex-1">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by asset ID, model, user, or department..."
-              className="w-full bg-[#18181c] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-2 mb-4">
           {['All', ...ASSET_TYPES].map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setTypeFilter(t)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                typeFilter === t ? 'bg-[#e86024] text-white' : 'bg-[#18181c] border border-white/10 text-gray-400 hover:text-white'
+                typeFilter === t ? 'bg-primary text-primary-foreground' : 'bg-muted border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
               {t === 'All' ? 'All' : `${t}s`}
@@ -388,68 +384,84 @@ function AssetsView() {
           ))}
         </div>
 
-        {visible.length === 0 ? (
-          <p className="text-xs text-gray-500 py-8 text-center">No assets match this filter.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 text-gray-400 uppercase text-[10px] tracking-wider">
-                  <th className="py-3 px-3">Asset ID</th>
-                  <th className="py-3 px-3">Model</th>
-                  <th className="py-3 px-3">Assigned To</th>
-                  <th className="py-3 px-3">Department</th>
-                  <th className="py-3 px-3">Purchased</th>
-                  <th className="py-3 px-3">Warranty Until</th>
-                  <th className="py-3 px-3">Status</th>
-                  <th className="py-3 px-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {visible.map((a) => {
-                  const expiringSoon = new Date(a.warrantyEnd) <= soon && a.status !== 'Retired';
-                  return (
-                    <tr key={a.id} className="hover:bg-white/[0.02]">
-                      <td className="py-3.5 px-3 font-bold text-[#e86024]">{a.id}</td>
-                      <td className="py-3.5 px-3 text-white">{a.model}</td>
-                      <td className="py-3.5 px-3 text-gray-300">{a.assignedTo}</td>
-                      <td className="py-3.5 px-3 text-gray-400">{a.department}</td>
-                      <td className="py-3.5 px-3 text-gray-500">{a.purchaseDate}</td>
-                      <td className={`py-3.5 px-3 ${expiringSoon ? 'text-amber-400 font-semibold' : 'text-gray-500'}`}>
-                        {a.warrantyEnd}
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold whitespace-nowrap ${ASSET_STATUS_COLOR[a.status]}`}>
-                          {a.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(a)}
-                            className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 text-gray-300 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
-                            title="Edit"
-                          >
-                            <Pencil size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(a.id)}
-                            className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 flex items-center justify-center cursor-pointer transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          rows={visible}
+          pageSize={10}
+          searchable
+          searchKeys={['id', 'model', 'assignedTo', 'department']}
+          searchPlaceholder="Search by asset ID, model, user, or department…"
+          emptyMessage="No assets of this type are on record yet."
+          emptyAction={
+            <button
+              type="button"
+              onClick={openAddModal}
+              className="mt-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
+            >
+              Add an asset
+            </button>
+          }
+          columns={[
+            {
+              key: 'id',
+              label: 'Asset ID',
+              width: '110px',
+              render: (a) => <span className="font-bold text-primary">{a.id}</span>,
+            },
+            { key: 'model', label: 'Model', render: (a) => <span className="text-foreground">{a.model}</span> },
+            { key: 'assignedTo', label: 'Assigned To', render: (a) => <span className="text-muted-foreground">{a.assignedTo}</span> },
+            { key: 'department', label: 'Department', render: (a) => <span className="text-muted-foreground">{a.department}</span> },
+            { key: 'purchaseDate', label: 'Purchased', render: (a) => <span className="text-muted-foreground">{a.purchaseDate}</span> },
+            {
+              key: 'warrantyEnd',
+              label: 'Warranty Until',
+              render: (a) => {
+                const expiringSoon = new Date(a.warrantyEnd) <= soon && a.status !== 'Retired';
+                return (
+                  <span className={expiringSoon ? 'text-warning font-semibold' : 'text-muted-foreground'}>
+                    {a.warrantyEnd}
+                  </span>
+                );
+              },
+            },
+            {
+              key: 'status',
+              label: 'Status',
+              render: (a) => (
+                <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold whitespace-nowrap ${ASSET_STATUS_COLOR[a.status]}`}>
+                  {a.status}
+                </span>
+              ),
+            },
+            {
+              key: 'actions',
+              label: 'Actions',
+              sortable: false,
+              width: '90px',
+              render: (a) => (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(a)}
+                    className="w-7 h-7 rounded-lg bg-muted border border-border hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
+                    aria-label={`Edit asset ${a.id}`}
+                    title="Edit"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(a.id)}
+                    className="w-7 h-7 rounded-lg bg-destructive/10 border border-destructive/20 hover:bg-destructive/20 text-destructive flex items-center justify-center cursor-pointer transition-colors"
+                    aria-label={`Delete asset ${a.id}`}
+                    title="Delete"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+        />
       </Card>
 
       <AssetFormModal
@@ -468,7 +480,6 @@ function ReportsView() {
   const totalBreached = slaWeekly.reduce((s, w) => s + w.breached, 0);
   const slaPct = Math.round((totalMet / (totalMet + totalBreached)) * 100);
   const avgResolution = (slaWeekly.reduce((s, w) => s + w.avgHours, 0) / slaWeekly.length).toFixed(1);
-  const maxWeekTotal = Math.max(...slaWeekly.map((w) => w.met + w.breached));
 
   function exportCsv() {
     const headers = ['Week', 'SLA Met', 'SLA Breached', 'Avg Resolution (hrs)'];
@@ -490,13 +501,13 @@ function ReportsView() {
     <div className="w-full flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1.5">Reports & Logs</h1>
-          <p className="text-xs text-gray-400">SLA compliance and resolution velocity, last 6 weeks</p>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Reports & Logs</h1>
+          <p className="text-xs text-muted-foreground">SLA compliance and resolution velocity, last 6 weeks</p>
         </div>
         <button
           type="button"
           onClick={exportCsv}
-          className="bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-950/40 transition-all cursor-pointer"
+          className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
         >
           <Download size={14} />
           <span>Export CSV</span>
@@ -511,32 +522,29 @@ function ReportsView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Card>
-          <SectionHeader title="Weekly SLA Performance" subtitle="Met vs breached per week" />
-          <div className="flex items-end justify-between gap-2 h-[160px] pt-2">
-            {slaWeekly.map((w) => {
-              const total = w.met + w.breached;
-              return (
-                <div key={w.week} className="flex-1 flex flex-col items-center gap-1.5">
-                  <span className="text-[10px] text-gray-400 font-semibold">{total}</span>
-                  <div
-                    className="w-full max-w-[26px] flex flex-col justify-end rounded-t-lg overflow-hidden"
-                    style={{ height: `${(total / maxWeekTotal) * 110}px` }}
-                  >
-                    <div className="w-full bg-red-500/70" style={{ height: `${(w.breached / total) * 100}%` }} />
-                    <div className="w-full bg-emerald-500/80" style={{ height: `${(w.met / total) * 100}%` }} />
-                  </div>
-                  <span className="text-[10px] text-gray-500 font-bold">{w.week}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-4 pt-3 mt-3 border-t border-white/5 text-[10px] text-gray-400">
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Met</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" /> Breached</span>
-          </div>
-        </Card>
+        <BarChartCard
+          title="Weekly SLA Performance"
+          subtitle="Met vs breached per week"
+          data={slaWeekly}
+          xKey="week"
+          stacked
+          series={[
+            { key: 'met', label: 'Met', color: 'hsl(var(--success))' },
+            { key: 'breached', label: 'Breached', color: 'hsl(var(--destructive))' },
+          ]}
+        />
 
+        <LineChartCard
+          title="Resolution Time Trend"
+          subtitle="Mean hours to resolve, by week"
+          data={slaWeekly}
+          xKey="week"
+          unit="h"
+          series={[{ key: 'avgHours', label: 'Avg hours', color: 'hsl(var(--primary))' }]}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card>
           <SectionHeader title="Resolution Time by Category" subtitle="Average hours to close" />
           <div className="flex flex-col gap-3">
@@ -544,14 +552,14 @@ function ReportsView() {
               const maxHours = Math.max(...resolutionByCategory.map((r) => r.avgHours));
               return (
                 <div key={c.category} className="flex items-center gap-3">
-                  <span className="text-[11px] text-gray-300 w-40 shrink-0 truncate">{c.category}</span>
-                  <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                  <span className="text-xs text-muted-foreground w-40 shrink-0 truncate">{c.category}</span>
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-[#e86024] to-amber-400 rounded-full"
+                      className="h-full bg-gradient-to-r from-primary to-warning rounded-full"
                       style={{ width: `${(c.avgHours / maxHours) * 100}%` }}
                     />
                   </div>
-                  <span className="text-[11px] font-bold text-white w-12 text-right shrink-0">{c.avgHours}h</span>
+                  <span className="text-xs font-bold text-foreground w-12 text-right shrink-0">{c.avgHours}h</span>
                 </div>
               );
             })}
@@ -590,28 +598,51 @@ export default function DashboardPage() {
       },
       ...prev,
     ]);
+    toast.success('Data transfer requested', {
+      description: `${req.source} → ${req.destination}`,
+    });
+  }
+
+  // Status changes are the most-repeated action in the queue, so the toast
+  // stays terse and carries an Undo instead of a description.
+  function changeTicketStatusWithUndo(id, status) {
+    const before = recentTickets.find((t) => t.id === id);
+    changeTicketStatus(id, status);
+    toast.success(`${before?.token || 'Ticket'} → ${status}`, {
+      action: before ? { label: 'Undo', onClick: () => changeTicketStatus(id, before.status) } : undefined,
+    });
   }
 
   // Donut chart data definitions
   const categoryData = [
-    { label: 'Laptop/Desktop Issues', value: 99, percent: 40, color: '#f97316' },
-    { label: 'Network Issues', value: 62, percent: 25, color: '#3b82f6' },
-    { label: 'Software Requests', value: 37, percent: 15, color: '#a855f7' },
-    { label: 'VPN Requests', value: 25, percent: 10, color: '#06b6d4' },
-    { label: 'Data Requests', value: 25, percent: 10, color: '#10b981' },
-  ];
-
-  const statusData = [
-    { label: 'Open', value: 52, percent: 21, color: '#f97316' },
-    { label: 'In Progress', value: 68, percent: 27, color: '#3b82f6' },
-    { label: 'Waiting for Approval', value: 8, percent: 3, color: '#eab308' },
-    { label: 'Resolved', value: 186, percent: 75, color: '#10b981' },
-    { label: 'Closed', value: 120, percent: 48, color: '#8b5cf6' },
+    { label: 'Laptop/Desktop Issues', value: 99, percent: 40, color: 'hsl(var(--chart-1))' },
+    { label: 'Network Issues', value: 62, percent: 25, color: 'hsl(var(--chart-2))' },
+    { label: 'Software Requests', value: 37, percent: 15, color: 'hsl(var(--chart-3))' },
+    { label: 'VPN Requests', value: 25, percent: 10, color: 'hsl(var(--chart-4))' },
+    { label: 'Data Requests', value: 25, percent: 10, color: 'hsl(var(--chart-5))' },
   ];
 
   // Shared with the Employee dashboard — a ticket raised there appears
   // here immediately, and a status change made here reflects there too.
   const { tickets: recentTickets, changeStatus: changeTicketStatus } = useTickets();
+
+  // Derived from the live ticket list rather than hard-coded. The previous
+  // fixed figures summed to 174%, which the old hand-rolled donut rendered as
+  // overlapping arcs — and they never moved when a ticket changed status.
+  const statusData = useMemo(() => {
+    const tone = {
+      Open: 'hsl(var(--chart-1))',
+      'In Progress': 'hsl(var(--chart-2))',
+      'Waiting Approval': 'hsl(var(--chart-6))',
+      Resolved: 'hsl(var(--chart-5))',
+      Closed: 'hsl(var(--chart-1))',
+    };
+    return TICKET_STATUSES.map((s) => ({
+      label: s,
+      value: recentTickets.filter((t) => t.status === s).length,
+      color: tone[s],
+    })).filter((d) => d.value > 0);
+  }, [recentTickets]);
 
   const searchIndex = useMemo(
     () => [
@@ -634,20 +665,20 @@ export default function DashboardPage() {
         <div className="w-full flex flex-col gap-3.5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-none mb-1">IT Service Desk</h1>
-              <p className="text-[11px] text-gray-400">Overview of active tickets, pending approvals, and IT infrastructure.</p>
+              <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1">IT Service Desk</h1>
+              <p className="text-xs text-muted-foreground">Overview of active tickets, pending approvals, and IT infrastructure.</p>
             </div>
             <div className="flex items-center gap-2.5">
               {emailVerified ? (
-                <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2">
+                <span className="bg-primary/10 border border-primary/20 text-primary font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2">
                   <BadgeCheck size={15} />
                   <span>Verified</span>
                 </span>
               ) : (
                 <button
                   type="button"
-                  onClick={() => setEmailVerified(true)}
-                  className="bg-[#18181c] border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer"
+                  onClick={() => { setEmailVerified(true); toast.success('Verification email sent', { description: user?.email || 'Check your inbox to confirm your address.' }); }}
+                  className="bg-muted border border-border hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer"
                 >
                   <Mail size={15} />
                   <span>Send Verification Email</span>
@@ -669,7 +700,7 @@ export default function DashboardPage() {
           {/* Donut Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
             <DonutChart title="Tickets by Category" total={248} data={categoryData} />
-            <DonutChart title="Tickets by Status" total={248} data={statusData} />
+            <DonutChart title="Tickets by Status" total={recentTickets.length} data={statusData} />
           </div>
 
           {/* Assets Overview */}
@@ -680,7 +711,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('assets')}
-                  className="text-xs text-[#e86024] font-semibold hover:underline cursor-pointer"
+                  className="text-xs text-primary font-semibold hover:underline cursor-pointer"
                 >
                   View All
                 </button>
@@ -688,30 +719,30 @@ export default function DashboardPage() {
             />
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-center mb-2.5">
-              <div className="p-2 rounded-xl bg-[#18181c] border border-white/5">
-                <Laptop size={16} className="mx-auto text-gray-400 mb-0.5" />
-                <div className="text-[10px] text-gray-400">Laptops</div>
-                <div className="text-xs font-bold text-white mt-0.5">120</div>
+              <div className="p-2 rounded-xl bg-muted border border-border">
+                <Laptop size={16} className="mx-auto text-muted-foreground mb-0.5" />
+                <div className="text-xs text-muted-foreground">Laptops</div>
+                <div className="text-xs font-bold text-foreground mt-0.5">120</div>
               </div>
-              <div className="p-2 rounded-xl bg-[#18181c] border border-white/5">
-                <Monitor size={16} className="mx-auto text-gray-400 mb-0.5" />
-                <div className="text-[10px] text-gray-400">Desktops</div>
-                <div className="text-xs font-bold text-white mt-0.5">85</div>
+              <div className="p-2 rounded-xl bg-muted border border-border">
+                <Monitor size={16} className="mx-auto text-muted-foreground mb-0.5" />
+                <div className="text-xs text-muted-foreground">Desktops</div>
+                <div className="text-xs font-bold text-foreground mt-0.5">85</div>
               </div>
-              <div className="p-2 rounded-xl bg-[#18181c] border border-white/5">
-                <Server size={16} className="mx-auto text-gray-400 mb-0.5" />
-                <div className="text-[10px] text-gray-400">Servers</div>
-                <div className="text-xs font-bold text-white mt-0.5">28</div>
+              <div className="p-2 rounded-xl bg-muted border border-border">
+                <Server size={16} className="mx-auto text-muted-foreground mb-0.5" />
+                <div className="text-xs text-muted-foreground">Servers</div>
+                <div className="text-xs font-bold text-foreground mt-0.5">28</div>
               </div>
-              <div className="p-2 rounded-xl bg-[#18181c] border border-white/5">
-                <Wifi size={16} className="mx-auto text-gray-400 mb-0.5" />
-                <div className="text-[10px] text-gray-400">Network</div>
-                <div className="text-xs font-bold text-white mt-0.5">18</div>
+              <div className="p-2 rounded-xl bg-muted border border-border">
+                <Wifi size={16} className="mx-auto text-muted-foreground mb-0.5" />
+                <div className="text-xs text-muted-foreground">Network</div>
+                <div className="text-xs font-bold text-foreground mt-0.5">18</div>
               </div>
-              <div className="p-2 rounded-xl bg-[#18181c] border border-white/5">
-                <Printer size={16} className="mx-auto text-gray-400 mb-0.5" />
-                <div className="text-[10px] text-gray-400">Printers</div>
-                <div className="text-xs font-bold text-white mt-0.5">12</div>
+              <div className="p-2 rounded-xl bg-muted border border-border">
+                <Printer size={16} className="mx-auto text-muted-foreground mb-0.5" />
+                <div className="text-xs text-muted-foreground">Printers</div>
+                <div className="text-xs font-bold text-foreground mt-0.5">12</div>
               </div>
             </div>
           </Card>
@@ -719,7 +750,7 @@ export default function DashboardPage() {
       )}
 
       {activeTab === 'tickets' && (
-        <TicketsQueueView tickets={recentTickets} onStatusChange={changeTicketStatus} />
+        <TicketsQueueView tickets={recentTickets} onStatusChange={changeTicketStatusWithUndo} />
       )}
 
       {activeTab === 'approval' && <ApprovalCenterView />}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Crown, Users, Cpu, FolderKanban, User } from 'lucide-react';
 import { useAuth, homeFor } from '../context/AuthContext';
 import { loginUser } from '../utils/api';
 import { dummyLogin, DEMO_ACCOUNTS } from '../utils/dummyAuth';
@@ -80,10 +80,10 @@ export default function LoginPage() {
 
   return (
     <AuthLayout>
-      <h1 className="text-3xl sm:text-[38px] font-extrabold tracking-tight text-white mb-1.5 leading-none text-center">
+      <h1 className="text-3xl sm:text-[38px] font-semibold tracking-tight text-foreground mb-1.5 leading-none text-center">
         Welcome back
       </h1>
-      <p className="text-xs sm:text-sm text-gray-400 mb-6 text-center">
+      <p className="text-xs sm:text-sm text-muted-foreground mb-6 text-center">
         Sign in to raise a ticket or pick up your queue.
       </p>
 
@@ -113,7 +113,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => setShowPass((p) => !p)}
               aria-label={showPass ? 'Hide password' : 'Show password'}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPass ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
             </button>
@@ -121,18 +121,18 @@ export default function LoginPage() {
         />
 
         <div className="flex items-center justify-between text-xs py-0.5">
-          <label className="flex items-center gap-2 cursor-pointer text-gray-300 select-none">
+          <label className="flex items-center gap-2 cursor-pointer text-muted-foreground select-none">
             <input
               type="checkbox"
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-[#e86024] focus:ring-0 accent-[#e86024] cursor-pointer"
+              className="w-4 h-4 rounded border-muted bg-muted text-primary focus:ring-0 accent-primary cursor-pointer"
             />
             <span>Remember me</span>
           </label>
           <span
             title="Password reset isn't available yet"
-            className="text-gray-500 hover:text-gray-400 cursor-not-allowed select-none transition-colors"
+            className="text-muted-foreground hover:text-muted-foreground cursor-not-allowed select-none transition-colors"
           >
             Forgot password?
           </span>
@@ -141,7 +141,7 @@ export default function LoginPage() {
         {error && (
           <div
             role="alert"
-            className="text-xs px-4 py-2.5 text-orange-300 bg-orange-950/40 border border-orange-800/60 rounded-xl text-center"
+            className="text-xs px-4 py-2.5 text-primary bg-primary/10/40 border border-primary/60 rounded-xl text-center"
           >
             {error}
           </div>
@@ -150,35 +150,95 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#e86024] hover:bg-[#ff6e2e] text-white font-bold py-3 px-5 rounded-full flex items-center justify-between shadow-[0_0_25px_rgba(232,96,36,0.45)] hover:shadow-[0_0_35px_rgba(255,110,46,0.75)] transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer group mt-2 disabled:opacity-50"
+          className="w-full bg-primary hover:bg-primary text-foreground font-bold py-3 px-5 rounded-full flex items-center justify-between shadow-[0_0_25px_rgba(232,96,36,0.45)] hover:shadow-[0_0_35px_rgba(255,110,46,0.75)] transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer group mt-2 disabled:opacity-50"
         >
           <span className="text-sm font-bold pl-2">
             {loading ? 'Signing in…' : 'Sign in'}
           </span>
           <span
             aria-hidden="true"
-            className="w-8 h-8 rounded-full bg-white text-[#e86024] flex items-center justify-center shrink-0 shadow-md group-hover:translate-x-1 transition-transform duration-300"
+            className="w-8 h-8 rounded-full bg-primary-foreground text-primary flex items-center justify-center shrink-0 shadow-md group-hover:translate-x-1 transition-transform duration-300"
           >
             <ArrowRight size={16} />
           </span>
         </button>
       </form>
 
-      <div className="mt-6 pt-4 border-t border-white/10 text-center">
-        <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
-          Demo mode — no backend needed
+      <div className="mt-8 pt-6 border-t border-border">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center mb-4">
+          Quick Demo Access
         </p>
-        <div className="flex flex-wrap gap-1.5 justify-center">
-          {DEMO_ACCOUNTS.map((account) => (
-            <button
-              key={account.role}
-              type="button"
-              onClick={() => handleDemoLogin(account)}
-              className="text-[11px] font-medium capitalize px-3 py-1.5 rounded-full border border-white/15 text-gray-300 hover:border-[#e86024] hover:text-[#e86024] transition-colors cursor-pointer"
-            >
-              {account.role}
-            </button>
-          ))}
+        <div className="grid grid-cols-2 gap-2.5">
+          {DEMO_ACCOUNTS.map((account) => {
+            const roleMeta = {
+              founder: {
+                label: 'Founder Portal',
+                sub: 'Super Admin Access',
+                icon: Crown,
+                color: 'hover:border-warning/50 hover:bg-warning/[0.04] hover:text-warning',
+                badgeBg: 'bg-warning/10 text-warning',
+              },
+              hr: {
+                label: 'HR Department',
+                sub: 'HR & Candidates',
+                icon: Users,
+                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
+                badgeBg: 'bg-muted/10 text-muted-foreground',
+              },
+              it: {
+                label: 'IT Service Desk',
+                sub: 'IT Support & Tickets',
+                icon: Cpu,
+                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
+                badgeBg: 'bg-muted/10 text-muted-foreground',
+              },
+              coordinator: {
+                label: 'Coordinator',
+                sub: 'Task & Project Mgmt',
+                icon: FolderKanban,
+                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
+                badgeBg: 'bg-muted/10 text-muted-foreground',
+              },
+              employee: {
+                label: 'Employee Portal',
+                sub: 'Personal Employee Space',
+                icon: User,
+                color: 'hover:border-primary/50 hover:bg-primary/[0.04] hover:text-primary',
+                badgeBg: 'bg-primary/10 text-primary',
+              },
+            };
+
+            const meta = roleMeta[account.role.toLowerCase()] || {
+              label: account.role,
+              sub: 'Demo Access',
+              icon: User,
+              color: 'hover:border-muted hover:text-muted-foreground',
+              badgeBg: 'bg-muted/10 text-muted-foreground',
+            };
+
+            const Icon = meta.icon;
+
+            return (
+              <button
+                key={account.role}
+                type="button"
+                onClick={() => handleDemoLogin(account)}
+                className={`flex items-start gap-2.5 p-2.5 rounded-lg bg-muted border border-border text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group ${meta.color} ${account.role === 'employee' ? 'col-span-2' : ''}`}
+              >
+                <div className={`w-8 h-8 rounded-xl ${meta.badgeBg} flex items-center justify-center shrink-0 border border-border transition-colors`}>
+                  <Icon size={15} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-foreground group-hover:text-inherit transition-colors leading-none mb-1 capitalize">
+                    {meta.label}
+                  </div>
+                  <div className="text-xs text-muted-foreground leading-normal truncate group-hover:text-muted-foreground transition-colors">
+                    {meta.sub}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </AuthLayout>

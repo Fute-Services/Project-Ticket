@@ -5,35 +5,45 @@ import { useApprovals } from '../context/ApprovalContext';
 import { useLeave } from '../context/LeaveContext';
 import { useTaskProject } from '../context/TaskProjectContext';
 import {
-  Building2,
   Bell,
-  LogOut,
-  ChevronDown,
-  MessageSquare,
   Users,
   Cpu,
   TrendingUp,
   Code2,
   Megaphone,
   Palette,
-  Sparkles,
+  Factory,
   Crown,
   CheckCircle,
-  Check,
-  X,
-  Clock,
   FolderKanban,
-  Plane,
   BarChart2,
-  Factory,
 } from 'lucide-react';
 import TeamChatDrawer from '../components/TeamChatDrawer';
 import AppleDock from '../components/AppleDock';
+import ThemeToggle from '../components/ThemeToggle';
 import FounderApprovalView from '../components/FounderApprovalView';
 import FounderReportsView from '../components/FounderReportsView';
 import FounderHrView from '../components/FounderHrView';
 import FounderItView from '../components/FounderItView';
+import FounderDeptView from '../components/FounderDeptView';
+import { DEPT_DEMO } from '../data/deptDemoData';
+import { tint } from '../styles/seriesColors';
 import { employees, candidates, attendanceRecords } from '../data/hrMockData';
+
+// One accent hex per department — used as a left-border stripe and tinted
+// icon badge instead of a full gradient fill, so a department reads as
+// "this is HR" at a glance without every card looking like a lit-up tile.
+const DEPT_ACCENT = {
+  hr: 'hsl(var(--chart-1))',
+  it: 'hsl(var(--chart-2))',
+  sales: 'hsl(var(--chart-3))',
+  developers: 'hsl(var(--chart-4))',
+  marketing: 'hsl(var(--chart-5))',
+  branding: 'hsl(var(--chart-6))',
+  /* Seven departments, six ramp steps — production doubles up with HR.
+     They never appear adjacent in the grid, so the repeat isn't visible. */
+  production: 'hsl(var(--chart-1))',
+};
 
 // Leadership bios are short original summaries, not copied text — matches
 // the public team page at futeservices.com (name, title, one-line focus).
@@ -42,7 +52,7 @@ const LEADERSHIP_TEAM = [
     name: 'Ratish Kovvammal',
     title: 'Founder & CEO',
     initials: 'RK',
-    gradient: 'from-orange-500 to-amber-500',
+    gradient: 'from-primary to-warning',
     photo: '/team-ratish.webp',
     bio: '14+ years across sales, marketing, software, and customer experience.',
   },
@@ -50,7 +60,7 @@ const LEADERSHIP_TEAM = [
     name: 'Payel Saha',
     title: 'Chief Operations Officer',
     initials: 'PS',
-    gradient: 'from-blue-500 to-indigo-500',
+    gradient: 'from-muted to-muted',
     photo: '/team-payel.webp',
     bio: 'Leads day-to-day operations with a versatile, hands-on approach.',
   },
@@ -58,7 +68,7 @@ const LEADERSHIP_TEAM = [
     name: 'Soma',
     title: 'Managing Director',
     initials: 'S',
-    gradient: 'from-pink-500 to-rose-500',
+    gradient: 'from-muted to-destructive',
     photo: '/team-soma.webp',
     bio: 'Drives creative direction and seamless execution across projects.',
   },
@@ -72,7 +82,6 @@ export default function FounderDashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [activeDept, setActiveDept] = useState(location.state?.activeDept || 'overview');
@@ -83,90 +92,99 @@ export default function FounderDashboardPage() {
       label: 'Founder Overview',
       shortLabel: 'Overview',
       icon: Crown,
-      gradient: 'from-amber-500 via-orange-500 to-red-500',
+      gradient: 'from-warning via-primary to-destructive',
       welcomeMsg: 'Welcome, Founder. This is your personal executive space.',
-      tagColor: 'text-amber-400 border-amber-500/20 bg-amber-500/10',
+      tagColor: 'text-warning border-warning/20 bg-warning/10',
     },
     {
       id: 'hr',
       label: 'HR Department',
       shortLabel: 'HR',
       icon: Users,
-      gradient: 'from-blue-600 to-indigo-600',
+      gradient: 'from-muted to-muted',
       welcomeMsg: 'Welcome to the HR Department Hub! Here you can manage recruitment, employees, leaves, and attendance.',
-      tagColor: 'text-blue-400 border-blue-500/20 bg-blue-500/10',
+      tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
     },
     {
       id: 'it',
       label: 'IT Service Desk',
       shortLabel: 'IT',
       icon: Cpu,
-      gradient: 'from-cyan-600 to-teal-600',
+      gradient: 'from-muted to-primary',
       welcomeMsg: 'Welcome to the IT Service Desk! Manage infrastructure, support tickets, system access, and assets.',
-      tagColor: 'text-cyan-400 border-cyan-500/20 bg-cyan-500/10',
+      tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
     },
     {
       id: 'sales',
       label: 'Sales Operations',
       shortLabel: 'Sales',
       icon: TrendingUp,
-      gradient: 'from-emerald-600 to-green-600',
+      gradient: 'from-primary to-primary',
       welcomeMsg: 'Welcome to the Sales Operations Hub! Track revenue pipeline, deal stages, client leads, and conversions.',
-      tagColor: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10',
+      tagColor: 'text-primary border-primary/20 bg-primary/10',
     },
     {
       id: 'developers',
       label: 'Developer Portal',
       shortLabel: 'Developers',
       icon: Code2,
-      gradient: 'from-purple-600 to-fuchsia-600',
+      gradient: 'from-muted to-muted',
       welcomeMsg: 'Welcome to the Developer Portal! Monitor code repositories, sprint tasks, deployment builds, and API status.',
-      tagColor: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
+      tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
     },
     {
       id: 'marketing',
       label: 'Marketing Suite',
       shortLabel: 'Marketing',
       icon: Megaphone,
-      gradient: 'from-orange-600 to-amber-600',
+      gradient: 'from-primary to-warning',
       welcomeMsg: 'Welcome to the Marketing Suite! Manage campaigns, lead generation channels, social reach, and analytics.',
-      tagColor: 'text-orange-400 border-orange-500/20 bg-orange-500/10',
+      tagColor: 'text-primary border-primary/20 bg-primary/10',
     },
     {
       id: 'branding',
       label: 'Branding Hub',
       shortLabel: 'Branding',
       icon: Palette,
-      gradient: 'from-pink-600 to-rose-600',
+      gradient: 'from-muted to-destructive',
       welcomeMsg: 'Welcome to the Branding Hub! Organize brand assets, design guidelines, creative media, and press kits.',
-      tagColor: 'text-pink-400 border-pink-500/20 bg-pink-500/10',
+      tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
+    },
+    {
+      id: 'production',
+      label: 'Production Floor',
+      shortLabel: 'Production',
+      icon: Factory,
+      gradient: 'from-muted to-primary',
+      welcomeMsg: 'Welcome to the Production Floor! Track delivery schedules, capacity, and job quality.',
+      tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
     },
     {
       id: 'approvals',
       label: 'Approval System',
       shortLabel: 'Approvals',
       icon: CheckCircle,
-      gradient: 'from-violet-500 via-purple-500 to-indigo-500',
+      gradient: 'from-muted via-muted to-muted',
       welcomeMsg: 'Manage all company approvals',
-      tagColor: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
+      tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
     },
     {
       id: 'projects',
       label: 'Project Details',
       shortLabel: 'Projects',
       icon: FolderKanban,
-      gradient: 'from-purple-500 via-fuchsia-500 to-purple-600',
+      gradient: 'from-muted via-muted to-muted',
       welcomeMsg: 'View cross-department project details',
-      tagColor: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
+      tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
     },
     {
       id: 'reports',
       label: 'Reports',
       shortLabel: 'Reports',
       icon: BarChart2,
-      gradient: 'from-blue-500 via-cyan-500 to-blue-600',
+      gradient: 'from-muted via-muted to-muted',
       welcomeMsg: 'Cross-department analytics and reports',
-      tagColor: 'text-blue-400 border-blue-500/20 bg-blue-500/10',
+      tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
     },
   ];
 
@@ -181,57 +199,112 @@ export default function FounderDashboardPage() {
   const { tasks: allTasks, projects: allProjects } = useTaskProject();
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white flex flex-col font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30 selection:text-primary overflow-x-hidden">
+      {/* Top Bar — breadcrumb, notifications, profile. Kept slim: each view
+          below already carries its own page title, this row is orientation
+          only (where am I, what needs my attention). */}
+      <header className="sticky top-3 z-30 mx-3 mt-3 h-12 rounded-xl pl-28 sm:pl-32 lg:pl-36 pr-4 lg:pr-6 flex items-center justify-between border border-border/60 bg-card/60 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)] shrink-0">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+          <span>Founder</span>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-muted-foreground">{currentDept.label}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle className="!w-8 !h-8" />
+          <button
+            type="button"
+            onClick={() => setShowNotifs((p) => !p)}
+            className="relative w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <Bell size={14} />
+            {(pendingApprovals.length + pendingLeaves.length) > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center border-2 border-background">
+                {pendingApprovals.length + pendingLeaves.length}
+              </span>
+            )}
+          </button>
+          <div className="flex items-center gap-2 pl-2 border-l border-border">
+            <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">
+              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'F'}
+            </div>
+            <span className="hidden sm:block text-xs font-semibold text-muted-foreground">{user?.full_name || 'Founder'}</span>
+          </div>
+        </div>
+      </header>
+
+      {showNotifs && (
+        <div className="fixed top-12 right-4 lg:right-6 z-40 w-[300px] bg-muted border border-border rounded-lg shadow-xl overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border text-xs font-bold text-foreground">Needs your attention</div>
+          <div className="max-h-[280px] overflow-y-auto">
+            {pendingApprovals.length === 0 && pendingLeaves.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-6 text-center">Nothing waiting on you.</p>
+            ) : (
+              <>
+                {pendingApprovals.map((a) => (
+                  <button key={`a-${a.id}`} type="button" onClick={() => { setActiveDept('approvals'); setShowNotifs(false); }} className="w-full text-left px-4 py-2.5 border-b border-border last:border-0 hover:bg-accent cursor-pointer">
+                    <div className="text-xs font-semibold text-foreground">{a.title}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Approval · {a.source}</div>
+                  </button>
+                ))}
+                {pendingLeaves.map((l) => (
+                  <button key={`l-${l.id}`} type="button" onClick={() => { setActiveDept('approvals'); setShowNotifs(false); }} className="w-full text-left px-4 py-2.5 border-b border-border last:border-0 hover:bg-accent cursor-pointer">
+                    <div className="text-xs font-semibold text-foreground">{l.employee}'s leave request</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Leave · {l.type}</div>
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Workspace Body */}
       <main className="flex-1 p-4 lg:p-6 pl-28 sm:pl-32 lg:pl-36 pb-10 max-w-[1700px] w-full mx-auto flex flex-col gap-6">
-
-
         {/* Dynamic Container View - Overview Hero Page */}
         {activeDept === 'overview' ? (
           <div className="w-full flex flex-col gap-4">
             {/* Top: Founder + Leadership Team Header */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-stretch">
               {/* Founder Profile - Compact */}
-              <div className="lg:col-span-1 bg-[#141418] border border-white/10 rounded-2xl p-4 flex flex-col justify-between items-center text-center relative overflow-hidden group">
-                <div className="absolute inset-0 opacity-5 bg-gradient-to-br from-amber-500 to-orange-500 blur-2xl pointer-events-none" />
+              <div className="lg:col-span-1 bg-card border border-border rounded-lg p-4 flex flex-col justify-between items-center text-center">
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-orange-500/20 border-2 border-white/20 mb-1.5 relative z-10">
+                  <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-foreground text-xl font-semibold shadow border-2 border-border mb-1.5 relative z-10">
                     F
                   </div>
-                  <h3 className="text-xs font-black text-white leading-none">Founder</h3>
-                  <span className="text-[9px] text-[#e86024] font-semibold mt-0.5">CEO</span>
+                  <h3 className="text-xs font-semibold text-foreground leading-none">Founder</h3>
+                  <span className="text-xs text-primary font-semibold mt-0.5">CEO</span>
                 </div>
-                <div className="w-full border-t border-white/5 my-2" />
-                <div className="space-y-1.5 text-left w-full text-[10px]">
-                  <div className="flex justify-between"><span className="text-gray-500">Founded:</span> <span className="text-white font-medium">2023</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">HQ:</span> <span className="text-white font-medium">Bangalore</span></div>
-                  <div><span className="text-emerald-400 font-bold text-[10px]">● Active</span></div>
+                <div className="w-full border-t border-border my-2" />
+                <div className="space-y-1.5 text-left w-full text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Founded:</span> <span className="text-foreground font-medium">2023</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">HQ:</span> <span className="text-foreground font-medium">Bangalore</span></div>
+                  <div><span className="text-primary font-bold text-xs">● Active</span></div>
                 </div>
               </div>
 
               {/* Leadership Team - 3 columns */}
-              <div className="lg:col-span-3 bg-[#141418] border border-white/10 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden h-full">
-                <h2 className="text-xs font-black text-white mb-2.5 uppercase tracking-wider">Leadership Team</h2>
+              <div className="lg:col-span-3 bg-card border border-border rounded-lg p-4 flex flex-col justify-between h-full">
+                <h2 className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider">Leadership Team</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
                   {LEADERSHIP_TEAM.map((person) => (
-                    <div key={person.name} className="bg-[#1a1a20] border border-white/10 rounded-xl p-3.5 flex items-center gap-3 h-full hover:border-white/20 transition-all">
+                    <div key={person.name} className="bg-muted border border-border rounded-xl p-3.5 flex items-center gap-3 h-full hover:border-muted-foreground/40 transition-all">
                       {person.photo ? (
                         <img
                           src={person.photo}
                           alt={person.name}
                           onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
-                          className="w-11 h-11 rounded-full object-cover shadow-lg border-2 border-white/20 shrink-0"
+                          className="w-11 h-11 rounded-full object-cover shadow-lg border-2 border-border shrink-0"
                         />
                       ) : null}
                       <div
-                        className={`w-11 h-11 rounded-full bg-gradient-to-tr ${person.gradient} items-center justify-center text-white text-xs font-black shadow-lg border-2 border-white/20 shrink-0 ${person.photo ? 'hidden' : 'flex'}`}
+                        className={`w-11 h-11 rounded-full bg-gradient-to-tr ${person.gradient} items-center justify-center text-foreground text-xs font-semibold shadow-lg border-2 border-border shrink-0 ${person.photo ? 'hidden' : 'flex'}`}
                       >
                         {person.initials}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-xs font-black text-white truncate">{person.name}</h3>
-                        <span className="text-[10px] text-[#e86024] font-semibold block leading-tight">{person.title}</span>
-                        <p className="text-[10px] text-gray-300 leading-snug mt-1 line-clamp-3">{person.bio}</p>
+                        <h3 className="text-xs font-semibold text-foreground truncate">{person.name}</h3>
+                        <span className="text-xs text-primary font-semibold block leading-tight">{person.title}</span>
+                        <p className="text-xs text-muted-foreground leading-snug mt-1 line-clamp-3">{person.bio}</p>
                       </div>
                     </div>
                   ))}
@@ -241,24 +314,27 @@ export default function FounderDashboardPage() {
 
             {/* Executive Tools */}
             <div className="w-full">
-              <h2 className="text-xs font-black text-white mb-2.5 uppercase tracking-wider">Executive Tools</h2>
+              <h2 className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider">Executive Tools</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
-                  { id: 'approvals', label: 'Approvals', icon: CheckCircle, gradient: 'from-violet-500 to-purple-500' },
-                  { id: 'projects', label: 'Project Details', icon: FolderKanban, gradient: 'from-purple-500 to-fuchsia-500' },
-                  { id: 'reports', label: 'Reports', icon: BarChart2, gradient: 'from-blue-500 to-cyan-500' },
+                  { id: 'approvals', label: 'Approvals', icon: CheckCircle, tint: 'hsl(var(--chart-4))' },
+                  { id: 'projects', label: 'Project Details', icon: FolderKanban, tint: 'hsl(var(--chart-3))' },
+                  { id: 'reports', label: 'Reports', icon: BarChart2, tint: 'hsl(var(--chart-2))' },
                 ].map((tool) => {
                   const ToolIcon = tool.icon;
                   return (
                     <button
                       key={tool.id}
                       onClick={() => setActiveDept(tool.id)}
-                      className="bg-[#141418] border border-white/10 rounded-2xl p-2.5 text-left hover:border-white/20 transition-all cursor-pointer flex items-center gap-2.5"
+                      className="bg-card border border-border rounded-lg p-2.5 text-left hover:border-muted-foreground/40 transition-all cursor-pointer flex items-center gap-2.5"
                     >
-                      <div className={`w-8 h-8 rounded-xl bg-gradient-to-tr ${tool.gradient} flex items-center justify-center text-white shrink-0 shadow-lg border border-white/10`}>
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: tint(tool.tint, 0.1), color: tool.tint }}
+                      >
                         <ToolIcon size={15} />
                       </div>
-                      <span className="text-[11px] font-extrabold text-white">{tool.label}</span>
+                      <span className="text-xs font-bold text-foreground">{tool.label}</span>
                     </button>
                   );
                 })}
@@ -267,45 +343,46 @@ export default function FounderDashboardPage() {
 
             {/* Company Vision & Overview */}
             <div className="w-full">
-              <h2 className="text-xs font-black text-white mb-2.5 uppercase tracking-wider">Company Vision</h2>
-              <div className="bg-[#141418] border border-white/10 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 relative overflow-hidden">
-                <div className="absolute inset-0 opacity-5 bg-gradient-to-br from-orange-500 to-red-500 blur-3xl pointer-events-none" />
-                <div className="relative z-10 flex flex-col justify-center">
-                  <h4 className="text-[10px] font-black text-white uppercase tracking-wider mb-1">Company</h4>
-                  <p className="text-[11px] text-gray-300 leading-relaxed">Fute Services - Building next-generation digital workspaces with unified governance across all departments.</p>
+              <h2 className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider">Company Vision</h2>
+              <div className="bg-card border border-border rounded-lg p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col justify-center">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Company</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Fute Services - Building next-generation digital workspaces with unified governance across all departments.</p>
                 </div>
-                <div className="relative z-10 flex flex-col justify-center">
-                  <h4 className="text-[10px] font-black text-white uppercase tracking-wider mb-1">Vision</h4>
-                  <p className="text-[11px] text-orange-400/90 font-semibold italic leading-relaxed">"Empowering collaborative engineering, compliant HR, and high SLA compliance."</p>
+                <div className="flex flex-col justify-center sm:border-l sm:border-border sm:pl-4">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Vision</h4>
+                  <p className="text-xs text-primary/90 font-medium italic leading-relaxed">"Empowering collaborative engineering, compliant HR, and high SLA compliance."</p>
                 </div>
               </div>
             </div>
 
             {/* Main Departments Grid */}
             <div className="w-full">
-              <h2 className="text-xs font-black text-white mb-2.5 uppercase tracking-wider">All Departments</h2>
+              <h2 className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider">All Departments</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {departments.filter(d => ['hr', 'it', 'sales', 'developers', 'marketing', 'branding'].includes(d.id)).map((dept) => {
+                {departments.filter(d => ['hr', 'it', 'sales', 'developers', 'marketing', 'branding', 'production'].includes(d.id)).map((dept) => {
                   const DeptIcon = dept.icon;
                   return (
                     <button
                       key={dept.id}
                       onClick={() => setActiveDept(dept.id)}
-                      className={`bg-[#141418] border border-white/10 rounded-2xl p-4 text-left hover:border-white/20 transition-all cursor-pointer group relative overflow-hidden`}
+                      className="bg-card border border-border border-l-2 rounded-lg p-4 text-left hover:border-muted-foreground/40 hover:bg-accent transition-all cursor-pointer group"
+                      style={{ borderLeftColor: DEPT_ACCENT[dept.id] }}
                     >
-                      {/* Subtle gradient background */}
-                      <div className={`absolute inset-0 opacity-5 bg-gradient-to-br ${dept.gradient} blur-2xl pointer-events-none`} />
-
-                      {/* Content */}
-                      <div className="relative z-10">
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${dept.gradient} flex items-center justify-center text-white mb-2.5 shadow-lg shadow-black/30 border border-white/10 group-hover:shadow-xl group-hover:scale-105 transition-all`}>
-                          <DeptIcon size={20} />
+                      <div className="flex items-center gap-2.5 mb-2.5">
+                        <div
+                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: tint(DEPT_ACCENT[dept.id], 0.1), color: DEPT_ACCENT[dept.id] }}
+                        >
+                          <DeptIcon size={18} />
                         </div>
-                        <h3 className="text-xs font-black text-white mb-0.5 leading-none">{dept.label}</h3>
-                        <p className="text-[10px] text-gray-400 mb-3 min-h-[1.5rem] leading-normal">{dept.welcomeMsg.split('!')[0]}!</p>
-                        <div className="flex items-center justify-between pt-1.5 border-t border-white/5">
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${dept.tagColor}`}>Active</span>
-                          <span className="text-gray-500 group-hover:translate-x-1 transition-transform">→</span>
+                        <h3 className="text-xs font-bold text-foreground leading-none">{dept.label}</h3>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-3 min-h-[1.5rem] leading-normal">{dept.welcomeMsg.split('!')[0]}!</p>
+                        <div className="flex items-center justify-between pt-1.5 border-t border-border">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${dept.tagColor}`}>Active</span>
+                          <span className="text-muted-foreground group-hover:translate-x-1 transition-transform">→</span>
                         </div>
                       </div>
                     </button>
@@ -321,12 +398,12 @@ export default function FounderDashboardPage() {
           /* Project Details View */
           <div className="w-full flex flex-col gap-4">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-500 to-fuchsia-500 flex items-center justify-center text-white shadow-lg border border-white/10">
-                <FolderKanban size={20} />
+              <div className="w-10 h-10 rounded-xl bg-muted/10 flex items-center justify-center text-muted-foreground border border-muted/20 shrink-0">
+                <FolderKanban size={18} />
               </div>
               <div>
-                <h2 className="text-xl font-black text-white">Project Details</h2>
-                <p className="text-xs text-gray-400">Who's working on what, across every active project</p>
+                <h2 className="text-lg font-bold text-foreground">Project Details</h2>
+                <p className="text-xs text-muted-foreground">Who's working on what, across every active project</p>
               </div>
             </div>
 
@@ -335,23 +412,23 @@ export default function FounderDashboardPage() {
                 const projectTasks = allTasks.filter((t) => t.projectId === p.id);
                 const done = projectTasks.filter((t) => t.status === 'Completed').length;
                 return (
-                  <div key={p.id} className="bg-[#141418] border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
+                  <div key={p.id} className="bg-card border border-border rounded-lg p-4 flex flex-col gap-3">
                     <div>
-                      <div className="text-sm font-bold text-white truncate">{p.name}</div>
-                      <div className="text-[11px] text-gray-500">{p.client} · due {p.dueDate}</div>
+                      <div className="text-sm font-bold text-foreground truncate">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.client} · due {p.dueDate}</div>
                     </div>
                     <div>
-                      <div className="flex items-center justify-between text-[11px] mb-1.5">
-                        <span className="text-gray-400">{done}/{projectTasks.length} tasks done</span>
-                        <span className="font-bold text-white">{p.progress}%</span>
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <span className="text-muted-foreground">{done}/{projectTasks.length} tasks done</span>
+                        <span className="font-bold text-foreground">{p.progress}%</span>
                       </div>
-                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full" style={{ width: `${p.progress}%` }} />
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${p.progress}%` }} />
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {p.members.map((m) => (
-                        <span key={m} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300">{m}</span>
+                        <span key={m} className="text-xs px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground">{m}</span>
                       ))}
                     </div>
                   </div>
@@ -368,37 +445,30 @@ export default function FounderDashboardPage() {
         ) : activeDept === 'it' ? (
           /* IT Service Desk View */
           <FounderItView />
+        ) : DEPT_DEMO[activeDept] ? (
+          /* Sales / Developers / Marketing / Branding / Production — demo data,
+             labelled as such inside the view so it can't read as live numbers */
+          <FounderDeptView dept={currentDept} />
         ) : (
-          /* Department Switcher Views */
-          <div className="bg-[#141418] border border-white/10 rounded-3xl p-6 sm:p-10 flex flex-col items-center justify-center text-center min-h-[350px] relative overflow-hidden group">
-            {/* Subtle background glow */}
-            <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${currentDept.gradient} blur-3xl pointer-events-none`} />
-
-            {/* Department Icon Badge */}
-            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-tr ${currentDept.gradient} flex items-center justify-center text-white mb-4 shadow-xl shadow-black/50 border border-white/20`}>
-              <currentDept.icon size={32} />
+          /* Not built yet — an honest empty state, not a generic filler message */
+          <div className="bg-card border border-border rounded-lg p-10 flex flex-col items-center justify-center text-center min-h-[320px]">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+              style={{ backgroundColor: tint(DEPT_ACCENT[currentDept.id] || 'hsl(var(--chart-3))', 0.1), color: DEPT_ACCENT[currentDept.id] || 'hsl(var(--chart-3))' }}
+            >
+              <currentDept.icon size={22} />
             </div>
-
-            {/* Department Title & Tag */}
-            <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-2xl font-black text-white tracking-tight">{currentDept.label}</h2>
-              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${currentDept.tagColor}`}>
-                Active
-              </span>
-            </div>
-
-            {/* Welcome Message */}
-            <p className="text-sm text-gray-300 max-w-xl leading-relaxed mb-6">
-              {currentDept.welcomeMsg}
+            <h2 className="text-base font-bold text-foreground mb-1.5">{currentDept.label} isn't set up yet</h2>
+            <p className="text-xs text-muted-foreground max-w-sm leading-relaxed mb-5">
+              {currentDept.welcomeMsg} This section doesn't have real data connected yet.
             </p>
-
-            {/* Note Box */}
-            <div className="p-4 rounded-2xl bg-[#18181c] border border-white/10 text-xs text-gray-400 max-w-lg flex items-center gap-3 text-left">
-              <Sparkles size={18} className="text-[#e86024] shrink-0" />
-              <div>
-                <span className="font-semibold text-white">Custom Content Ready:</span> Aap bataiye is page par kaunse widgets, tables, ya controls add karne hain!
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setActiveDept('overview')}
+              className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+            >
+              ← Back to Overview
+            </button>
           </div>
         )}
       </main>

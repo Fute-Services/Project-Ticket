@@ -84,12 +84,12 @@ export default function Email() {
                   type="button"
                   onClick={() => goToFolder(f.id)}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    active ? 'bg-[#e86024]/15 text-[#e86024] border border-[#e86024]/30' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    active ? 'bg-primary/15 text-primary border border-primary/30' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
                   <Icon size={15} />
                   {f.label}
-                  <span className="ml-auto text-[10px] text-gray-500">{emails[f.id]?.length || 0}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{emails[f.id]?.length || 0}</span>
                 </button>
               );
             })}
@@ -106,18 +106,18 @@ export default function Email() {
                     key={item.id}
                     type="button"
                     onClick={() => setSelected(item.id)}
-                    className={`w-full text-left px-4 py-3.5 border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-pointer ${
-                      selected === item.id ? 'bg-white/[0.04]' : ''
+                    className={`w-full text-left px-4 py-3.5 border-b border-border hover:bg-accent transition-colors cursor-pointer ${
+                      selected === item.id ? 'bg-muted' : ''
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs truncate ${item.unread ? 'font-bold text-white' : 'font-medium text-gray-300'}`}>
+                      <span className={`text-xs truncate ${item.unread ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>
                         {item.from || item.to || item.subject || 'Untitled'}
                       </span>
-                      <span className="text-[9px] text-gray-500 shrink-0 ml-2">{item.time}</span>
+                      <span className="text-xs text-muted-foreground shrink-0 ml-2">{item.time}</span>
                     </div>
-                    <div className="text-[11px] text-gray-400 truncate">{item.subject}</div>
-                    {item.preview && <div className="text-[10px] text-gray-600 truncate mt-0.5">{item.preview}</div>}
+                    <div className="text-xs text-muted-foreground truncate">{item.subject}</div>
+                    {item.preview && <div className="text-xs text-muted-foreground truncate mt-0.5">{item.preview}</div>}
                   </button>
                 ))
               )}
@@ -129,17 +129,17 @@ export default function Email() {
             {folder === 'inbox' && activeEmail ? (
               <div className="flex flex-col gap-4">
                 <div>
-                  <div className="text-sm font-bold text-white">{activeEmail.subject}</div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">{activeEmail.from}</div>
+                  <div className="text-sm font-bold text-foreground">{activeEmail.subject}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{activeEmail.from}</div>
                 </div>
                 <div className="flex flex-col gap-3">
                   {activeEmail.thread.map((msg, i) => (
-                    <div key={i} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5">
+                    <div key={i} className="p-3.5 rounded-lg bg-muted border border-border">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-semibold text-white">{msg.from}</span>
-                        <span className="text-[10px] text-gray-500">{msg.time}</span>
+                        <span className="text-xs font-semibold text-foreground">{msg.from}</span>
+                        <span className="text-xs text-muted-foreground">{msg.time}</span>
                       </div>
-                      <p className="text-xs text-gray-300 leading-relaxed">{msg.body}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{msg.body}</p>
                     </div>
                   ))}
                 </div>
@@ -148,13 +148,13 @@ export default function Email() {
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Write a reply..."
                   rows={3}
-                  className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
                 <button
                   type="button"
                   onClick={sendReply}
                   disabled={!replyText.trim()}
-                  className="self-end bg-[#e86024] hover:bg-[#d4521a] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer transition-colors"
+                  className="self-end bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-primary-foreground text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer transition-colors"
                 >
                   Send Reply
                 </button>
@@ -165,30 +165,30 @@ export default function Email() {
                   value={activeDraft.to}
                   onChange={(e) => updateDraft({ to: e.target.value })}
                   placeholder="To: recipient@email.com"
-                  className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
                 <input
                   value={activeDraft.subject}
                   onChange={(e) => updateDraft({ subject: e.target.value })}
                   placeholder="Subject"
-                  className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024] font-semibold"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold"
                 />
                 <textarea
                   value={activeDraft.body || ''}
                   onChange={(e) => updateDraft({ body: e.target.value })}
                   placeholder="Write your message..."
                   rows={8}
-                  className="w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024]"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
                 <div className="flex items-center justify-end gap-2">
-                  <button type="button" onClick={discardDraft} className="text-xs text-gray-400 hover:text-white px-3 py-2 cursor-pointer">
+                  <button type="button" onClick={discardDraft} className="text-xs text-muted-foreground hover:text-foreground px-3 py-2 cursor-pointer">
                     Discard
                   </button>
                   <button
                     type="button"
                     onClick={sendDraft}
                     disabled={!activeDraft.to.trim() || !activeDraft.subject.trim()}
-                    className="bg-[#e86024] hover:bg-[#d4521a] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer transition-colors"
+                    className="bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-primary-foreground text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer transition-colors"
                   >
                     Send
                   </button>
@@ -197,15 +197,15 @@ export default function Email() {
             ) : folder === 'templates' ? (
               <div className="flex flex-col gap-3">
                 {emails.templates.map((t) => (
-                  <div key={t.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5 flex items-center justify-between">
+                  <div key={t.id} className="p-3.5 rounded-lg bg-muted border border-border flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-white">{t.name}</div>
-                      <div className="text-[10px] text-gray-500">{t.subject}</div>
+                      <div className="text-xs font-bold text-foreground">{t.name}</div>
+                      <div className="text-xs text-muted-foreground">{t.subject}</div>
                     </div>
                     <button
                       type="button"
                       onClick={() => useTemplate(t)}
-                      className="text-[10px] text-[#e86024] font-semibold hover:underline cursor-pointer"
+                      className="text-xs text-primary font-semibold hover:underline cursor-pointer"
                     >
                       Use template
                     </button>

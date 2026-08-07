@@ -31,8 +31,26 @@ export function TaskProjectProvider({ children }) {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
   }
 
+  /** Patch any subset of a task's fields — used by the task detail pane. */
+  function updateTask(id, patch) {
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }
+
+  /**
+   * Asana-style completion toggle. There's no separate `completed` flag —
+   * "Completed" is one of TASK_STATUSES, so toggling off has to pick
+   * something to return to, and Pending is the safe choice.
+   */
+  function toggleComplete(id) {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, status: t.status === 'Completed' ? 'Pending' : 'Completed' } : t))
+    );
+  }
+
   return (
-    <TaskProjectContext.Provider value={{ tasks, projects, addTask, moveTask }}>
+    <TaskProjectContext.Provider
+      value={{ tasks, projects, addTask, moveTask, updateTask, toggleComplete }}
+    >
       {children}
     </TaskProjectContext.Provider>
   );

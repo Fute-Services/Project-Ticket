@@ -69,7 +69,7 @@ export default function AssetFormModal({ isOpen, onClose, onSubmit, initialAsset
             <input required type="date" value={form.warrantyEnd} onChange={(e) => setForm((f) => ({ ...f, warrantyEnd: e.target.value }))} className={inputClass} />
           </Field>
         </div>
-        <button type="submit" className="mt-2 bg-[#e86024] hover:bg-[#d4521a] text-white text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer">
+        <button type="submit" className="mt-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer">
           {initialAsset ? 'Save Changes' : 'Add Asset'}
         </button>
       </form>

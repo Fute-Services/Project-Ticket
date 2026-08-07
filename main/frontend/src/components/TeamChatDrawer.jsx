@@ -82,24 +82,24 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [] }
   const channelMessages = messages[activeChannel] || [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm transition-opacity">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative w-full max-w-2xl h-[85vh] max-h-[720px] bg-[#111115] border border-white/10 rounded-3xl flex flex-col shadow-2xl text-white font-sans overflow-hidden">
+      <div className="relative w-full max-w-2xl h-[85vh] max-h-[720px] bg-background border border-border rounded-lg flex flex-col shadow-2xl text-foreground font-sans overflow-hidden">
         {/* Top Header */}
-        <div className="h-14 px-4 border-b border-white/10 flex items-center justify-between bg-[#16161c] shrink-0">
+        <div className="h-14 px-4 border-b border-border flex items-center justify-between bg-muted shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
               <MessageSquare size={16} />
             </div>
             <div>
-              <div className="font-extrabold text-sm text-white leading-none">Team Collaboration Hub</div>
-              <div className="text-[10px] text-gray-400 leading-none mt-0.5">Real-time Slack/Discord-style Chat</div>
+              <div className="font-semibold text-sm text-foreground leading-none">Team Collaboration Hub</div>
+              <div className="text-xs text-muted-foreground leading-none mt-0.5">Real-time Slack/Discord-style Chat</div>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -108,8 +108,8 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [] }
         {/* Chat Body: Sidebar channels + Chat conversation */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
           {/* Left Channel Sidebar */}
-          <div className="w-48 bg-[#0d0d10] border-r border-white/5 p-3 flex flex-col gap-3 shrink-0">
-            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2">CHANNELS</div>
+          <div className="w-48 bg-background border-r border-border p-3 flex flex-col gap-3 shrink-0">
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-2">CHANNELS</div>
             <div className="flex flex-col gap-1">
               {channels.map((ch) => {
                 const isActive = activeChannel === ch.id;
@@ -120,11 +120,11 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [] }
                     onClick={() => setActiveChannel(ch.id)}
                     className={`w-full px-2.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all text-left cursor-pointer ${
                       isActive
-                        ? 'bg-[#e86024] text-white shadow-md shadow-orange-950/40'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        ? 'bg-primary text-primary-foreground shadow'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                     }`}
                   >
-                    <Hash size={14} className={isActive ? 'text-white' : 'text-gray-500'} />
+                    <Hash size={14} className={isActive ? 'text-primary-foreground' : 'text-muted-foreground'} />
                     <span className="truncate">{ch.name}</span>
                   </button>
                 );
@@ -133,14 +133,14 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [] }
           </div>
 
           {/* Right Message Feed */}
-          <div className="flex-1 flex flex-col justify-between bg-[#141418] min-w-0">
+          <div className="flex-1 flex flex-col justify-between bg-card min-w-0">
             {/* Channel Top Banner */}
-            <div className="p-3 border-b border-white/5 bg-[#17171c] shrink-0">
-              <div className="flex items-center gap-2 text-xs font-extrabold text-white">
-                <Hash size={14} className="text-[#e86024]" />
+            <div className="p-3 border-b border-border bg-muted shrink-0">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <Hash size={14} className="text-primary" />
                 <span>{currentChannelObj?.name}</span>
               </div>
-              <p className="text-[10px] text-gray-400 truncate mt-0.5">{currentChannelObj?.desc}</p>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{currentChannelObj?.desc}</p>
             </div>
 
             {/* Messages Scroll Area */}
@@ -148,38 +148,38 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [] }
               {channelMessages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`p-3 rounded-2xl border text-xs flex flex-col gap-1 ${
+                  className={`p-3 rounded-lg border text-xs flex flex-col gap-1 ${
                     msg.isAlert
-                      ? 'bg-red-500/10 border-red-500/20 text-red-200'
-                      : 'bg-[#1a1a20] border-white/5 text-gray-200'
+                      ? 'bg-destructive/10 border-destructive/20 text-destructive'
+                      : 'bg-muted border-border text-foreground'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white leading-none">{msg.sender}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400 border border-white/10 font-mono">
+                      <span className="font-bold text-foreground leading-none">{msg.sender}</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border font-mono">
                         {msg.role}
                       </span>
                     </div>
-                    <span className="text-[9px] text-gray-500 font-mono">{msg.time}</span>
+                    <span className="text-xs text-muted-foreground font-mono">{msg.time}</span>
                   </div>
-                  <p className="text-xs text-gray-300 leading-relaxed mt-0.5">{msg.text}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{msg.text}</p>
                 </div>
               ))}
             </div>
 
             {/* Message Input Box */}
-            <form onSubmit={handleSend} className="p-3 border-t border-white/5 bg-[#17171c] shrink-0 flex items-center gap-2">
+            <form onSubmit={handleSend} className="p-3 border-t border-border bg-muted shrink-0 flex items-center gap-2">
               <input
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder={`Message #${currentChannelObj?.name}...`}
-                className="flex-1 h-9 bg-[#1a1a20] border border-white/10 rounded-xl px-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#e86024] transition-colors"
+                className="flex-1 h-9 bg-muted border border-border rounded-xl px-3 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors"
               />
               <button
                 type="submit"
-                className="h-9 px-3.5 rounded-xl bg-[#e86024] hover:bg-[#d4521a] text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-orange-950/40 transition-all cursor-pointer shrink-0"
+                className="h-9 px-3.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-xs flex items-center gap-1.5 shadow transition-all cursor-pointer shrink-0"
               >
                 <span>Send</span>
                 <Send size={13} />

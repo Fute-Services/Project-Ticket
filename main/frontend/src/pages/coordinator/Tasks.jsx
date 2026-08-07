@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus, MessageSquare, Paperclip, Figma, Github } from 'lucide-react';
 import CoordinatorLayout from '../../components/coordinator/CoordinatorLayout';
 import { Card, SectionHeader, Badge, Pill, Modal, Field, inputClass } from '../../components/ui';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import TaskRow from '../../components/tasks/TaskRow';
+import TaskDetailPane from '../../components/tasks/TaskDetailPane';
 import { TASK_STATUSES, TASK_PRIORITIES } from '../../data/coordinatorMockData';
 import { employees } from '../../data/hrMockData';
 import { useTaskProject } from '../../context/TaskProjectContext';
+import { toast } from 'sonner';
 
 const EMPTY_FORM = (projects) => ({
   title: '',
@@ -24,18 +28,44 @@ function toHref(link) {
 }
 
 export default function Tasks() {
-  const { tasks, projects, addTask, moveTask } = useTaskProject();
+  const { tasks, projects, addTask, moveTask, updateTask, toggleComplete } = useTaskProject();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(() => EMPTY_FORM(projects));
   const [projectFilter, setProjectFilter] = useState('All');
+  const [openTaskId, setOpenTaskId] = useState(null);
 
   const visible = projectFilter === 'All' ? tasks : tasks.filter((t) => t.projectId === projectFilter);
+  const projectOf = (t) => projects.find((p) => p.id === t.projectId);
+
+  // Track the open task by id, not by object — otherwise the pane keeps
+  // rendering a stale copy after an edit.
+  const openTask = openTaskId ? tasks.find((t) => t.id === openTaskId) : null;
+
+  // List view groups by status, which is how Asana's sections read: a
+  // heading, a count, then the rows.
+  const grouped = useMemo(
+    () => TASK_STATUSES.map((status) => ({ status, items: visible.filter((t) => t.status === status) })),
+    [visible]
+  );
 
   function submit(e) {
     e.preventDefault();
     addTask(form);
     setForm(EMPTY_FORM(projects));
     setShowModal(false);
+    toast.success('Task assigned', { description: `${form.title} → ${form.assignee}` });
+  }
+
+  // The completion toggle is the easiest thing to hit by accident in a dense
+  // list, so it offers a way straight back.
+  function completeWithUndo(id) {
+    const before = tasks.find((t) => t.id === id);
+    toggleComplete(id);
+    const nowDone = before?.status !== 'Completed';
+    toast.success(nowDone ? 'Task completed' : 'Marked incomplete', {
+      description: before?.title,
+      action: { label: 'Undo', onClick: () => toggleComplete(id) },
+    });
   }
 
   return (
@@ -48,7 +78,7 @@ export default function Tasks() {
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 bg-[#e86024] hover:bg-[#d4521a] text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+              className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
               <Plus size={14} />
               Assign Task
@@ -67,31 +97,78 @@ export default function Tasks() {
           ))}
         </div>
 
+        <Tabs defaultValue="list" className="w-full">
+          <TabsList>
+            <TabsTrigger value="list">List</TabsTrigger>
+            <TabsTrigger value="board">Board</TabsTrigger>
+          </TabsList>
+
+          {/* List — the default, because scanning names top-to-bottom is
+              faster than reading across columns once there are more than a
+              handful of tasks. */}
+          <TabsContent value="list" className="mt-4">
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
+              {visible.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-12 text-center">
+                  No tasks in this project yet. Use “Assign Task” to create the first one.
+                </p>
+              ) : (
+                grouped.map(({ status, items }) =>
+                  items.length === 0 ? null : (
+                    <section key={status}>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-muted/60 border-b border-border sticky top-0">
+                        <h3 className="text-xs font-medium text-foreground">{status}</h3>
+                        <span className="text-xs text-muted-foreground">{items.length}</span>
+                      </div>
+                      {items.map((t) => (
+                        <TaskRow
+                          key={t.id}
+                          task={t}
+                          project={projectOf(t)}
+                          onToggle={completeWithUndo}
+                          onOpen={(task) => setOpenTaskId(task.id)}
+                          showProject={projectFilter === 'All'}
+                        />
+                      ))}
+                    </section>
+                  )
+                )
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="board" className="mt-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {TASK_STATUSES.map((status) => {
             const column = visible.filter((t) => t.status === status);
             return (
               <Card key={status} className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-extrabold text-white uppercase tracking-wide">{status}</h3>
-                  <span className="text-[10px] text-gray-500">{column.length}</span>
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">{status}</h3>
+                  <span className="text-xs text-muted-foreground">{column.length}</span>
                 </div>
                 <div className="flex flex-col gap-3 min-h-[80px]">
                   {column.length === 0 ? (
-                    <p className="text-[11px] text-gray-600 py-4 text-center">Nothing here.</p>
+                    <p className="text-xs text-muted-foreground py-4 text-center">Nothing here.</p>
                   ) : (
                     column.map((t) => {
                       const project = projects.find((p) => p.id === t.projectId);
                       return (
-                        <div key={t.id} className="p-3.5 rounded-2xl bg-[#18181c] border border-white/5">
+                        <div key={t.id} className="p-3.5 rounded-lg bg-muted border border-border">
                           <div className="flex items-start justify-between mb-2">
-                            <div className="text-xs font-bold text-white pr-2">{t.title}</div>
+                            <button
+                              type="button"
+                              onClick={() => setOpenTaskId(t.id)}
+                              className="text-xs font-bold text-foreground pr-2 text-left hover:text-primary transition-colors rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                              {t.title}
+                            </button>
                             <Badge value={t.priority} />
                           </div>
                           {project && (
-                            <div className="text-[10px] text-[#e86024] font-semibold mb-1 truncate">{project.name}</div>
+                            <div className="text-xs text-primary font-semibold mb-1 truncate">{project.name}</div>
                           )}
-                          <div className="text-[10px] text-gray-500 mb-2.5">{t.assignee} · due {t.dueDate}{t.duration ? ` · ${t.duration}` : ''}</div>
+                          <div className="text-xs text-muted-foreground mb-2.5">{t.assignee} · due {t.dueDate}{t.duration ? ` · ${t.duration}` : ''}</div>
 
                           {(t.figma || t.pr) && (
                             <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
@@ -101,7 +178,7 @@ export default function Tasks() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   title={t.figma}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#141418] border border-white/10 hover:border-purple-400/50 text-[10px] font-semibold text-gray-300 hover:text-purple-300 transition-colors"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-card border border-border hover:border-muted/50 text-xs font-semibold text-muted-foreground hover:text-muted-foreground transition-colors"
                                 >
                                   <Figma size={10} />
                                   Design
@@ -113,7 +190,7 @@ export default function Tasks() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   title={t.pr}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#141418] border border-white/10 hover:border-blue-400/50 text-[10px] font-semibold text-gray-300 hover:text-blue-300 transition-colors"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-card border border-border hover:border-muted/50 text-xs font-semibold text-muted-foreground hover:text-muted-foreground transition-colors"
                                 >
                                   <Github size={10} />
                                   {/* "…/pull/214" → "PR #214" so the pill stays short */}
@@ -124,14 +201,14 @@ export default function Tasks() {
                           )}
 
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3 text-[10px] text-gray-500">
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1"><MessageSquare size={11} /> {t.comments}</span>
                               <span className="flex items-center gap-1"><Paperclip size={11} /> {t.attachments}</span>
                             </div>
                             <select
                               value={t.status}
                               onChange={(e) => moveTask(t.id, e.target.value)}
-                              className="bg-[#141418] border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none focus:border-[#e86024] cursor-pointer"
+                              className="bg-card border border-border rounded-lg px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                             >
                               {TASK_STATUSES.map((s) => (
                                 <option key={s} value={s}>{s}</option>
@@ -147,7 +224,18 @@ export default function Tasks() {
             );
           })}
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
+
+      <TaskDetailPane
+        task={openTask}
+        project={openTask ? projectOf(openTask) : null}
+        open={!!openTask}
+        onClose={() => setOpenTaskId(null)}
+        onChange={updateTask}
+        onToggle={completeWithUndo}
+      />
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title="Assign Task">
         <form onSubmit={submit} className="flex flex-col gap-3">
@@ -204,7 +292,7 @@ export default function Tasks() {
               placeholder="github.com/fute/repo/pull/123"
             />
           </Field>
-          <button type="submit" className="mt-2 bg-[#e86024] hover:bg-[#d4521a] text-white text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer">
+          <button type="submit" className="mt-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer">
             Assign
           </button>
         </form>

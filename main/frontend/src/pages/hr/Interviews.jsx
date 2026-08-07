@@ -50,7 +50,7 @@ export default function Interviews() {
               <button
                 type="button"
                 onClick={() => setView((v) => (v === 'list' ? 'timeline' : 'list'))}
-                className="flex items-center gap-2 bg-[#18181c] hover:bg-[#222228] border border-white/10 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
+                className="flex items-center gap-2 bg-muted hover:bg-accent border border-border text-foreground text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
               >
                 {view === 'list' ? <CalendarDays size={14} /> : <List size={14} />}
                 {view === 'list' ? 'Timeline View' : 'List View'}
@@ -58,7 +58,7 @@ export default function Interviews() {
               <button
                 type="button"
                 onClick={() => setShowSchedule(true)}
-                className="flex items-center gap-2 bg-[#e86024] hover:bg-[#d4521a] text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+                className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
               >
                 <Plus size={14} />
                 Schedule Interview
@@ -81,7 +81,7 @@ export default function Interviews() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-white/10 text-gray-400 uppercase text-[10px] tracking-wider">
+                  <tr className="border-b border-border text-muted-foreground uppercase text-xs tracking-wider">
                     <th className="py-3 px-3">Candidate</th>
                     <th className="py-3 px-3">Type</th>
                     <th className="py-3 px-3">Interviewer</th>
@@ -90,16 +90,16 @@ export default function Interviews() {
                     <th className="py-3 px-3">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-border">
                   {filtered.map((i) => (
-                    <tr key={i.id} className="hover:bg-white/[0.02]">
-                      <td className="py-3.5 px-3 font-bold text-white">{i.candidate}</td>
-                      <td className="py-3.5 px-3 text-gray-300">{i.type}</td>
-                      <td className="py-3.5 px-3 text-gray-300">{i.interviewer}</td>
-                      <td className="py-3.5 px-3 text-gray-400">{i.date} · {i.time}</td>
-                      <td className="py-3.5 px-3 text-gray-400">
+                    <tr key={i.id} className="hover:bg-accent">
+                      <td className="py-3.5 px-3 font-bold text-foreground">{i.candidate}</td>
+                      <td className="py-3.5 px-3 text-muted-foreground">{i.type}</td>
+                      <td className="py-3.5 px-3 text-muted-foreground">{i.interviewer}</td>
+                      <td className="py-3.5 px-3 text-muted-foreground">{i.date} · {i.time}</td>
+                      <td className="py-3.5 px-3 text-muted-foreground">
                         <span className="flex items-center gap-1.5">
-                          {i.link ? <Video size={12} className="text-[#e86024]" /> : <MapPin size={12} className="text-[#e86024]" />}
+                          {i.link ? <Video size={12} className="text-primary" /> : <MapPin size={12} className="text-primary" />}
                           {i.link || i.location || '—'}
                         </span>
                       </td>
@@ -107,7 +107,7 @@ export default function Interviews() {
                         <select
                           value={i.status}
                           onChange={(e) => changeStatus(i.id, e.target.value)}
-                          className="bg-[#18181c] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#e86024] cursor-pointer"
+                          className="bg-muted border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                         >
                           {INTERVIEW_STATUSES.map((s) => (
                             <option key={s} value={s}>{s}</option>
@@ -123,13 +123,13 @@ export default function Interviews() {
             <div className="flex flex-col gap-6">
               {grouped.map(([date, items]) => (
                 <div key={date}>
-                  <div className="text-xs font-bold text-[#e86024] mb-3">{date}</div>
-                  <div className="flex flex-col gap-2 pl-4 border-l-2 border-white/10">
+                  <div className="text-xs font-bold text-primary mb-3">{date}</div>
+                  <div className="flex flex-col gap-2 pl-4 border-l-2 border-border">
                     {items.map((i) => (
-                      <div key={i.id} className="p-3 rounded-xl bg-[#18181c] border border-white/5 flex items-center justify-between">
+                      <div key={i.id} className="p-3 rounded-xl bg-muted border border-border flex items-center justify-between">
                         <div>
-                          <div className="text-xs font-bold text-white">{i.candidate} — {i.type}</div>
-                          <div className="text-[10px] text-gray-500">{i.time} · {i.interviewer}</div>
+                          <div className="text-xs font-bold text-foreground">{i.candidate} — {i.type}</div>
+                          <div className="text-xs text-muted-foreground">{i.time} · {i.interviewer}</div>
                         </div>
                         <Badge value={i.status} />
                       </div>
@@ -186,7 +186,7 @@ export default function Interviews() {
           <Field label="Notes">
             <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} className={inputClass} rows={2} />
           </Field>
-          <button type="submit" className="mt-2 bg-[#e86024] hover:bg-[#d4521a] text-white text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer">
+          <button type="submit" className="mt-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer">
             Schedule
           </button>
         </form>

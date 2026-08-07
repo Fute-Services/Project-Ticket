@@ -7,7 +7,7 @@ export default function IconField({ icon: Icon, label, right, className = '', ..
   return (
     <div className="flex flex-col gap-1.5 w-full">
       {label && (
-        <label className="text-[11px] font-semibold tracking-wider text-gray-400 uppercase select-none">
+        <label className="text-xs font-semibold tracking-wider text-muted-foreground uppercase select-none">
           {label}
         </label>
       )}
@@ -16,12 +16,12 @@ export default function IconField({ icon: Icon, label, right, className = '', ..
           <Icon
             aria-hidden="true"
             size={18}
-            className="absolute left-3.5 text-gray-400 pointer-events-none shrink-0"
+            className="absolute left-3.5 text-muted-foreground pointer-events-none shrink-0"
           />
         )}
         <input
           {...inputProps}
-          className={`w-full bg-[#18181c] border border-white/10 rounded-xl px-3.5 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors ${
+          className={`w-full bg-muted border border-border rounded-xl px-3.5 py-3 text-sm text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors ${
             Icon ? 'pl-11' : ''
           } ${right ? 'pr-11' : ''} ${className}`}
         />

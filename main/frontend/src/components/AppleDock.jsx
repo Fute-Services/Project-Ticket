@@ -35,77 +35,77 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
       label: 'Founder Overview',
       icon: Crown,
       deptId: 'overview',
-      gradient: 'from-amber-500 via-orange-500 to-red-500',
+      gradient: 'from-warning via-primary to-destructive',
     },
     {
       id: 'approvals',
       label: 'Approval System',
       icon: CheckCircle,
       deptId: 'approvals',
-      gradient: 'from-violet-500 via-purple-500 to-indigo-500',
+      gradient: 'from-muted via-muted to-muted',
     },
     {
       id: 'projects',
       label: 'Project Details',
       icon: FolderKanban,
       deptId: 'projects',
-      gradient: 'from-purple-500 via-fuchsia-500 to-purple-600',
+      gradient: 'from-muted via-muted to-muted',
     },
     {
       id: 'reports',
       label: 'Reports',
       icon: BarChart2,
       deptId: 'reports',
-      gradient: 'from-blue-500 via-cyan-500 to-blue-600',
+      gradient: 'from-muted via-muted to-muted',
     },
     {
       id: 'hr',
       label: 'HR Department',
       icon: Users,
       deptId: 'hr',
-      gradient: 'from-blue-500 via-indigo-500 to-purple-500',
+      gradient: 'from-muted via-muted to-muted',
     },
     {
       id: 'it',
       label: 'IT Service Desk',
       icon: Cpu,
       deptId: 'it',
-      gradient: 'from-cyan-400 via-teal-500 to-emerald-500',
+      gradient: 'from-muted via-primary to-primary',
     },
     {
       id: 'sales',
       label: 'Sales Operations',
       icon: TrendingUp,
       deptId: 'sales',
-      gradient: 'from-emerald-500 via-green-500 to-teal-600',
+      gradient: 'from-primary via-primary to-primary',
     },
     {
       id: 'developers',
       label: 'Developer Portal',
       icon: Code2,
       deptId: 'developers',
-      gradient: 'from-purple-500 via-fuchsia-500 to-pink-500',
+      gradient: 'from-muted via-muted to-muted',
     },
     {
       id: 'marketing',
       label: 'Marketing Suite',
       icon: Megaphone,
       deptId: 'marketing',
-      gradient: 'from-orange-500 via-amber-500 to-yellow-500',
+      gradient: 'from-primary via-warning to-warning',
     },
     {
       id: 'branding',
       label: 'Branding Hub',
       icon: Palette,
       deptId: 'branding',
-      gradient: 'from-pink-500 via-rose-500 to-red-500',
+      gradient: 'from-muted via-destructive to-destructive',
     },
     {
       id: 'production',
       label: 'Production',
       icon: Factory,
       deptId: 'production',
-      gradient: 'from-slate-500 via-zinc-500 to-slate-600',
+      gradient: 'from-muted via-muted to-muted',
     },
     { type: 'divider' },
     {
@@ -113,14 +113,14 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
       label: 'Team Chat Drawer',
       icon: MessageSquareCode,
       action: onOpenChat,
-      gradient: 'from-[#ff5b00] to-[#ff8c00]',
+      gradient: '',
     },
     {
       id: 'logout',
       label: 'Sign Out',
       icon: LogOut,
       action: handleSignOut,
-      gradient: 'from-red-600 via-rose-600 to-orange-600',
+      gradient: 'from-destructive via-destructive to-primary',
     },
   ];
 
@@ -137,7 +137,7 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
   return (
     <div className="fixed top-1/2 left-3.5 -translate-y-1/2 z-50 flex flex-col items-center pointer-events-auto">
       {/* Vertical Floating Left-Side Apple Dock */}
-      <nav className="bg-[#101014]/90 backdrop-blur-2xl border border-white/20 shadow-[0_15px_40px_rgba(0,0,0,0.85)] rounded-full px-1.5 py-2.5 flex flex-col items-center gap-2 transition-all">
+      <nav className="bg-background/90 backdrop-blur-2xl border border-border shadow-[0_15px_40px_rgba(0,0,0,0.85)] rounded-full px-1.5 py-2.5 flex flex-col items-center gap-2 transition-all">
         {dockApps.map((app, index) => {
           if (app.type === 'divider') {
             return (
@@ -160,7 +160,7 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
             >
               {/* Right-side Tooltip Label */}
               <div
-                className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-[#18181c]/95 backdrop-blur-md border border-white/20 text-[10px] font-bold text-white rounded-lg shadow-xl pointer-events-none whitespace-nowrap transition-all duration-150 transform ${
+                className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-muted/95 backdrop-blur-md border border-border text-[10px] font-bold text-foreground rounded-lg shadow-xl pointer-events-none whitespace-nowrap transition-all duration-150 transform ${
                   activeTooltip === app.id
                     ? 'opacity-100 translate-x-0 scale-100'
                     : 'opacity-0 -translate-x-1 scale-95'
@@ -168,7 +168,7 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
               >
                 {app.label}
                 {/* Tooltip triangle on left edge */}
-                <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-1.5 h-1.5 bg-[#18181c] border-l border-b border-white/20 rotate-45" />
+                <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-1.5 h-1.5 bg-muted border-l border-b border-border rotate-45" />
               </div>
 
               {/* Compact Dock Icon Button */}
@@ -177,8 +177,8 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
                 onClick={() => handleAppClick(app)}
                 className={`relative w-8 h-8 rounded-full flex items-center justify-center shadow-md cursor-pointer transform transition-all duration-200 ease-out group-hover:translate-x-1.5 group-hover:scale-125 group-active:scale-90 ${
                   isActive
-                    ? 'bg-black border-2 border-white text-white shadow-[0_0_12px_rgba(255,255,255,0.2)] scale-[1.05]'
-                    : 'bg-black border border-white/10 text-gray-400 hover:text-white hover:bg-[#16161a] hover:border-white/20'
+                    ? 'bg-black border-2 border-border text-foreground shadow-[0_0_12px_rgba(255,255,255,0.2)] scale-[1.05]'
+                    : 'bg-black border border-border text-muted-foreground hover:text-foreground hover:bg-accent hover:border-muted-foreground/40'
                 }`}
               >
                 <IconComponent size={14} />

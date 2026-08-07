@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode — Vite transpiles with esbuild; tsc is only ever used for
+       type-checking (`npx tsc --noEmit`), never to emit. */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Incremental migration: .jsx and .tsx compile side by side. `checkJs` is
+       off so the 42 existing .jsx files don't produce thousands of errors
+       before they've been converted. `strict` is deliberately deferred to
+       Phase 6 — turning it on now would block every other phase. */
+    "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+
+    /* TypeScript 7 removed `baseUrl`; `paths` now resolves relative to this
+       file's directory, which is what we want anyway. */
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
+}
