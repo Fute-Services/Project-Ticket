@@ -45,13 +45,6 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
       gradient: 'from-violet-500 via-purple-500 to-indigo-500',
     },
     {
-      id: 'leaves',
-      label: 'Pending Leaves',
-      icon: Plane,
-      deptId: 'leaves',
-      gradient: 'from-amber-500 via-orange-500 to-amber-600',
-    },
-    {
       id: 'projects',
       label: 'Project Details',
       icon: FolderKanban,

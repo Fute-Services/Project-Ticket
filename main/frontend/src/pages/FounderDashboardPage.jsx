@@ -29,6 +29,10 @@ import {
 } from 'lucide-react';
 import TeamChatDrawer from '../components/TeamChatDrawer';
 import AppleDock from '../components/AppleDock';
+import FounderApprovalView from '../components/FounderApprovalView';
+import FounderReportsView from '../components/FounderReportsView';
+import FounderHrView from '../components/FounderHrView';
+import FounderItView from '../components/FounderItView';
 import { employees, candidates, attendanceRecords } from '../data/hrMockData';
 
 // Leadership bios are short original summaries, not copied text — matches
@@ -60,125 +64,9 @@ const LEADERSHIP_TEAM = [
   },
 ];
 
-const WEEKLY_REPORT = [
-  { label: 'Tickets Resolved', value: 42, accent: '#10b981' },
-  { label: 'New Hires', value: 3, accent: '#3b82f6' },
-  { label: 'Leave Requests', value: 6, accent: '#f59e0b' },
-  { label: 'Approvals Decided', value: 5, accent: '#a855f7' },
-];
 
-const MONTHLY_REPORT = [
-  { label: 'Tickets Resolved', value: 168, accent: '#10b981' },
-  { label: 'New Hires', value: 11, accent: '#3b82f6' },
-  { label: 'Leave Requests', value: 24, accent: '#f59e0b' },
-  { label: 'Approvals Decided', value: 19, accent: '#a855f7' },
-];
 
-function FounderReportsView() {
-  return (
-    <div className="w-full flex flex-col gap-5">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-lg border border-white/10">
-          <BarChart2 size={20} />
-        </div>
-        <div>
-          <h2 className="text-xl font-black text-white">Reports</h2>
-          <p className="text-xs text-gray-400">Cross-department activity, weekly and monthly</p>
-        </div>
-      </div>
 
-      <div>
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2.5">This Week</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          {WEEKLY_REPORT.map((stat) => (
-            <div key={stat.label} className="bg-[#141418] border border-white/10 rounded-xl p-3.5 flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{stat.label}</span>
-              <span className="text-2xl font-black text-white mt-2" style={{ color: stat.accent }}>{stat.value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2.5">This Month</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          {MONTHLY_REPORT.map((stat) => (
-            <div key={stat.label} className="bg-[#141418] border border-white/10 rounded-xl p-3.5 flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{stat.label}</span>
-              <span className="text-2xl font-black text-white mt-2" style={{ color: stat.accent }}>{stat.value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FounderHrView() {
-  const activeCount = employees.filter((e) => e.status === 'Active').length;
-  const todaysAttendance = attendanceRecords.filter((a) => a.date === '2026-08-06');
-  const presentToday = todaysAttendance.filter((a) => a.status === 'Present' || a.status === 'Work From Home').length;
-  const attendancePct = todaysAttendance.length ? Math.round((presentToday / todaysAttendance.length) * 100) : 0;
-  const departmentCounts = employees.reduce((acc, e) => {
-    acc[e.department] = (acc[e.department] || 0) + 1;
-    return acc;
-  }, {});
-
-  return (
-    <div className="w-full flex flex-col gap-5">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg border border-white/10">
-          <Users size={20} />
-        </div>
-        <div>
-          <h2 className="text-xl font-black text-white">HR Department</h2>
-          <p className="text-xs text-gray-400">Headcount, attendance, and hiring pipeline at a glance</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="bg-[#141418] border border-white/10 rounded-xl p-3.5 flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Employees</span>
-          <span className="text-2xl font-black text-white mt-2">{employees.length}</span>
-          <span className="text-[10px] text-gray-500">{activeCount} active</span>
-        </div>
-        <div className="bg-[#141418] border border-white/10 rounded-xl p-3.5 flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Attendance Today</span>
-          <span className="text-2xl font-black text-emerald-400 mt-2">{attendancePct}%</span>
-          <span className="text-[10px] text-gray-500">{presentToday}/{todaysAttendance.length} present</span>
-        </div>
-        <div className="bg-[#141418] border border-white/10 rounded-xl p-3.5 flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Candidates</span>
-          <span className="text-2xl font-black text-purple-400 mt-2">{candidates.length}</span>
-          <span className="text-[10px] text-gray-500">in pipeline</span>
-        </div>
-        <div className="bg-[#141418] border border-white/10 rounded-xl p-3.5 flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Departments</span>
-          <span className="text-2xl font-black text-blue-400 mt-2">{Object.keys(departmentCounts).length}</span>
-          <span className="text-[10px] text-gray-500">across the org</span>
-        </div>
-      </div>
-
-      <div className="bg-[#141418] border border-white/10 rounded-2xl p-4">
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-3">Headcount by Department</h3>
-        <div className="flex flex-col gap-2.5">
-          {Object.entries(departmentCounts).map(([dept, count]) => (
-            <div key={dept} className="flex items-center gap-3">
-              <span className="text-xs text-gray-300 w-36 shrink-0 truncate">{dept}</span>
-              <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-600 to-indigo-500 rounded-full"
-                  style={{ width: `${(count / employees.length) * 100}%` }}
-                />
-              </div>
-              <span className="text-xs font-bold text-white w-5 text-right shrink-0">{count}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function FounderDashboardPage() {
   const { user, logout } = useAuth();
@@ -254,13 +142,31 @@ export default function FounderDashboardPage() {
       tagColor: 'text-pink-400 border-pink-500/20 bg-pink-500/10',
     },
     {
-      id: 'production',
-      label: 'Production',
-      shortLabel: 'Production',
-      icon: Factory,
-      gradient: 'from-slate-600 to-zinc-600',
-      welcomeMsg: 'Welcome to Production! Track manufacturing schedules, quality checks, and output targets.',
-      tagColor: 'text-slate-400 border-slate-500/20 bg-slate-500/10',
+      id: 'approvals',
+      label: 'Approval System',
+      shortLabel: 'Approvals',
+      icon: CheckCircle,
+      gradient: 'from-violet-500 via-purple-500 to-indigo-500',
+      welcomeMsg: 'Manage all company approvals',
+      tagColor: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
+    },
+    {
+      id: 'projects',
+      label: 'Project Details',
+      shortLabel: 'Projects',
+      icon: FolderKanban,
+      gradient: 'from-purple-500 via-fuchsia-500 to-purple-600',
+      welcomeMsg: 'View cross-department project details',
+      tagColor: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
+    },
+    {
+      id: 'reports',
+      label: 'Reports',
+      shortLabel: 'Reports',
+      icon: BarChart2,
+      gradient: 'from-blue-500 via-cyan-500 to-blue-600',
+      welcomeMsg: 'Cross-department analytics and reports',
+      tagColor: 'text-blue-400 border-blue-500/20 bg-blue-500/10',
     },
   ];
 
@@ -281,18 +187,20 @@ export default function FounderDashboardPage() {
 
 
         {/* Dynamic Container View - Overview Hero Page */}
-        {currentDept.id === 'overview' ? (
+        {activeDept === 'overview' ? (
           <div className="w-full flex flex-col gap-4">
-            {/* Top: Founder + Company Info Header */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+            {/* Top: Founder + Leadership Team Header */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-stretch">
               {/* Founder Profile - Compact */}
-              <div className="lg:col-span-1 bg-[#141418] border border-white/10 rounded-2xl p-4 flex flex-col items-center text-center relative overflow-hidden group">
+              <div className="lg:col-span-1 bg-[#141418] border border-white/10 rounded-2xl p-4 flex flex-col justify-between items-center text-center relative overflow-hidden group">
                 <div className="absolute inset-0 opacity-5 bg-gradient-to-br from-amber-500 to-orange-500 blur-2xl pointer-events-none" />
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-orange-500/20 border-2 border-white/20 mb-1.5 relative z-10">
-                  F
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-orange-500/20 border-2 border-white/20 mb-1.5 relative z-10">
+                    F
+                  </div>
+                  <h3 className="text-xs font-black text-white leading-none">Founder</h3>
+                  <span className="text-[9px] text-[#e86024] font-semibold mt-0.5">CEO</span>
                 </div>
-                <h3 className="text-xs font-black text-white leading-none">Founder</h3>
-                <span className="text-[9px] text-[#e86024] font-semibold mt-0.5">CEO</span>
                 <div className="w-full border-t border-white/5 my-2" />
                 <div className="space-y-1.5 text-left w-full text-[10px]">
                   <div className="flex justify-between"><span className="text-gray-500">Founded:</span> <span className="text-white font-medium">2023</span></div>
@@ -301,16 +209,32 @@ export default function FounderDashboardPage() {
                 </div>
               </div>
 
-              {/* Company Vision - 3 columns */}
-              <div className="lg:col-span-3 bg-[#141418] border border-white/10 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 relative overflow-hidden">
-                <div className="absolute inset-0 opacity-5 bg-gradient-to-br from-orange-500 to-red-500 blur-3xl pointer-events-none" />
-                <div className="relative z-10 flex flex-col justify-center">
-                  <h4 className="text-[10px] font-black text-white uppercase tracking-wider mb-1">Company</h4>
-                  <p className="text-[11px] text-gray-300 leading-relaxed">Fute Services - Building next-generation digital workspaces with unified governance across all departments.</p>
-                </div>
-                <div className="relative z-10 flex flex-col justify-center">
-                  <h4 className="text-[10px] font-black text-white uppercase tracking-wider mb-1">Vision</h4>
-                  <p className="text-[11px] text-orange-400/90 font-semibold italic leading-relaxed">"Empowering collaborative engineering, compliant HR, and high SLA compliance."</p>
+              {/* Leadership Team - 3 columns */}
+              <div className="lg:col-span-3 bg-[#141418] border border-white/10 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden h-full">
+                <h2 className="text-xs font-black text-white mb-2.5 uppercase tracking-wider">Leadership Team</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
+                  {LEADERSHIP_TEAM.map((person) => (
+                    <div key={person.name} className="bg-[#1a1a20] border border-white/10 rounded-xl p-3.5 flex items-center gap-3 h-full hover:border-white/20 transition-all">
+                      {person.photo ? (
+                        <img
+                          src={person.photo}
+                          alt={person.name}
+                          onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+                          className="w-11 h-11 rounded-full object-cover shadow-lg border-2 border-white/20 shrink-0"
+                        />
+                      ) : null}
+                      <div
+                        className={`w-11 h-11 rounded-full bg-gradient-to-tr ${person.gradient} items-center justify-center text-white text-xs font-black shadow-lg border-2 border-white/20 shrink-0 ${person.photo ? 'hidden' : 'flex'}`}
+                      >
+                        {person.initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-xs font-black text-white truncate">{person.name}</h3>
+                        <span className="text-[10px] text-[#e86024] font-semibold block leading-tight">{person.title}</span>
+                        <p className="text-[10px] text-gray-300 leading-snug mt-1 line-clamp-3">{person.bio}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -318,10 +242,9 @@ export default function FounderDashboardPage() {
             {/* Executive Tools */}
             <div className="w-full">
               <h2 className="text-xs font-black text-white mb-2.5 uppercase tracking-wider">Executive Tools</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
                   { id: 'approvals', label: 'Approvals', icon: CheckCircle, gradient: 'from-violet-500 to-purple-500' },
-                  { id: 'leaves', label: 'Pending Leaves', icon: Plane, gradient: 'from-amber-500 to-orange-500' },
                   { id: 'projects', label: 'Project Details', icon: FolderKanban, gradient: 'from-purple-500 to-fuchsia-500' },
                   { id: 'reports', label: 'Reports', icon: BarChart2, gradient: 'from-blue-500 to-cyan-500' },
                 ].map((tool) => {
@@ -342,32 +265,19 @@ export default function FounderDashboardPage() {
               </div>
             </div>
 
-            {/* Leadership Team */}
+            {/* Company Vision & Overview */}
             <div className="w-full">
-              <h2 className="text-xs font-black text-white mb-2.5 uppercase tracking-wider">Leadership Team</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {LEADERSHIP_TEAM.map((person) => (
-                  <div key={person.name} className="bg-[#141418] border border-white/10 rounded-2xl p-4 flex items-center gap-3">
-                    {person.photo ? (
-                      <img
-                        src={person.photo}
-                        alt={person.name}
-                        onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
-                        className={`w-12 h-12 rounded-full object-cover shadow-lg border-2 border-white/20 shrink-0`}
-                      />
-                    ) : null}
-                    <div
-                      className={`w-12 h-12 rounded-full bg-gradient-to-tr ${person.gradient} items-center justify-center text-white text-sm font-black shadow-lg border-2 border-white/20 shrink-0 ${person.photo ? 'hidden' : 'flex'}`}
-                    >
-                      {person.initials}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-xs font-black text-white truncate">{person.name}</h3>
-                      <span className="text-[10px] text-[#e86024] font-semibold block">{person.title}</span>
-                      <p className="text-[10px] text-gray-400 leading-snug mt-1">{person.bio}</p>
-                    </div>
-                  </div>
-                ))}
+              <h2 className="text-xs font-black text-white mb-2.5 uppercase tracking-wider">Company Vision</h2>
+              <div className="bg-[#141418] border border-white/10 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-5 bg-gradient-to-br from-orange-500 to-red-500 blur-3xl pointer-events-none" />
+                <div className="relative z-10 flex flex-col justify-center">
+                  <h4 className="text-[10px] font-black text-white uppercase tracking-wider mb-1">Company</h4>
+                  <p className="text-[11px] text-gray-300 leading-relaxed">Fute Services - Building next-generation digital workspaces with unified governance across all departments.</p>
+                </div>
+                <div className="relative z-10 flex flex-col justify-center">
+                  <h4 className="text-[10px] font-black text-white uppercase tracking-wider mb-1">Vision</h4>
+                  <p className="text-[11px] text-orange-400/90 font-semibold italic leading-relaxed">"Empowering collaborative engineering, compliant HR, and high SLA compliance."</p>
+                </div>
               </div>
             </div>
 
@@ -375,7 +285,7 @@ export default function FounderDashboardPage() {
             <div className="w-full">
               <h2 className="text-xs font-black text-white mb-2.5 uppercase tracking-wider">All Departments</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {departments.slice(1).map((dept) => {
+                {departments.filter(d => ['hr', 'it', 'sales', 'developers', 'marketing', 'branding'].includes(d.id)).map((dept) => {
                   const DeptIcon = dept.icon;
                   return (
                     <button
@@ -405,127 +315,8 @@ export default function FounderDashboardPage() {
             </div>
           </div>
         ) : activeDept === 'approvals' ? (
-          /* Approval Management System View */
-          <div className="w-full flex flex-col gap-3">
-            <div className="flex items-center gap-2.5 mb-1">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-500 to-purple-500 flex items-center justify-center text-white shadow-lg border border-white/10">
-                <CheckCircle size={18} />
-              </div>
-              <div>
-                <h2 className="text-base font-black text-white">Approval Management System</h2>
-                <p className="text-[11px] text-gray-400">Requests awaiting your sign-off, submitted by IT</p>
-              </div>
-            </div>
-
-            {/* Approvals Grid */}
-            <div className="grid grid-cols-1 gap-2.5 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
-              {pendingApprovals.length === 0 ? (
-                <p className="text-[11px] text-gray-500 py-6 text-center">Nothing waiting on you right now.</p>
-              ) : (
-                pendingApprovals.map((approval) => {
-                  const priorityColor = approval.priority === 'high' ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-                  return (
-                    <div
-                      key={approval.id}
-                      className="bg-[#141418] border border-white/10 rounded-2xl p-3 flex items-start gap-3 hover:border-white/20 transition-all group"
-                    >
-                      {/* Source Icon */}
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-teal-500 flex items-center justify-center text-white shrink-0 shadow-lg border border-white/10">
-                        <Cpu size={18} />
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <h3 className="text-xs font-black text-white truncate">{approval.title}</h3>
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${priorityColor} shrink-0`}>
-                            {approval.priority.toUpperCase()}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-gray-400 mb-1.5 leading-normal">{approval.sub}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] text-gray-500 flex items-center gap-1">
-                            <Clock size={11} />
-                            Requested by {approval.requestedBy} · {approval.timestamp}
-                          </span>
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300">{approval.source}</span>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => decide(approval.id, 'approved')}
-                          className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center hover:bg-emerald-500/30 transition-all cursor-pointer"
-                          title="Approve"
-                        >
-                          <Check size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => decide(approval.id, 'rejected')}
-                          className="w-7 h-7 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 flex items-center justify-center hover:bg-red-500/30 transition-all cursor-pointer"
-                          title="Reject"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        ) : activeDept === 'leaves' ? (
-          /* Pending Leaves Approval View */
-          <div className="w-full flex flex-col gap-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-lg border border-white/10">
-                <Plane size={20} />
-              </div>
-              <div>
-                <h2 className="text-xl font-black text-white">Pending Leaves Approval</h2>
-                <p className="text-xs text-gray-400">Leave requests from HR & IT staff, routed to you</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
-              {pendingLeaves.length === 0 ? (
-                <p className="text-xs text-gray-500 py-8 text-center">No leave requests waiting on you.</p>
-              ) : (
-                pendingLeaves.map((leave) => (
-                  <div
-                    key={leave.id}
-                    className="bg-[#141418] border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-4 hover:border-white/20 transition-all"
-                  >
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-black text-white truncate">{leave.employee}</h3>
-                      <p className="text-xs text-gray-400">{leave.type} · {leave.from} → {leave.to} · {leave.days} day{leave.days > 1 ? 's' : ''}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => decideLeave(leave.id, 'Approved')}
-                        className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center hover:bg-emerald-500/30 transition-all cursor-pointer"
-                        title="Approve"
-                      >
-                        <Check size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => decideLeave(leave.id, 'Rejected')}
-                        className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 flex items-center justify-center hover:bg-red-500/30 transition-all cursor-pointer"
-                        title="Reject"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          /* Dual-Panel IT & HR Approval System View */
+          <FounderApprovalView />
         ) : activeDept === 'projects' ? (
           /* Project Details View */
           <div className="w-full flex flex-col gap-4">
@@ -572,8 +363,11 @@ export default function FounderDashboardPage() {
           /* Weekly and Monthly Reports View */
           <FounderReportsView />
         ) : activeDept === 'hr' ? (
-          /* HR Department — basic snapshot, no separate HR login needed to see it */
+          /* HR Department View */
           <FounderHrView />
+        ) : activeDept === 'it' ? (
+          /* IT Service Desk View */
+          <FounderItView />
         ) : (
           /* Department Switcher Views */
           <div className="bg-[#141418] border border-white/10 rounded-3xl p-6 sm:p-10 flex flex-col items-center justify-center text-center min-h-[350px] relative overflow-hidden group">
