@@ -5,12 +5,12 @@ test.describe('overlays', () => {
   test('the ticket modal closes on Escape and on a backdrop click', async ({ page }) => {
     await loginAs(page, 'employee');
 
-    await page.getByRole('button', { name: /raise ticket/i }).first().click();
+    await page.getByRole('button', { name: /raise it ticket/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
 
-    await page.getByRole('button', { name: /raise ticket/i }).first().click();
+    await page.getByRole('button', { name: /raise it ticket/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.mouse.click(8, 8); // backdrop, well clear of the panel
     await expect(page.getByRole('dialog')).toBeHidden();
@@ -18,7 +18,7 @@ test.describe('overlays', () => {
 
   test('the ticket modal is announced as a dialog', async ({ page }) => {
     await loginAs(page, 'employee');
-    await page.getByRole('button', { name: /raise ticket/i }).first().click();
+    await page.getByRole('button', { name: /raise it ticket/i }).first().click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toHaveAttribute('aria-modal', 'true');
     await expect(dialog).toHaveAttribute('aria-label', /.+/);
@@ -93,7 +93,7 @@ test.describe('responsive', () => {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, 'horizontal overflow in px').toBeLessThanOrEqual(1);
 
-      const raise = page.getByRole('button', { name: /raise ticket/i }).first();
+      const raise = page.getByRole('button', { name: /raise it ticket/i }).first();
       await expect(raise).toBeVisible();
       await raise.click();
       await expect(page.getByRole('dialog')).toBeVisible();

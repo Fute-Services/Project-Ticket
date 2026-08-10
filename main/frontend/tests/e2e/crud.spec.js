@@ -6,7 +6,7 @@ test.describe('employee — raise an IT ticket', () => {
     const errors = collectErrors(page);
     await loginAs(page, 'employee');
 
-    await page.getByRole('button', { name: /raise ticket/i }).first().click();
+    await page.getByRole('button', { name: /raise it ticket/i }).first().click();
     const form = page.locator('form');
     await expect(form).toBeVisible();
 
@@ -30,7 +30,7 @@ test.describe('employee — raise an IT ticket', () => {
     await page.getByRole('button', { name: 'My Tickets', exact: true }).click();
     const before = await page.locator('body').innerText();
 
-    await page.getByRole('button', { name: /raise ticket|new ticket/i }).first().click();
+    await page.getByRole('button', { name: /raise it ticket/i }).first().click();
     await expect(page.locator('form')).toBeVisible();
     await page.getByRole('button', { name: /^cancel$/i }).click();
     await expect(page.locator('form')).toBeHidden();
