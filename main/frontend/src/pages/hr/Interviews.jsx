@@ -105,6 +105,7 @@ export default function Interviews() {
                       </td>
                       <td className="py-3.5 px-3">
                         <select
+                          aria-label={`Change status for ${i.candidate} interview`}
                           value={i.status}
                           onChange={(e) => changeStatus(i.id, e.target.value)}
                           className="bg-muted border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"

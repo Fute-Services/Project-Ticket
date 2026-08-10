@@ -176,6 +176,7 @@ export default function CoordinatorLayout({ children }) {
             <button
               type="button"
               onClick={() => setMobileNavOpen(true)}
+              aria-label="Open navigation menu"
               className="lg:hidden p-2 rounded-xl bg-muted backdrop-blur-md border border-border text-muted-foreground cursor-pointer shrink-0"
             >
               <Menu size={16} />
@@ -219,6 +220,9 @@ export default function CoordinatorLayout({ children }) {
               <button
                 type="button"
                 onClick={() => setShowNotifs((p) => !p)}
+                aria-label="Notifications"
+                aria-expanded={showNotifs}
+                title="Notifications"
                 className="relative w-10 h-10 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-muted-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
               >
                 <Bell size={16} />
@@ -235,6 +239,7 @@ export default function CoordinatorLayout({ children }) {
             <button
               type="button"
               onClick={() => setIsChatOpen(true)}
+              aria-label="Team Chat"
               className="h-10 px-3 rounded-xl bg-card border border-border text-foreground text-xs font-medium flex items-center gap-2 shadow hover:bg-accent transition-all cursor-pointer shrink-0"
             >
               <MessageSquare size={14} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]" />

@@ -100,7 +100,11 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
       {/* Left Sidebar — Fixed Height with Zero Scrollbar */}
       <aside
         className={`${
-          collapsed ? 'w-full lg:w-[64px]' : 'w-full lg:w-[195px] xl:w-[200px]'
+          // `w-auto`, not `w-full`: the sidebar also carries `m-3`, so a full
+          // 100% width plus 12px of margin each side pushed the page 12px wider
+          // than the viewport and gave every phone a horizontal scrollbar.
+          // As a block element `w-auto` already fills the row minus its margins.
+          collapsed ? 'w-auto lg:w-[64px]' : 'w-auto lg:w-[195px] xl:w-[200px]'
         } m-3 lg:h-[calc(100vh-1.5rem)] lg:sticky lg:top-3 bg-background border border-border rounded-lg flex flex-col justify-between shrink-0 p-3 transition-all duration-300 overflow-hidden`}
       >
         <div>
@@ -271,6 +275,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
             <button
               type="button"
               onClick={() => setIsChatOpen(true)}
+              aria-label="Team Chat"
               className="h-9 px-3 rounded-xl bg-card border border-border text-foreground text-xs font-medium flex items-center gap-2 shadow hover:bg-accent transition-all cursor-pointer"
             >
               <MessageSquare size={14} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]" />

@@ -121,6 +121,7 @@ export default function Candidates() {
               />
             </div>
             <select
+              aria-label="Filter candidates by source"
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
               className="bg-muted border border-border rounded-xl px-3 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"

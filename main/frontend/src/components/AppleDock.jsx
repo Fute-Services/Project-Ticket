@@ -175,6 +175,11 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
               <button
                 type="button"
                 onClick={() => handleAppClick(app)}
+                // The visible label is a hover tooltip, so the button itself
+                // carried no accessible name at all — every dock item was
+                // announced as just "button".
+                aria-label={app.label}
+                aria-current={isActive ? 'page' : undefined}
                 className={`relative w-8 h-8 rounded-full flex items-center justify-center shadow-md cursor-pointer transform transition-all duration-200 ease-out group-hover:translate-x-1.5 group-hover:scale-125 group-active:scale-90 ${
                   isActive
                     ? 'bg-black border-2 border-border text-foreground shadow-[0_0_12px_rgba(255,255,255,0.2)] scale-[1.05]'

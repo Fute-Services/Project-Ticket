@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Plus, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { X, Plus, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { TICKET_CATEGORIES, TICKET_PRIORITIES } from '../data/itMockData';
+import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
 
 export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   const [category, setCategory] = useState('Laptop / Desktop / Server');
@@ -9,6 +10,10 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   const [description, setDescription] = useState('');
   const [department, setDepartment] = useState('Engineering');
   const [submitted, setSubmitted] = useState(false);
+
+  // Escape must not yank the modal away mid-submit — the success panel is the
+  // only confirmation the user gets that the ticket was created.
+  useEscapeToClose(isOpen && !submitted, onClose);
 
   if (!isOpen) return null;
 
@@ -37,8 +42,16 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fadeIn font-sans">
-      <div className="bg-card border border-border rounded-lg w-full max-w-lg overflow-hidden shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fadeIn font-sans"
+      {...(submitted ? {} : backdropProps(onClose))}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Raise IT Support Ticket"
+        className="bg-card border border-border rounded-lg w-full max-w-lg overflow-hidden shadow-2xl"
+      >
         {/* Header */}
         <div className="px-6 py-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">

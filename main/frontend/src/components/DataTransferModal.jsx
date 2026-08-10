@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Server, Folder, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
 
 const SERVERS = ['Server 70', 'Server 50', 'Server 29', 'Server 131', 'Anima'];
 
@@ -10,6 +11,8 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
   const [folderPath, setFolderPath] = useState('');
   const [purpose, setPurpose] = useState('');
   const [submitted, setSubmitted] = useState(false);
+
+  useEscapeToClose(isOpen && !submitted, onClose);
 
   if (!isOpen) return null;
 
@@ -33,8 +36,16 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fadeIn font-sans">
-      <div className="bg-card border border-border rounded-lg w-full max-w-lg overflow-hidden shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fadeIn font-sans"
+      {...(submitted ? {} : backdropProps(onClose))}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="New Data Transfer Request"
+        className="bg-card border border-border rounded-lg w-full max-w-lg overflow-hidden shadow-2xl"
+      >
         {/* Header */}
         <div className="px-6 py-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">

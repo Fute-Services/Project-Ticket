@@ -13,6 +13,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useEscapeToClose } from '../hooks/useOverlayDismiss';
 
 const INITIAL_CHANNELS = [
   { id: 'general', name: 'general', desc: 'Company-wide updates & general discussions' },
@@ -56,6 +57,10 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
   });
   const [inputText, setInputText] = useState('');
 
+  // Only the overlay form is dismissable — the full-page view has nothing to
+  // close and no onClose to call.
+  useEscapeToClose(!isFullPage && isOpen, onClose);
+
   if (!isFullPage && !isOpen) return null;
 
   function handleSend(e) {
@@ -82,7 +87,13 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
   const channelMessages = messages[activeChannel] || [];
 
   const content = (
-    <div className={`w-full bg-card border border-border rounded-2xl flex flex-col shadow-lg text-foreground font-sans overflow-hidden ${isFullPage ? 'h-[750px]' : 'relative w-full max-w-2xl h-[85vh] max-h-[720px]'}`}>
+    <div
+      // Only the overlay form is a dialog; as a full page it's ordinary content.
+      role={isFullPage ? undefined : 'dialog'}
+      aria-modal={isFullPage ? undefined : 'true'}
+      aria-label={isFullPage ? undefined : 'Team Collaboration Hub'}
+      className={`w-full bg-card border border-border rounded-2xl flex flex-col shadow-lg text-foreground font-sans overflow-hidden ${isFullPage ? 'h-[750px]' : 'relative w-full max-w-2xl h-[85vh] max-h-[720px]'}`}
+    >
       {/* Top Header */}
       <div className="h-14 px-5 border-b border-border flex items-center justify-between bg-muted shrink-0">
         <div className="flex items-center gap-3">

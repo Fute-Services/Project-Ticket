@@ -225,7 +225,7 @@ export default function SignupPage() {
         {error && (
           <div
             role="alert"
-            className="text-xs px-4 py-2 text-primary bg-primary/10/40 border border-primary/60 rounded-xl text-center"
+            className="text-xs px-4 py-2 text-primary bg-primary/10 border border-primary/60 rounded-xl text-center"
           >
             {error}
           </div>

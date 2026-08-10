@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Crown, Users, Cpu, FolderKanban, User } from 'lucide-react';
 import { useAuth, homeFor } from '../context/AuthContext';
 import { loginUser } from '../utils/api';
@@ -141,7 +141,7 @@ export default function LoginPage() {
         {error && (
           <div
             role="alert"
-            className="text-xs px-4 py-2.5 text-primary bg-primary/10/40 border border-primary/60 rounded-xl text-center"
+            className="text-xs px-4 py-2.5 text-primary bg-primary/10 border border-primary/60 rounded-xl text-center"
           >
             {error}
           </div>

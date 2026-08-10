@@ -194,6 +194,7 @@ export default function HrLayout({ children }) {
             <button
               type="button"
               onClick={() => setMobileNavOpen(true)}
+              aria-label="Open navigation menu"
               className="lg:hidden p-2 rounded-xl bg-muted backdrop-blur-md border border-border text-muted-foreground cursor-pointer shrink-0"
             >
               <Menu size={16} />
@@ -277,6 +278,8 @@ export default function HrLayout({ children }) {
             <button
               type="button"
               onClick={() => goTo('/hr/email')}
+              aria-label="Open email inbox"
+              title="Email inbox"
               className="relative w-9 h-9 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-muted-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
             >
               <Mail size={15} />

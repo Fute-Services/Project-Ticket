@@ -5,8 +5,12 @@ import DataTable from '../../components/DataTable';
 import { Users2, UserCheck, UserX, Clock3 } from 'lucide-react';
 import { employees, attendanceRecords, ATTENDANCE_STATUSES } from '../../data/hrMockData';
 
-const TODAY = '2026-08-06';
-const MONTH_DATES = ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05'];
+// Derived from the records rather than hardcoded. A fixed date drifts out of
+// the data's range the moment the seed changes, and when it does every row
+// reads "No record", the five stat cards all show 0, and sorting the check-in
+// /check-out/hours columns does nothing because every value is identical.
+const MONTH_DATES = [...new Set(attendanceRecords.map((a) => a.date))].sort();
+const TODAY = MONTH_DATES[MONTH_DATES.length - 1];
 
 const DOT_COLOR = {
   Present: 'bg-primary',
@@ -111,6 +115,7 @@ export default function Attendance() {
             )} total`}
             action={
               <select
+                aria-label="Show monthly attendance for employee"
                 value={selectedEmployee}
                 onChange={(e) => setSelectedEmployee(e.target.value)}
                 className="bg-muted border border-border rounded-xl px-3 py-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"

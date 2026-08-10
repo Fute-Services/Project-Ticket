@@ -8,6 +8,7 @@
 // For new UI prefer the shadcn primitives directly — `@/components/ui/button`,
 // `@/components/ui/input`, and so on.
 
+import { cloneElement, isValidElement, useId } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -92,7 +93,10 @@ export function SectionHeader({ title, subtitle, action }) {
 // `accent` render a tinted icon badge — accent defaults to the brand token
 // rather than a literal hex so it follows the theme.
 export function StatCard({ label, value, sub, change, icon: Icon, accent }) {
-  const tint = accent || 'hsl(var(--primary))';
+  // Not named `tint` — that would shadow the imported tint() helper this
+  // component calls two lines down, and the badge would crash on any card
+  // that passes an accent.
+  const accentColor = accent || 'hsl(var(--primary))';
   return (
     <div className="bg-card border border-border rounded-lg shadow p-4 flex flex-col justify-between min-h-[76px] hover:border-muted-foreground/40 transition-colors">
       <div className="flex items-center justify-between gap-2">
@@ -102,7 +106,7 @@ export function StatCard({ label, value, sub, change, icon: Icon, accent }) {
             className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
             style={{
               backgroundColor: accent ? tint(accent, 0.1) : 'hsl(var(--primary) / 0.1)',
-              color: tint,
+              color: accentColor,
             }}
           >
             <Icon size={13} />
@@ -219,13 +223,26 @@ export function Modal({ open, onClose, title, description, children }) {
   );
 }
 
+/**
+ * Most call sites pass a label and a bare `<input>`/`<select>` without an id,
+ * which left the control with no accessible name — "Title" and "Due Date" in
+ * the Assign Task dialog were both announced as an unlabelled textbox. When no
+ * `htmlFor` is supplied we generate one and stamp it onto the single child, so
+ * every existing call site gets a real association for free. An explicit
+ * `htmlFor`, or an id already on the child, still wins.
+ */
 export function Field({ label, htmlFor, children, error, hint }) {
+  const generatedId = useId();
+  const single = isValidElement(children) ? children : null;
+  const fieldId = htmlFor || single?.props?.id || (single ? generatedId : undefined);
+  const control = single && !htmlFor && !single.props.id ? cloneElement(single, { id: fieldId }) : children;
+
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={htmlFor} className="text-xs text-muted-foreground font-medium">
+      <Label htmlFor={fieldId} className="text-xs text-muted-foreground font-medium">
         {label}
       </Label>
-      {children}
+      {control}
       {error ? (
         <span className="text-xs text-destructive">{error}</span>
       ) : (

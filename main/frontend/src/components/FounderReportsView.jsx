@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { tint } from '../styles/seriesColors';
+import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
 import {
   BarChart2,
   Calendar,
@@ -221,6 +222,8 @@ export default function FounderReportsView() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'raw'
+
+  useEscapeToClose(showExportModal, () => setShowExportModal(false));
 
   const currentDeptConfig = DEPARTMENTS.find((d) => d.id === selectedDept) || DEPARTMENTS[0];
   const currentTimeframeConfig = TIMEFRAMES.find((t) => t.id === selectedTimeframe) || TIMEFRAMES[0];
@@ -477,8 +480,17 @@ export default function FounderReportsView() {
 
       {/* ================= CSV EXPORT PREVIEW MODAL ================= */}
       {showExportModal && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-background border border-border rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div
+          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+          {...backdropProps(() => setShowExportModal(false))}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Report CSV Data Preview"
+            className="bg-background border border-border rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+          >
+
             {/* Modal Header */}
             <div className="p-4 sm:p-5 bg-muted border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
