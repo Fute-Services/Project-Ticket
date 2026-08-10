@@ -16,6 +16,7 @@ import {
   FolderKanban,
   BarChart2,
   Factory,
+  Sparkles,
 } from 'lucide-react';
 
 export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
@@ -50,6 +51,13 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
       icon: FolderKanban,
       deptId: 'projects',
       gradient: 'from-muted via-muted to-muted',
+    },
+    {
+      id: 'ai-agents',
+      label: 'AI Agent Hub',
+      icon: Sparkles,
+      deptId: 'ai-agents',
+      gradient: 'from-primary via-purple-500 to-indigo-500',
     },
     {
       id: 'reports',

@@ -20,6 +20,7 @@ import {
   Clock,
   Calendar,
   MessageSquareCode,
+  Sparkles,
 } from 'lucide-react';
 import TeamChatDrawer from '../components/TeamChatDrawer';
 import AppleDock from '../components/AppleDock';
@@ -29,6 +30,7 @@ import FounderReportsView from '../components/FounderReportsView';
 import FounderHrView from '../components/FounderHrView';
 import FounderItView from '../components/FounderItView';
 import FounderDeptView from '../components/FounderDeptView';
+import FounderAiAdvisorView from '../components/FounderAiAdvisorView';
 import { DEPT_DEMO } from '../data/deptDemoData';
 import { tint } from '../styles/seriesColors';
 import { employees, candidates, attendanceRecords } from '../data/hrMockData';
@@ -185,6 +187,15 @@ export default function FounderDashboardPage() {
       gradient: 'from-muted via-muted to-muted',
       welcomeMsg: 'View cross-department project details',
       tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
+    },
+    {
+      id: 'ai-agents',
+      label: 'AI Agent Command Room',
+      shortLabel: 'AI Agents',
+      icon: Sparkles,
+      gradient: 'from-primary via-purple-500 to-indigo-500',
+      welcomeMsg: 'Ask AI Agents to collaborate and report the status of all departments.',
+      tagColor: 'text-primary border-primary/20 bg-primary/10',
     },
     {
       id: 'reports',
@@ -450,6 +461,9 @@ export default function FounderDashboardPage() {
         ) : activeDept === 'reports' ? (
           /* Weekly and Monthly Reports View */
           <FounderReportsView />
+        ) : activeDept === 'ai-agents' ? (
+          /* AI Agent Hub View */
+          <FounderAiAdvisorView onNavigate={setActiveDept} />
         ) : activeDept === 'chat' ? (
           /* Full Page Team Chat Hub View */
           <TeamChatDrawer isFullPage={true} />
