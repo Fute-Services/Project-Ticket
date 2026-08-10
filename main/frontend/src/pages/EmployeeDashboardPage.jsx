@@ -4,8 +4,9 @@ import { useTickets } from '../context/TicketContext';
 import { useTaskProject } from '../context/TaskProjectContext';
 import ItDeskLayout from '../components/ItDeskLayout';
 import NewItTicketModal from '../components/NewItTicketModal';
+import NewHrTicketModal from '../components/NewHrTicketModal';
 import { Card, SectionHeader, StatCard, Badge } from '../components/ui';
-import { Plus } from 'lucide-react';
+import { Plus, UserPlus } from 'lucide-react';
 import TaskRow from '../components/tasks/TaskRow';
 import TaskDetailPane from '../components/tasks/TaskDetailPane';
 import { toast } from 'sonner';
@@ -18,7 +19,7 @@ const TICKET_STATUS_BADGE = {
   Closed: 'bg-muted/10 text-muted-foreground border-muted/20',
 };
 
-function MyTicketsView({ tickets, onNewTicket }) {
+function MyTicketsView({ tickets, onNewTicket, onNewHrTicket }) {
   return (
     <div className="w-full flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -26,14 +27,24 @@ function MyTicketsView({ tickets, onNewTicket }) {
           <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">My Tickets</h1>
           <p className="text-xs text-muted-foreground">{tickets.length} tickets raised by you</p>
         </div>
-        <button
-          type="button"
-          onClick={onNewTicket}
-          className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
-        >
-          <Plus size={16} />
-          <span>Raise Ticket</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onNewTicket}
+            className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>Raise IT Ticket</span>
+          </button>
+          <button
+            type="button"
+            onClick={onNewHrTicket}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-orange-500/20 transition-all cursor-pointer"
+          >
+            <UserPlus size={16} />
+            <span>Raise HR Ticket</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-card border border-border rounded-lg p-5">
@@ -171,6 +182,7 @@ export default function EmployeeDashboardPage() {
   const [openTaskId, setOpenTaskId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [isHrTicketModalOpen, setIsHrTicketModalOpen] = useState(false);
 
   // Every employee shares the same underlying ticket list as IT's queue —
   // scope the view to tickets this person raised.
@@ -201,8 +213,23 @@ export default function EmployeeDashboardPage() {
 
   function handleNewTicket(req) {
     addTicket(req, user?.full_name);
-    toast.success('Ticket raised', {
+    toast.success('IT Ticket raised', {
       description: "IT can see it now — you'll find it under My Tickets.",
+    });
+  }
+
+  function handleNewHrTicket(req) {
+    addTicket(
+      {
+        ...req,
+        dept: 'HR',
+      },
+      user?.full_name
+    );
+    toast.success('HR Ticket raised', {
+      description: req.isConfidential
+        ? 'Routed confidentially to Senior HR & Founder.'
+        : 'HR team has been notified — track it under My Tickets.',
     });
   }
 
@@ -235,16 +262,26 @@ export default function EmployeeDashboardPage() {
               <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1">
                 Welcome, {user?.full_name || 'there'}
               </h1>
-              <p className="text-xs text-muted-foreground">Raise an IT issue and track it through to resolution.</p>
+              <p className="text-xs text-muted-foreground">Raise IT or HR issues and track them through to resolution.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsTicketModalOpen(true)}
-              className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
-            >
-              <Plus size={15} />
-              <span>Raise Ticket</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsTicketModalOpen(true)}
+                className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
+              >
+                <Plus size={15} />
+                <span>Raise IT Ticket</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsHrTicketModalOpen(true)}
+                className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-orange-500/20 transition-all cursor-pointer"
+              >
+                <UserPlus size={15} />
+                <span>Raise HR Ticket</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -287,7 +324,11 @@ export default function EmployeeDashboardPage() {
       )}
 
       {activeTab === 'tickets' && (
-        <MyTicketsView tickets={myTickets} onNewTicket={() => setIsTicketModalOpen(true)} />
+        <MyTicketsView
+          tickets={myTickets}
+          onNewTicket={() => setIsTicketModalOpen(true)}
+          onNewHrTicket={() => setIsHrTicketModalOpen(true)}
+        />
       )}
 
       {activeTab === 'tasks' && (
@@ -314,6 +355,12 @@ export default function EmployeeDashboardPage() {
         isOpen={isTicketModalOpen}
         onClose={() => setIsTicketModalOpen(false)}
         onSubmitSuccess={handleNewTicket}
+      />
+
+      <NewHrTicketModal
+        isOpen={isHrTicketModalOpen}
+        onClose={() => setIsHrTicketModalOpen(false)}
+        onSubmitSuccess={handleNewHrTicket}
       />
     </ItDeskLayout>
   );

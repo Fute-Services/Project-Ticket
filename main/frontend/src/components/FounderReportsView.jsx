@@ -358,7 +358,7 @@ export default function FounderReportsView() {
       </div>
 
       {/* Department Header Summary Banner */}
-      <div className="bg-card border border-border border-l-2 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ borderLeftColor: DEPT_ACCENT_HEX[selectedDept] }}>
+      <div className="bg-card border border-border rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-muted border border-border text-muted-foreground">
