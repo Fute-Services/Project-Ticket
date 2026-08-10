@@ -168,7 +168,7 @@ export default function LoginPage() {
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center mb-4">
           Quick Demo Access
         </p>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {DEMO_ACCOUNTS.map((account) => {
             const roleMeta = {
               founder: {
@@ -262,16 +262,16 @@ export default function LoginPage() {
                 key={account.role}
                 type="button"
                 onClick={() => handleDemoLogin(account)}
-                className={`flex items-start gap-2.5 p-2.5 rounded-lg bg-muted border border-border text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group ${meta.color} ${account.role === 'employee' ? 'col-span-2' : ''}`}
+                className={`flex items-center gap-1.5 p-1.5 rounded-lg bg-muted border border-border text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group ${meta.color} ${account.role === 'employee' ? 'col-span-2' : ''}`}
               >
-                <div className={`w-8 h-8 rounded-xl ${meta.badgeBg} flex items-center justify-center shrink-0 border border-border transition-colors`}>
-                  <Icon size={15} />
+                <div className={`w-5 h-5 rounded-md ${meta.badgeBg} flex items-center justify-center shrink-0 border border-border transition-colors`}>
+                  <Icon size={11} />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold text-foreground group-hover:text-inherit transition-colors leading-none mb-1 capitalize">
+                  <div className="text-[11px] font-semibold text-foreground group-hover:text-inherit transition-colors leading-none mb-0.5 capitalize truncate">
                     {meta.label}
                   </div>
-                  <div className="text-xs text-muted-foreground leading-normal truncate group-hover:text-muted-foreground transition-colors">
+                  <div className="text-[10px] text-muted-foreground leading-none truncate group-hover:text-muted-foreground transition-colors">
                     {meta.sub}
                   </div>
                 </div>
