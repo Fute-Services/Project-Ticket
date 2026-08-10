@@ -9,7 +9,7 @@ import DataTransferModal from '../components/DataTransferModal';
 import AssetFormModal from '../components/AssetFormModal';
 import DataTable from '../components/DataTable';
 import { BarChartCard, LineChartCard } from '../components/charts';
-import { Card, SectionHeader, StatCard } from '../components/ui';
+import { Card, SectionHeader, StatCard, Drawer } from '../components/ui';
 import {
   assets as SEED_ASSETS,
   ASSET_TYPES,
@@ -32,12 +32,20 @@ import {
   Download,
   Mail,
   BadgeCheck,
+  ChevronDown,
+  X,
+  Search,
+  HardDrive,
+  History as HistoryIcon,
+  Cpu,
+  Eye,
 } from 'lucide-react';
 
 const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
 function TicketsQueueView({ tickets, onStatusChange }) {
   const [filter, setFilter] = useState('All');
+  const [detailsTicket, setDetailsTicket] = useState(null);
   const visible = filter === 'All' ? tickets : tickets.filter((t) => t.status === filter);
 
   return (
@@ -100,21 +108,99 @@ function TicketsQueueView({ tickets, onStatusChange }) {
                 </select>
               ),
             },
+            {
+              key: 'details',
+              label: 'Details',
+              sortable: false,
+              width: '70px',
+              render: (t) => (
+                <button
+                  type="button"
+                  onClick={() => setDetailsTicket(t)}
+                  aria-label={`View details for ticket ${t.token}`}
+                  title="View details"
+                  className="w-7 h-7 rounded-lg bg-muted border border-border hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
+                >
+                  <Eye size={12} />
+                </button>
+              ),
+            },
           ]}
         />
       </div>
+
+      {/* Full record — kept out of the grid itself so the queue stays scannable;
+          Employee ID / VPN No / Date / Username are metadata you check when you
+          need them, not something every row needs to show all the time. */}
+      <Drawer open={!!detailsTicket} onClose={() => setDetailsTicket(null)} title={detailsTicket ? `Ticket ${detailsTicket.token}` : 'Ticket'}>
+        {detailsTicket && (
+          <div className="flex flex-col gap-4">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Issue</div>
+              <div className="text-sm font-semibold text-foreground">{detailsTicket.title}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-muted-foreground">Employee ID</div>
+                <div className="text-xs font-semibold text-foreground">{detailsTicket.employeeId || '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Username</div>
+                <div className="text-xs font-semibold text-foreground">{detailsTicket.username || '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">VPN No</div>
+                <div className="text-xs font-semibold text-foreground">{detailsTicket.vpnNo || '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Date</div>
+                <div className="text-xs font-semibold text-foreground">{detailsTicket.date || '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Department</div>
+                <div className="text-xs font-semibold text-foreground">{detailsTicket.dept || '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Requester</div>
+                <div className="text-xs font-semibold text-foreground">{detailsTicket.user || '—'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Status</div>
+                <div className="text-xs font-semibold text-foreground">{detailsTicket.status}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Token</div>
+                <div className="text-xs font-semibold text-primary">{detailsTicket.token}</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }
 
-const APPROVAL_FORM_EMPTY = { title: '', sub: '', requestedBy: '', priority: 'medium' };
+const APPROVAL_FORM_EMPTY = { title: '', sub: '', requestedBy: '', priority: 'medium', category: 'General' };
+const APPROVAL_CATEGORIES = ['General', 'Software', 'Hardware', 'System Access', 'Data Transfer'];
 
 function ApprovalCenterView() {
   const { approvals, submitApproval } = useApprovals();
-  const itApprovals = approvals.filter((a) => a.source === 'IT');
-  const pendingFounder = itApprovals.filter((a) => a.status === 'pending_founder');
-  const decided = itApprovals.filter((a) => a.status !== 'pending_founder');
   const [form, setForm] = useState(APPROVAL_FORM_EMPTY);
+  const [sortOrder, setSortOrder] = useState('newest');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [priorityFilter, setPriorityFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+
+  const itApprovals = approvals.filter((a) => a.source === 'IT');
+  const categories = ['All', ...new Set(itApprovals.map((a) => a.category || 'General'))];
+
+  const filtered = itApprovals
+    .filter((a) => priorityFilter === 'All' || a.priority === priorityFilter.toLowerCase())
+    .filter((a) => categoryFilter === 'All' || (a.category || 'General') === categoryFilter)
+    .sort((a, b) => (sortOrder === 'newest' ? (b.createdAt || 0) - (a.createdAt || 0) : (a.createdAt || 0) - (b.createdAt || 0)));
+
+  const pendingFounder = statusFilter === 'Resolved' ? [] : filtered.filter((a) => a.status === 'pending_founder');
+  const decided = statusFilter === 'Pending' ? [] : filtered.filter((a) => a.status !== 'pending_founder');
 
   function submit(e) {
     e.preventDefault();
@@ -158,6 +244,26 @@ function ApprovalCenterView() {
             placeholder="Details"
             className="sm:col-span-2 bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
+          <select
+            value={form.category}
+            onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+            aria-label="Category"
+            className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+          >
+            {APPROVAL_CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <select
+            value={form.priority}
+            onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
+            aria-label="Priority"
+            className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
           <button
             type="submit"
             className="sm:col-span-2 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
@@ -167,10 +273,56 @@ function ApprovalCenterView() {
         </form>
       </Card>
 
+      <Card>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Filter</span>
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            aria-label="Sort order"
+            className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+          >
+            <option value="newest">Datewise: Newest first</option>
+            <option value="oldest">Datewise: Oldest first</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="Status filter"
+            className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+          >
+            <option value="All">All statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            aria-label="Priority filter"
+            className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+          >
+            <option value="All">All priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            aria-label="Category filter"
+            className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+          >
+            {categories.map((c) => (
+              <option key={c} value={c}>{c === 'All' ? 'All categories' : c}</option>
+            ))}
+          </select>
+        </div>
+      </Card>
+
       <div className="bg-card border border-border rounded-lg p-5">
         <h3 className="font-semibold text-sm text-foreground mb-4">Awaiting Founder Sign-off</h3>
         {pendingFounder.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4">Nothing waiting on the founder right now.</p>
+          <p className="text-xs text-muted-foreground py-4">Nothing matches these filters.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             {pendingFounder.map((app) => (
@@ -179,6 +331,7 @@ function ApprovalCenterView() {
                   <div className="text-xs font-bold text-foreground truncate">{app.title}</div>
                   <div className="text-xs text-muted-foreground truncate">{app.sub}</div>
                   <div className="text-xs text-muted-foreground">Requested by {app.requestedBy} · {app.timestamp}</div>
+                  <div className="text-xs text-muted-foreground">{app.category || 'General'} · {app.priority}</div>
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 bg-warning/10 text-warning border-warning/20">
                   Pending Founder
@@ -190,7 +343,7 @@ function ApprovalCenterView() {
 
         <h3 className="font-semibold text-sm text-foreground mb-4">Decision History</h3>
         {decided.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4">No decisions yet.</p>
+          <p className="text-xs text-muted-foreground py-4">Nothing matches these filters.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {decided.map((app) => (
@@ -198,6 +351,7 @@ function ApprovalCenterView() {
                 <div className="min-w-0 pr-2">
                   <div className="text-xs font-bold text-foreground truncate">{app.title}</div>
                   <div className="text-xs text-muted-foreground">{app.requestedBy} · {app.timestamp}</div>
+                  <div className="text-xs text-muted-foreground">{app.category || 'General'} · {app.priority}</div>
                 </div>
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 ${
@@ -218,6 +372,8 @@ function ApprovalCenterView() {
 }
 
 function DataRequestsView({ requests, onNewRequest }) {
+  const [expandedId, setExpandedId] = useState(null);
+
   return (
     <div className="w-full flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -239,31 +395,88 @@ function DataRequestsView({ requests, onNewRequest }) {
         {requests.length === 0 ? (
           <p className="text-xs text-muted-foreground py-8 text-center">No data transfer requests yet.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {requests.map((d) => (
-              <div key={d.id} className="p-3.5 rounded-lg bg-muted border border-border flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-warning/10 border border-warning/20 flex items-center justify-center text-warning shrink-0">
-                    <Server size={15} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-foreground truncate">{d.path}</div>
-                    <div className="text-xs text-muted-foreground truncate">{d.name}</div>
-                  </div>
+          <div className="grid grid-cols-1 gap-3">
+            {requests.map((d) => {
+              const expanded = expandedId === d.id;
+              const hasDetails = d.requesterName || d.requesterNumber || d.backupName || d.priority || d.targetApprover || d.serverTag;
+              return (
+                <div key={d.id} className="rounded-lg bg-muted border border-border overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => hasDetails && setExpandedId(expanded ? null : d.id)}
+                    aria-expanded={expanded}
+                    className={`w-full p-3.5 flex items-center justify-between gap-3 text-left ${hasDetails ? 'cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-warning/10 border border-warning/20 flex items-center justify-center text-warning shrink-0">
+                        <Server size={15} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-foreground truncate">{d.path}</div>
+                        <div className="text-xs text-muted-foreground truncate">{d.name}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full border font-semibold ${
+                          d.status === 'Completed'
+                            ? 'bg-primary/10 text-primary border-primary/20'
+                            : d.status === 'In Progress'
+                            ? 'bg-muted/10 text-muted-foreground border-muted/20'
+                            : 'bg-warning/10 text-warning border-warning/20'
+                        }`}
+                      >
+                        {d.status}
+                      </span>
+                      {hasDetails && (
+                        <ChevronDown size={14} className={`text-muted-foreground transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                      )}
+                    </div>
+                  </button>
+
+                  {expanded && hasDetails && (
+                    <div className="px-3.5 pb-3.5 pt-1 border-t border-border grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                      {d.requesterName && (
+                        <div>
+                          <div className="text-xs text-muted-foreground">Requester Contact</div>
+                          <div className="text-xs font-semibold text-foreground">{d.requesterName}{d.requesterNumber ? ` · ${d.requesterNumber}` : ''}</div>
+                        </div>
+                      )}
+                      {d.backupName && (
+                        <div>
+                          <div className="text-xs text-muted-foreground">Backup Name</div>
+                          <div className="text-xs font-semibold text-foreground">{d.backupName}</div>
+                        </div>
+                      )}
+                      {d.priority && (
+                        <div>
+                          <div className="text-xs text-muted-foreground">Priority</div>
+                          <div className="text-xs font-semibold text-foreground">{d.priority}</div>
+                        </div>
+                      )}
+                      {d.targetApprover && (
+                        <div>
+                          <div className="text-xs text-muted-foreground">Target Approver</div>
+                          <div className="text-xs font-semibold text-foreground">{d.targetApprover}</div>
+                        </div>
+                      )}
+                      {d.serverTag && (
+                        <div>
+                          <div className="text-xs text-muted-foreground">Tag</div>
+                          <div className="text-xs font-semibold text-foreground">{d.serverTag}</div>
+                        </div>
+                      )}
+                      {d.purpose && (
+                        <div className="col-span-2 sm:col-span-3">
+                          <div className="text-xs text-muted-foreground">Purpose</div>
+                          <div className="text-xs text-foreground">{d.purpose}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full border font-semibold shrink-0 ${
-                    d.status === 'Completed'
-                      ? 'bg-primary/10 text-primary border-primary/20'
-                      : d.status === 'In Progress'
-                      ? 'bg-muted/10 text-muted-foreground border-muted/20'
-                      : 'bg-warning/10 text-warning border-warning/20'
-                  }`}
-                >
-                  {d.status}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -291,10 +504,15 @@ function AssetsView() {
   const [typeFilter, setTypeFilter] = useState('All');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
+  const [assetIdQuery, setAssetIdQuery] = useState('');
+  const [auditAsset, setAuditAsset] = useState(null);
 
-  // Only the type filter lives here now — free-text search is DataTable's job,
-  // so the two aren't implemented twice with subtly different behaviour.
-  const visible = assets.filter((a) => typeFilter === 'All' || a.type === typeFilter);
+  // The type filter and the dedicated Asset ID search both live here;
+  // free-text search across model/user/department is still DataTable's job,
+  // so that one isn't implemented twice with subtly different behaviour.
+  const visible = assets
+    .filter((a) => typeFilter === 'All' || a.type === typeFilter)
+    .filter((a) => !assetIdQuery.trim() || a.id.toLowerCase().includes(assetIdQuery.trim().toLowerCase()));
 
   // Warranty is "expiring" if it lapses within 90 days of the demo date —
   // the whole point of tracking it is catching that before it lapses.
@@ -384,13 +602,24 @@ function AssetsView() {
           ))}
         </div>
 
+        <div className="relative mb-3 max-w-xs">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <input
+            value={assetIdQuery}
+            onChange={(e) => setAssetIdQuery(e.target.value)}
+            placeholder="Filter by Asset ID…"
+            aria-label="Filter by Asset ID"
+            className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+
         <DataTable
           rows={visible}
           pageSize={10}
           searchable
           searchKeys={['id', 'model', 'assignedTo', 'department']}
           searchPlaceholder="Search by asset ID, model, user, or department…"
-          emptyMessage="No assets of this type are on record yet."
+          emptyMessage={assetIdQuery.trim() ? `No asset matches ID "${assetIdQuery.trim()}".` : 'No assets of this type are on record yet.'}
           emptyAction={
             <button
               type="button"
@@ -441,6 +670,15 @@ function AssetsView() {
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
+                    onClick={() => setAuditAsset(a)}
+                    className="w-7 h-7 rounded-lg bg-muted border border-border hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
+                    aria-label={`View audit history for asset ${a.id}`}
+                    title="Audit history"
+                  >
+                    <HistoryIcon size={12} />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => openEditModal(a)}
                     className="w-7 h-7 rounded-lg bg-muted border border-border hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
                     aria-label={`Edit asset ${a.id}`}
@@ -463,6 +701,67 @@ function AssetsView() {
           ]}
         />
       </Card>
+
+      {/* Asset Audit Sidebar */}
+      <Drawer open={!!auditAsset} onClose={() => setAuditAsset(null)} title={auditAsset ? `Audit — ${auditAsset.id}` : 'Asset Audit'}>
+        {auditAsset && (
+          <div className="flex flex-col gap-6">
+            <div>
+              <div className="text-sm font-semibold text-foreground">{auditAsset.model}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{auditAsset.assignedTo} · {auditAsset.department}</div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Cpu size={12} /> Component Inventory
+              </h4>
+              <div className="flex items-center gap-2 text-xs text-foreground mb-2">
+                <HardDrive size={12} className="text-muted-foreground shrink-0" />
+                <span>{auditAsset.hardDisk || 'No hard disk on record'}</span>
+              </div>
+              {auditAsset.componentsList?.length > 0 ? (
+                <ul className="flex flex-col gap-1">
+                  {auditAsset.componentsList.map((c, i) => (
+                    <li key={i} className="text-xs text-muted-foreground pl-4 relative before:content-['·'] before:absolute before:left-0">{c}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">No components on record.</p>
+              )}
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Components Change Log</h4>
+              {auditAsset.componentsLog?.length > 0 ? (
+                <ul className="flex flex-col gap-2">
+                  {auditAsset.componentsLog.map((entry, i) => (
+                    <li key={i} className="text-xs bg-muted border border-border rounded-lg p-2.5">
+                      <span className="text-muted-foreground">{entry.date}</span> — <span className="text-foreground">{entry.change}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">No component changes logged.</p>
+              )}
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Asset Allocation History</h4>
+              {auditAsset.history?.length > 0 ? (
+                <ul className="flex flex-col gap-2">
+                  {auditAsset.history.map((entry, i) => (
+                    <li key={i} className="text-xs bg-muted border border-border rounded-lg p-2.5">
+                      <span className="text-muted-foreground">{entry.date}</span> — <span className="text-foreground">{entry.event}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">No allocation history logged.</p>
+              )}
+            </div>
+          </div>
+        )}
+      </Drawer>
 
       <AssetFormModal
         isOpen={modalOpen}
@@ -576,7 +875,7 @@ export default function DashboardPage() {
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
 
-  const { approvals } = useApprovals();
+  const { approvals, submitApproval } = useApprovals();
   const itPendingFounder = approvals.filter((a) => a.source === 'IT' && a.status === 'pending_founder').length;
 
   // Data Requests state
@@ -588,18 +887,55 @@ export default function DashboardPage() {
     { id: 5, path: 'Server 131  →  Anima', name: 'Reports', status: 'Waiting Approval' },
   ]);
 
+  // Certain servers carry a standing rule about who signs off, or what tag
+  // the request should always carry — set once here rather than left for
+  // whoever fills the form to remember every time.
+  function routingFor(server) {
+    if (server === 'Server 100') return { approver: "Payel Ma'am (HR Manager)" };
+    if (server === 'Server 121') return { approver: 'Rathish sir (Founder)' };
+    if (server === 'Server 70') return { tag: 'Priority Wise' };
+    if (server === 'Server 50') return { tag: 'Tag Every Time' };
+    if (server === 'Server 131') return { tag: 'Standard Queue' };
+    return {};
+  }
+
   function handleNewDataRequest(req) {
+    const rule = routingFor(req.source).approver || routingFor(req.source).tag
+      ? routingFor(req.source)
+      : routingFor(req.destination);
+    const targetApprover = rule.approver || null;
+    const serverTag = rule.tag || null;
+    const status = targetApprover ? 'Waiting Approval' : req.status || 'Waiting Approval';
+
     setDataRequests((prev) => [
       {
         id: Date.now(),
         path: `${req.source}  →  ${req.destination}`,
         name: req.folder || 'Data Copy',
-        status: req.status || 'Waiting Approval',
+        status,
+        requesterName: req.requesterName,
+        requesterNumber: req.requesterNumber,
+        backupName: req.backupName,
+        priority: req.priority,
+        purpose: req.purpose,
+        targetApprover,
+        serverTag,
       },
       ...prev,
     ]);
+
+    if (targetApprover) {
+      submitApproval({
+        title: `Data Transfer Approval — ${req.folder || 'Data Copy'}`,
+        sub: `${req.source} → ${req.destination} · Approver: ${targetApprover}`,
+        requestedBy: req.requesterName || 'IT Desk',
+        priority: req.priority === 'Critical' ? 'high' : (req.priority || 'medium').toLowerCase(),
+        category: 'Data Transfer',
+      });
+    }
+
     toast.success('Data transfer requested', {
-      description: `${req.source} → ${req.destination}`,
+      description: targetApprover ? `Routed to ${targetApprover} for approval.` : `${req.source} → ${req.destination}`,
     });
   }
 

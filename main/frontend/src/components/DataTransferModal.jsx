@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { X, Server, Folder, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
 
-const SERVERS = ['Server 70', 'Server 50', 'Server 29', 'Server 131', 'Anima'];
+// Server 100 and 121 carry a named approver instead of the standard queue —
+// see the routing rules in DashboardPage's handleNewDataRequest.
+const SERVERS = ['Server 70', 'Server 50', 'Server 29', 'Server 131', 'Server 100', 'Server 121', 'Anima'];
+const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
 export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) {
   const [sourceServer, setSourceServer] = useState('Server 70');
@@ -10,7 +13,28 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
   const [folderName, setFolderName] = useState('');
   const [folderPath, setFolderPath] = useState('');
   const [purpose, setPurpose] = useState('');
+  const [requesterName, setRequesterName] = useState('');
+  const [requesterNumber, setRequesterNumber] = useState('');
+  const [backupName, setBackupName] = useState('');
+  const [priority, setPriority] = useState('Medium');
   const [submitted, setSubmitted] = useState(false);
+
+  // Every label in this form used to sit next to its control with no
+  // htmlFor/id pairing — visually correct, but announced to screen readers
+  // and password managers as unlabelled (same class of bug fixed earlier in
+  // IconField). Real ids fix that instead of just looking right.
+  const uid = useId();
+  const ids = {
+    source: `${uid}-source`,
+    dest: `${uid}-dest`,
+    requesterName: `${uid}-requesterName`,
+    requesterNumber: `${uid}-requesterNumber`,
+    folderName: `${uid}-folderName`,
+    folderPath: `${uid}-folderPath`,
+    purpose: `${uid}-purpose`,
+    backupName: `${uid}-backupName`,
+    priority: `${uid}-priority`,
+  };
 
   useEscapeToClose(isOpen && !submitted, onClose);
 
@@ -27,6 +51,10 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
           folder: folderName,
           path: folderPath,
           purpose,
+          requesterName,
+          requesterNumber,
+          backupName,
+          priority,
           status: 'Waiting Approval',
         });
       }
@@ -79,10 +107,11 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
             {/* Server Selection Row */}
             <div className="grid grid-cols-2 gap-3 p-3 bg-muted border border-border rounded-lg items-center">
               <div>
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                <label htmlFor={ids.source} className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                   Source Server
                 </label>
                 <select
+                  id={ids.source}
                   value={sourceServer}
                   onChange={(e) => setSourceServer(e.target.value)}
                   className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -96,10 +125,11 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
               </div>
 
               <div>
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                <label htmlFor={ids.dest} className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                   Destination Server
                 </label>
                 <select
+                  id={ids.dest}
                   value={destServer}
                   onChange={(e) => setDestServer(e.target.value)}
                   className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -113,13 +143,46 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
               </div>
             </div>
 
+            {/* Requester details */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor={ids.requesterName} className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Requester Name <span className="text-primary">*</span>
+                </label>
+                <input
+                  id={ids.requesterName}
+                  required
+                  type="text"
+                  value={requesterName}
+                  onChange={(e) => setRequesterName(e.target.value)}
+                  placeholder="Your full name"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+              <div>
+                <label htmlFor={ids.requesterNumber} className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Contact Number <span className="text-primary">*</span>
+                </label>
+                <input
+                  id={ids.requesterNumber}
+                  required
+                  type="tel"
+                  value={requesterNumber}
+                  onChange={(e) => setRequesterNumber(e.target.value)}
+                  placeholder="e.g. 98765 43210"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+            </div>
+
             {/* Folder Name & Path */}
             <div className="flex flex-col gap-3">
               <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                <label htmlFor={ids.folderName} className="text-xs font-semibold text-muted-foreground block mb-1">
                   Folder Name <span className="text-primary">*</span>
                 </label>
                 <input
+                  id={ids.folderName}
                   required
                   type="text"
                   value={folderName}
@@ -130,10 +193,11 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                <label htmlFor={ids.folderPath} className="text-xs font-semibold text-muted-foreground block mb-1">
                   Folder Path <span className="text-primary">*</span>
                 </label>
                 <input
+                  id={ids.folderPath}
                   required
                   type="text"
                   value={folderPath}
@@ -144,16 +208,48 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                <label htmlFor={ids.purpose} className="text-xs font-semibold text-muted-foreground block mb-1">
                   Purpose / Description
                 </label>
                 <textarea
+                  id={ids.purpose}
                   rows={3}
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
                   placeholder="Explain why this data transfer is required..."
                   className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor={ids.backupName} className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Backup Name
+                </label>
+                <input
+                  id={ids.backupName}
+                  type="text"
+                  value={backupName}
+                  onChange={(e) => setBackupName(e.target.value)}
+                  placeholder="e.g. Nightly_Backup_Aug"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+              <div>
+                <label htmlFor={ids.priority} className="text-xs font-semibold text-muted-foreground block mb-1">
+                  Priority
+                </label>
+                <select
+                  id={ids.priority}
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {PRIORITIES.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

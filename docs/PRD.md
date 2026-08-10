@@ -44,13 +44,19 @@ Role is derived from the account, not chosen at login — see [BACKEND_WORKFLOW.
 - "My Tasks" — tasks and projects the employee is assigned to from the Coordinator's board.
 
 ### 4.3 IT Service Desk
-- Ticket queue with status filters (`Open`, `In Progress`, `Waiting Approval`, `Resolved`, `Closed`).
-- Approval Center for requests that need Founder sign-off (software installs, system access, hardware procurement).
-- Data Transfer Requests (server-to-server) that route to Founder approval.
-- Asset Management — laptops, desktops, servers, with warranty tracking.
+- Ticket queue with status filters (`Open`, `In Progress`, `Waiting Approval`, `Resolved`, `Closed`); each ticket records Employee ID, Username, VPN No, and date, viewable in a per-ticket details drawer.
+- Approval Center for requests that need Founder sign-off (software installs, system access, hardware procurement), with sort (newest/oldest), status, priority, and category filters.
+- Data Transfer Requests (server-to-server) that route to Founder approval. Server 100 and Server 121 route to a named approver (Payel Ma'am / the Founder) instead of the standard queue; Servers 70/50/131 carry a standing tag (`Priority Wise` / `Tag Every Time` / `Standard Queue`). Requests are expandable to show requester contact, backup name, priority, and the routing outcome.
+- Asset Management — laptops, desktops, servers, with warranty tracking, a dedicated Asset ID filter, and a per-asset audit drawer (component inventory, a components change log, and an allocation history) that a status or component edit appends to automatically.
 - Reports & Logs — SLA compliance and resolution velocity.
 
-### 4.4 HR Operations
+### 4.4 Production Floor (interactive)
+Unlike Sales, Developers, Marketing, and Branding — which stay read-only illustrative views — Production has a real, stateful dashboard:
+- Log render jobs (project code, sequence type, frame range, systems allocated); frame-count and allocated-systems stat cards recompute live.
+- Toggle a job between Rendering and Completed.
+- "Report to IT" raises a real ticket straight into the shared IT ticket queue.
+
+### 4.5 HR Operations
 - Candidate pipeline: Applied → Screening → HR Round → Technical Round → Final Interview → Offer Sent → Joined / Rejected.
 - Interview scheduling and status tracking.
 - Attendance: daily snapshot plus a per-employee monthly history.
@@ -58,19 +64,19 @@ Role is derived from the account, not chosen at login — see [BACKEND_WORKFLOW.
 - An in-app email workspace (inbox, sent, drafts, templates) scoped to HR correspondence.
 - Reports: hiring, attendance, leave, interview, recruitment-source, and department-performance exports (CSV and a printable view).
 
-### 4.5 Coordinator Workspace
+### 4.6 Coordinator Workspace
 - Projects: client, due date, team members, Figma/repo links, progress.
 - Tasks: list and board views, grouped by status, assignable to any employee, with priority and due dates.
 - A task a Coordinator assigns appears immediately on the assignee's Employee dashboard.
 
-### 4.6 Founder Dashboard
+### 4.7 Founder Dashboard
 - Cross-department overview: HR, IT, Sales, Developer, Marketing, Branding, Production summaries.
 - Approval System: a unified queue for IT approvals and leave requests from HR/IT staff (see [BACKEND_WORKFLOW.md](./BACKEND_WORKFLOW.md) §5 for why those two leave categories route here instead of to HR).
 - Project Details and cross-department Reports.
 - **AI Agent Command Room** — a cabinet of five department personas (HR, IT, Coordinator, Employee-rep, Founder) that discusses a live snapshot of the dashboard data and answers a typed question. See [AI_WORKFLOW.md](./AI_WORKFLOW.md) for the full design.
 - Team Chat Hub — company channels (`#general`, `#it-support`, `#hr-announcements`, `#project-coordination`) plus per-project channels.
 
-### 4.7 Cross-cutting
+### 4.8 Cross-cutting
 - Dark theme only — no light mode or toggle.
 - Responsive down to 390px — sidebars collapse to off-canvas drawers, tables reflow to cards.
 - Every dashboard's data tables support sort, search/filter, and pagination.

@@ -12,18 +12,29 @@ export function TicketProvider({ children }) {
   const [tickets, setTickets] = useState(initialTickets);
 
   function addTicket(req, requesterName) {
-    setTickets((prev) => [
-      {
-        id: Date.now(),
-        token: `REQ-${1025 + prev.length}`,
-        title: req.description,
-        user: requesterName || 'You',
-        dept: req.department || req.category,
-        status: 'Open',
-        statusColor: TICKET_STATUS_COLOR.Open,
-      },
-      ...prev,
-    ]);
+    setTickets((prev) => {
+      const seq = prev.length;
+      return [
+        {
+          id: Date.now(),
+          token: `REQ-${1025 + seq}`,
+          title: req.description,
+          user: requesterName || 'You',
+          dept: req.department || req.category,
+          status: 'Open',
+          statusColor: TICKET_STATUS_COLOR.Open,
+          // Administrative metadata the IT desk tracks per ticket. Callers
+          // don't collect these on the raise-ticket form, so they're
+          // derived here — same sequential-ID convention as the token
+          // itself — rather than left blank on every new ticket.
+          employeeId: req.employeeId || `EMP-${3000 + seq}`,
+          vpnNo: req.vpnNo || '—',
+          date: req.date || new Date().toISOString().slice(0, 10),
+          username: req.username || (requesterName || 'you').toLowerCase().replace(/\s+/g, '.'),
+        },
+        ...prev,
+      ];
+    });
   }
 
   function changeStatus(id, status) {

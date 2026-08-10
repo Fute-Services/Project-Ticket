@@ -2,6 +2,13 @@ import { createContext, useContext, useState } from 'react';
 
 const ApprovalContext = createContext(null);
 
+// `createdAt` is a real timestamp backing "sort by date" in the Approval
+// Center — `timestamp` alone ("2 hours ago") can't be sorted chronologically
+// once it stops updating, since it's a rendered-once string, not a live
+// clock. Offsets below just make the three seed rows agree with what their
+// display strings already say.
+const NOW = Date.now();
+
 const SEED = [
   {
     id: 1,
@@ -10,7 +17,9 @@ const SEED = [
     sub: 'Visual Studio Code - 4 developer seats',
     requestedBy: 'Arjun Verma',
     timestamp: '2 hours ago',
+    createdAt: NOW - 2 * 60 * 60 * 1000,
     priority: 'medium',
+    category: 'Software',
     status: 'pending_founder',
   },
   {
@@ -20,7 +29,9 @@ const SEED = [
     sub: 'Production server access for on-call rotation',
     requestedBy: 'Sneha Iyer',
     timestamp: '4 hours ago',
+    createdAt: NOW - 4 * 60 * 60 * 1000,
     priority: 'high',
+    category: 'System Access',
     status: 'pending_founder',
   },
   {
@@ -30,7 +41,9 @@ const SEED = [
     sub: '3x replacement laptops for the design team',
     requestedBy: 'Devansh Gupta',
     timestamp: '1 day ago',
+    createdAt: NOW - 24 * 60 * 60 * 1000,
     priority: 'low',
+    category: 'Hardware',
     status: 'approved',
   },
 ];
@@ -49,7 +62,9 @@ export function ApprovalProvider({ children }) {
         id: Date.now(),
         source: 'IT',
         timestamp: 'Just now',
+        createdAt: Date.now(),
         priority: 'medium',
+        category: 'General',
         status: 'pending_founder',
         ...item,
       },

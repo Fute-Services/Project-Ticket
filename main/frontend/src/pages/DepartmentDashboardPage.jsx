@@ -2,6 +2,7 @@ import { TrendingUp, Code2, Megaphone, Palette, Factory, LogOut } from 'lucide-r
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import FounderDeptView from '../components/FounderDeptView';
+import ProductionDashboardView from '../components/ProductionDashboardView';
 
 /**
  * Standalone dashboard for the five departments that only ever existed as a
@@ -57,7 +58,7 @@ export default function DepartmentDashboardPage() {
       </header>
 
       <main className="max-w-[1400px] mx-auto p-4 sm:p-6">
-        <FounderDeptView dept={dept} />
+        {user?.role === 'production' ? <ProductionDashboardView /> : <FounderDeptView dept={dept} />}
       </main>
     </div>
   );

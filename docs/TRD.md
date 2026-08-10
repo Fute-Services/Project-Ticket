@@ -82,6 +82,7 @@ Project-Ticket/
     │   │   │   ├── hr/HrLayout.jsx, coordinator/CoordinatorLayout.jsx, ItDeskLayout.jsx
     │   │   │   ├── FounderAiAdvisorView.jsx   # AI Agent Command Room
     │   │   │   ├── NewItTicketModal.jsx, DataTransferModal.jsx, TeamChatDrawer.jsx
+    │   │   │   ├── ProductionDashboardView.jsx # Production's interactive dashboard
     │   │   │   └── RequireAuth.jsx            # Route guard (role allow-list)
     │   │   ├── context/                       # AuthContext, TicketContext, LeaveContext,
     │   │   │                                   # ApprovalContext, TaskProjectContext
@@ -137,6 +138,12 @@ approval       boolean
 The Founder's `/api/founder/complaints` endpoint reads both collections and merges them, tagging each row `dept_tag: 'HR' | 'IT'`.
 
 Everything else the UI shows — tickets (`data/itMockData.js` → `TicketContext`), leave requests, approvals, tasks/projects — has **no Firestore collection**. It's seed data held in React state. See [BACKEND_WORKFLOW.md](./BACKEND_WORKFLOW.md) §6.
+
+Two of those client-only shapes carry more fields than they used to, worth noting since they're easy to miss reading the controllers alone:
+
+**Tickets** (`TicketContext`) — `id, token, title, user, dept, status, statusColor`, plus `employeeId, vpnNo, date, username`. The last four are administrative metadata the raise-ticket forms don't collect; `addTicket()` derives them (sequential IDs, current date, a slugified username) so every ticket has them regardless of which form created it.
+
+**Assets** (`data/itMockData.js` → `AssetsView`) — beyond the original inventory fields, each asset also carries `hardDisk` (string), `componentsList` (string array), `componentsLog` and `history` (arrays of `{ date, change|event }`). `AssetFormModal` appends to `componentsLog` when components/hard disk change and to `history` when status changes, so the audit drawer accumulates real entries rather than starting empty on every edit.
 
 ## 5. API Endpoints (as implemented)
 

@@ -7,6 +7,7 @@ export const ROLES = {
   it: { tile: 'IT Service Desk', email: 'system.demo@futeservices.com', home: '/it/dashboard' },
   coordinator: { tile: 'Coordinator', email: 'coordinator.demo@futeservices.com', home: '/coordinator/overview' },
   employee: { tile: 'Employee Portal', email: 'employee@futeservices.com', home: '/employee/dashboard' },
+  production: { tile: 'Production Floor', email: 'production.demo@futeservices.com', home: '/department/production' },
 };
 
 export const PASSWORD = 'demo1234';
