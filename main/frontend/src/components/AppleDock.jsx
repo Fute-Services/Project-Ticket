@@ -52,13 +52,9 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
       deptId: 'projects',
       gradient: 'from-muted via-muted to-muted',
     },
-    {
-      id: 'ai-agents',
-      label: 'AI Agent Hub',
-      icon: Sparkles,
-      deptId: 'ai-agents',
-      gradient: 'from-primary via-purple-500 to-indigo-500',
-    },
+    // AI Agent Hub moved out of this list — it now has its own square
+    // "Fute AI+" button rendered below the dock, so it stands out instead
+    // of blending into the rest of the department icons.
     {
       id: 'reports',
       label: 'Reports',
@@ -142,8 +138,10 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
     }
   };
 
+  const isAiActive = activeDept === 'ai-agents';
+
   return (
-    <div className="fixed top-1/2 left-3.5 -translate-y-1/2 z-50 flex flex-col items-center pointer-events-auto">
+    <div className="fixed top-1/2 left-3.5 -translate-y-1/2 z-50 flex flex-col items-center gap-3 pointer-events-auto">
       {/* Vertical Floating Left-Side Apple Dock */}
       <nav className="bg-background/90 backdrop-blur-2xl border border-border shadow-[0_15px_40px_rgba(0,0,0,0.85)] rounded-full px-1.5 py-2.5 flex flex-col items-center gap-2 transition-all">
         {dockApps.map((app, index) => {
@@ -200,6 +198,37 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
           );
         })}
       </nav>
+
+      {/* Fute AI+ — a dedicated square entry point for the AI Agent Hub,
+          set apart from the round department icons above so the AI feature
+          doesn't blend in as just another department. */}
+      <div
+        className="relative group flex items-center"
+        onMouseEnter={() => setActiveTooltip('ai-agents')}
+        onMouseLeave={() => setActiveTooltip(null)}
+      >
+        <div
+          className={`absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-muted/95 backdrop-blur-md border border-border text-[10px] font-bold text-foreground rounded-lg shadow-xl pointer-events-none whitespace-nowrap transition-all duration-150 transform ${
+            activeTooltip === 'ai-agents' ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 -translate-x-1 scale-95'
+          }`}
+        >
+          AI Agent Hub
+          <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-1.5 h-1.5 bg-muted border-l border-b border-border rotate-45" />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onSelectDept && onSelectDept('ai-agents')}
+          aria-label="Fute AI+ — AI Agent Hub"
+          aria-current={isAiActive ? 'page' : undefined}
+          className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 shadow-md cursor-pointer transform transition-all duration-200 ease-out hover:scale-110 active:scale-95 bg-gradient-to-br from-primary via-purple-500 to-indigo-500 text-white ${
+            isAiActive ? 'ring-2 ring-offset-2 ring-offset-background ring-primary scale-[1.05]' : ''
+          }`}
+        >
+          <Sparkles size={14} />
+          <span className="text-[8px] font-extrabold leading-none tracking-tight">Fute AI+</span>
+        </button>
+      </div>
     </div>
   );
 }
