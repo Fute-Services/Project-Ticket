@@ -110,9 +110,9 @@ export default function AppleDock({ onOpenChat, onSelectDept, activeDept }) {
     { type: 'divider' },
     {
       id: 'chat',
-      label: 'Team Chat Drawer',
+      label: 'Team Chat Hub',
       icon: MessageSquareCode,
-      action: onOpenChat,
+      deptId: 'chat',
       gradient: '',
     },
     {

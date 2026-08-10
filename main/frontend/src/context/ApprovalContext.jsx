@@ -7,7 +7,7 @@ const SEED = [
     id: 1,
     source: 'IT',
     title: 'Software Installation',
-    sub: 'Visual Studio Code — 4 developer seats',
+    sub: 'Visual Studio Code - 4 developer seats',
     requestedBy: 'Arjun Verma',
     timestamp: '2 hours ago',
     priority: 'medium',

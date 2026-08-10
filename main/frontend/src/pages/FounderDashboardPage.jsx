@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApprovals } from '../context/ApprovalContext';
@@ -17,6 +17,9 @@ import {
   CheckCircle,
   FolderKanban,
   BarChart2,
+  Clock,
+  Calendar,
+  MessageSquareCode,
 } from 'lucide-react';
 import TeamChatDrawer from '../components/TeamChatDrawer';
 import AppleDock from '../components/AppleDock';
@@ -85,6 +88,12 @@ export default function FounderDashboardPage() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [activeDept, setActiveDept] = useState(location.state?.activeDept || 'overview');
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const departments = [
     {
@@ -186,6 +195,15 @@ export default function FounderDashboardPage() {
       welcomeMsg: 'Cross-department analytics and reports',
       tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
     },
+    {
+      id: 'chat',
+      label: 'Team Chat Hub',
+      shortLabel: 'Team Chat',
+      icon: MessageSquareCode,
+      gradient: 'from-muted via-muted to-muted',
+      welcomeMsg: 'Real-time company-wide chat & channel discussions',
+      tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
+    },
   ];
 
   const currentDept = departments.find((d) => d.id === activeDept) || departments[0];
@@ -200,40 +218,40 @@ export default function FounderDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30 selection:text-primary overflow-x-hidden">
-      {/* Top Bar — breadcrumb, notifications, profile. Kept slim: each view
-          below already carries its own page title, this row is orientation
-          only (where am I, what needs my attention). */}
-      <header className="sticky top-3 z-30 mx-3 mt-3 h-12 rounded-xl pl-28 sm:pl-32 lg:pl-36 pr-4 lg:pr-6 flex items-center justify-between border border-border/60 bg-card/60 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)] shrink-0">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-          <span>Founder</span>
-          <span className="text-muted-foreground">/</span>
-          <span className="text-muted-foreground">{currentDept.label}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle className="!w-8 !h-8" />
-          <button
-            type="button"
-            onClick={() => setShowNotifs((p) => !p)}
-            className="relative w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <Bell size={14} />
-            {(pendingApprovals.length + pendingLeaves.length) > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center border-2 border-background">
-                {pendingApprovals.length + pendingLeaves.length}
-              </span>
-            )}
-          </button>
-          <div className="flex items-center gap-2 pl-2 border-l border-border">
-            <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">
-              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'F'}
-            </div>
-            <span className="hidden sm:block text-xs font-semibold text-muted-foreground">{user?.full_name || 'Founder'}</span>
+      {/* Top Bar — breadcrumb, notifications, profile. Aligned with Founder CEO card & main content box. */}
+      <div className="sticky top-3 z-30 w-full max-w-[1700px] mx-auto px-4 lg:px-6 pl-28 sm:pl-32 lg:pl-36 mt-3 shrink-0">
+        <header className="h-12 rounded-full px-5 flex items-center justify-between border border-border/60 bg-card/60 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)]">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium pl-2">
+            <span>Founder</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-muted-foreground">{currentDept.label}</span>
           </div>
-        </div>
-      </header>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="!w-8 !h-8" />
+            <button
+              type="button"
+              onClick={() => setShowNotifs((p) => !p)}
+              className="relative w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <Bell size={14} />
+              {(pendingApprovals.length + pendingLeaves.length) > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center border-2 border-background">
+                  {pendingApprovals.length + pendingLeaves.length}
+                </span>
+              )}
+            </button>
+            <div className="flex items-center gap-2 pl-2 border-l border-border">
+              <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">
+                {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'F'}
+              </div>
+              <span className="hidden sm:block text-xs font-semibold text-muted-foreground">{user?.full_name || 'Founder'}</span>
+            </div>
+          </div>
+        </header>
+      </div>
 
       {showNotifs && (
-        <div className="fixed top-12 right-4 lg:right-6 z-40 w-[300px] bg-muted border border-border rounded-lg shadow-xl overflow-hidden">
+        <div className="fixed top-16 right-4 lg:right-6 z-40 w-[300px] bg-muted border border-border rounded-lg shadow-xl overflow-hidden">
           <div className="px-4 py-2.5 border-b border-border text-xs font-bold text-foreground">Needs your attention</div>
           <div className="max-h-[280px] overflow-y-auto">
             {pendingApprovals.length === 0 && pendingLeaves.length === 0 ? (
@@ -265,29 +283,41 @@ export default function FounderDashboardPage() {
           <div className="w-full flex flex-col gap-4">
             {/* Top: Founder + Leadership Team Header */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-stretch">
-              {/* Founder Profile - Compact */}
-              <div className="lg:col-span-1 bg-card border border-border rounded-lg p-4 flex flex-col justify-between items-center text-center">
-                <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-foreground text-xl font-semibold shadow border-2 border-border mb-1.5 relative z-10">
-                    F
+              {/* Digital Clock Card - Orange Theme */}
+              <div className="lg:col-span-1 bg-gradient-to-br from-orange-500 via-amber-600 to-orange-600 text-white border border-orange-400/40 rounded-2xl p-4 flex flex-col justify-between items-center text-center relative overflow-hidden shadow-lg shadow-orange-500/20 group hover:shadow-orange-500/30 transition-all">
+                <div className="flex items-center justify-between w-full mb-2">
+                  <div className="flex items-center gap-1.5 text-xs text-white/90 font-semibold uppercase tracking-wider">
+                    <Clock size={14} className="text-white animate-pulse" />
+                    <span>System Clock</span>
                   </div>
-                  <h3 className="text-xs font-semibold text-foreground leading-none">Founder</h3>
-                  <span className="text-xs text-primary font-semibold mt-0.5">CEO</span>
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-white/20 px-2 py-0.5 rounded-full border border-white/30 backdrop-blur-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                    LIVE
+                  </span>
                 </div>
-                <div className="w-full border-t border-border my-2" />
-                <div className="space-y-1.5 text-left w-full text-xs">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Founded:</span> <span className="text-foreground font-medium">2023</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">HQ:</span> <span className="text-foreground font-medium">Bangalore</span></div>
-                  <div><span className="text-primary font-bold text-xs">● Active</span></div>
+
+                <div className="my-auto py-2 flex flex-col items-center">
+                  <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-mono drop-shadow-md">
+                    {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-white/90 font-medium mt-1.5">
+                    <Calendar size={13} className="text-white/80" />
+                    <span>{currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
+                </div>
+
+                <div className="w-full border-t border-white/20 pt-2.5 flex justify-between items-center text-[11px] text-white/80">
+                  <span>Timezone</span>
+                  <span className="font-semibold text-white font-mono">IST (UTC+5:30)</span>
                 </div>
               </div>
 
               {/* Leadership Team - 3 columns */}
-              <div className="lg:col-span-3 bg-card border border-border rounded-lg p-4 flex flex-col justify-between h-full">
+              <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-4 flex flex-col justify-between h-full">
                 <h2 className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider">Leadership Team</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
                   {LEADERSHIP_TEAM.map((person) => (
-                    <div key={person.name} className="bg-muted border border-border rounded-xl p-3.5 flex items-center gap-3 h-full hover:border-muted-foreground/40 transition-all">
+                    <div key={person.name} className="bg-muted border border-border rounded-2xl p-3.5 flex items-center gap-3 h-full hover:border-muted-foreground/40 transition-all">
                       {person.photo ? (
                         <img
                           src={person.photo}
@@ -326,10 +356,10 @@ export default function FounderDashboardPage() {
                     <button
                       key={tool.id}
                       onClick={() => setActiveDept(tool.id)}
-                      className="bg-card border border-border rounded-lg p-2.5 text-left hover:border-muted-foreground/40 transition-all cursor-pointer flex items-center gap-2.5"
+                      className="bg-card border border-border rounded-2xl p-2.5 text-left hover:border-muted-foreground/40 transition-all cursor-pointer flex items-center gap-2.5"
                     >
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                        className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                         style={{ backgroundColor: tint(tool.tint, 0.1), color: tool.tint }}
                       >
                         <ToolIcon size={15} />
@@ -338,21 +368,6 @@ export default function FounderDashboardPage() {
                     </button>
                   );
                 })}
-              </div>
-            </div>
-
-            {/* Company Vision & Overview */}
-            <div className="w-full">
-              <h2 className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider">Company Vision</h2>
-              <div className="bg-card border border-border rounded-lg p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col justify-center">
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Company</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Fute Services - Building next-generation digital workspaces with unified governance across all departments.</p>
-                </div>
-                <div className="flex flex-col justify-center sm:border-l sm:border-border sm:pl-4">
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Vision</h4>
-                  <p className="text-xs text-primary/90 font-medium italic leading-relaxed">"Empowering collaborative engineering, compliant HR, and high SLA compliance."</p>
-                </div>
               </div>
             </div>
 
@@ -366,14 +381,10 @@ export default function FounderDashboardPage() {
                     <button
                       key={dept.id}
                       onClick={() => setActiveDept(dept.id)}
-                      className="bg-card border border-border border-l-2 rounded-lg p-4 text-left hover:border-muted-foreground/40 hover:bg-accent transition-all cursor-pointer group"
-                      style={{ borderLeftColor: DEPT_ACCENT[dept.id] }}
+                      className="bg-card border border-border rounded-2xl p-4 text-left hover:border-muted-foreground/40 hover:bg-accent transition-all cursor-pointer group"
                     >
                       <div className="flex items-center gap-2.5 mb-2.5">
-                        <div
-                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: tint(DEPT_ACCENT[dept.id], 0.1), color: DEPT_ACCENT[dept.id] }}
-                        >
+                        <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 text-foreground">
                           <DeptIcon size={18} />
                         </div>
                         <h3 className="text-xs font-bold text-foreground leading-none">{dept.label}</h3>
@@ -412,7 +423,7 @@ export default function FounderDashboardPage() {
                 const projectTasks = allTasks.filter((t) => t.projectId === p.id);
                 const done = projectTasks.filter((t) => t.status === 'Completed').length;
                 return (
-                  <div key={p.id} className="bg-card border border-border rounded-lg p-4 flex flex-col gap-3">
+                  <div key={p.id} className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
                     <div>
                       <div className="text-sm font-bold text-foreground truncate">{p.name}</div>
                       <div className="text-xs text-muted-foreground">{p.client} · due {p.dueDate}</div>
@@ -439,6 +450,9 @@ export default function FounderDashboardPage() {
         ) : activeDept === 'reports' ? (
           /* Weekly and Monthly Reports View */
           <FounderReportsView />
+        ) : activeDept === 'chat' ? (
+          /* Full Page Team Chat Hub View */
+          <TeamChatDrawer isFullPage={true} />
         ) : activeDept === 'hr' ? (
           /* HR Department View */
           <FounderHrView />
@@ -451,7 +465,7 @@ export default function FounderDashboardPage() {
           <FounderDeptView dept={currentDept} />
         ) : (
           /* Not built yet — an honest empty state, not a generic filler message */
-          <div className="bg-card border border-border rounded-lg p-10 flex flex-col items-center justify-center text-center min-h-[320px]">
+          <div className="bg-card border border-border rounded-2xl p-10 flex flex-col items-center justify-center text-center min-h-[320px]">
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
               style={{ backgroundColor: tint(DEPT_ACCENT[currentDept.id] || 'hsl(var(--chart-3))', 0.1), color: DEPT_ACCENT[currentDept.id] || 'hsl(var(--chart-3))' }}

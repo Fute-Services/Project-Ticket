@@ -28,7 +28,7 @@ export default function FounderApprovalView() {
     decide(item.id, status);
     const verb = status === 'approved' ? 'Approved' : 'Rejected';
     toast.success(`${verb}: ${item.title}`, {
-      description: status === 'approved' ? 'IT and HR can now see this decision.' : 'IT has been notified.',
+      description: status === 'approved' ? 'IT can now see this decision.' : 'IT has been notified.',
     });
   }
 
@@ -65,7 +65,7 @@ export default function FounderApprovalView() {
   return (
     <div className="w-full flex flex-col gap-6">
       {/* Top Header Banner */}
-      <div className="bg-card border border-border rounded-lg p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-card border border-border rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-xl bg-muted/10 flex items-center justify-center text-muted-foreground border border-muted/20 shrink-0">
             <CheckCircle2 size={20} />
@@ -94,7 +94,7 @@ export default function FounderApprovalView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* ================= LEFT COLUMN: IT TEAM APPROVALS ================= */}
-        <div className="bg-background border border-border rounded-lg p-4 flex flex-col gap-4">
+        <div className="bg-background border border-border rounded-2xl p-4 flex flex-col gap-4">
           {/* Section Header */}
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2.5">
@@ -115,15 +115,15 @@ export default function FounderApprovalView() {
             </div>
 
             {/* IT Filters */}
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-lg border border-border text-xs font-semibold">
+            <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border text-xs font-semibold">
               {['all', 'pending', 'approved', 'rejected'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setItFilter(f)}
-                  className={`px-2.5 py-1 rounded-md capitalize transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg capitalize transition-all cursor-pointer ${
                     itFilter === f
-                      ? 'bg-primary text-primary-foreground shadow font-medium'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-bold'
+                      : 'text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10'
                   }`}
                 >
                   {f === 'rejected' ? 'Not Approved' : f}
@@ -155,7 +155,7 @@ export default function FounderApprovalView() {
                 return (
                   <div
                     key={item.id}
-                    className="bg-card border border-border hover:border-muted-foreground/40 rounded-xl p-3.5 flex flex-col gap-2.5 transition-all relative group"
+                    className="bg-card border border-border hover:border-muted-foreground/40 rounded-2xl p-3.5 flex flex-col gap-2.5 transition-all relative group"
                   >
                     {/* Top Row: Title & Badges */}
                     <div className="flex items-start justify-between gap-2">
@@ -227,7 +227,7 @@ export default function FounderApprovalView() {
         </div>
 
         {/* ================= RIGHT COLUMN: HR TEAM LEAVE APPROVALS ================= */}
-        <div className="bg-background border border-border rounded-lg p-4 flex flex-col gap-4">
+        <div className="bg-background border border-border rounded-2xl p-4 flex flex-col gap-4">
           {/* Section Header */}
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2.5">
@@ -248,15 +248,15 @@ export default function FounderApprovalView() {
             </div>
 
             {/* HR Filters */}
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-lg border border-border text-xs font-semibold">
+            <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border text-xs font-semibold">
               {['all', 'pending', 'approved', 'rejected'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setHrFilter(f)}
-                  className={`px-2.5 py-1 rounded-md capitalize transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg capitalize transition-all cursor-pointer ${
                     hrFilter === f
-                      ? 'bg-primary text-primary-foreground shadow font-medium'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-bold'
+                      : 'text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10'
                   }`}
                 >
                   {f === 'rejected' ? 'Not Approved' : f}
@@ -281,7 +281,7 @@ export default function FounderApprovalView() {
                 return (
                   <div
                     key={item.id}
-                    className="bg-card border border-border hover:border-muted-foreground/40 rounded-xl p-3.5 flex flex-col gap-2.5 transition-all relative group"
+                    className="bg-card border border-border hover:border-muted-foreground/40 rounded-2xl p-3.5 flex flex-col gap-2.5 transition-all relative group"
                   >
                     {/* Top Row: Employee Name & Badges */}
                     <div className="flex items-start justify-between gap-2">

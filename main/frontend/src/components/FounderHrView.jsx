@@ -100,7 +100,7 @@ export default function FounderHrView() {
   return (
     <div className="w-full flex flex-col gap-6">
       {/* Section Header */}
-      <div className="bg-card border border-border rounded-lg p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-card border border-border rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-xl bg-muted/10 flex items-center justify-center text-muted-foreground border border-muted/20 shrink-0">
             <Users size={20} />
@@ -123,7 +123,7 @@ export default function FounderHrView() {
       {/* 1. 📊 QUICK METRIC CARDS (TOP HEADER - 4 NUMBERS) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* Card 1: Total Headcount */}
-        <div className="bg-card border border-border hover:border-muted-foreground/40 rounded-lg p-4 flex flex-col justify-between transition-all relative overflow-hidden group">
+        <div className="bg-card border border-border hover:border-muted-foreground/40 rounded-2xl p-4 flex flex-col justify-between transition-all relative overflow-hidden group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Headcount</span>
             <div className="w-7 h-7 rounded-lg bg-muted/10 border border-muted/20 text-muted-foreground flex items-center justify-center">
@@ -137,7 +137,7 @@ export default function FounderHrView() {
         </div>
 
         {/* Card 2: Today's Attendance */}
-        <div className="bg-card border border-border hover:border-muted-foreground/40 rounded-lg p-4 flex flex-col justify-between transition-all relative overflow-hidden group">
+        <div className="bg-card border border-border hover:border-muted-foreground/40 rounded-2xl p-4 flex flex-col justify-between transition-all relative overflow-hidden group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Today's Attendance</span>
             <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center">
@@ -151,7 +151,7 @@ export default function FounderHrView() {
         </div>
 
         {/* Card 3: Hiring Pipeline */}
-        <div className="bg-card border border-border hover:border-muted-foreground/40 rounded-lg p-4 flex flex-col justify-between transition-all relative overflow-hidden group">
+        <div className="bg-card border border-border hover:border-muted-foreground/40 rounded-2xl p-4 flex flex-col justify-between transition-all relative overflow-hidden group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hiring Pipeline</span>
             <div className="w-7 h-7 rounded-lg bg-muted/10 border border-muted/20 text-muted-foreground flex items-center justify-center">
@@ -165,7 +165,7 @@ export default function FounderHrView() {
         </div>
 
         {/* Card 4: HR Complaints */}
-        <div className="bg-card border border-border hover:border-muted-foreground/40 rounded-lg p-4 flex flex-col justify-between transition-all relative overflow-hidden group">
+        <div className="bg-card border border-border hover:border-muted-foreground/40 rounded-2xl p-4 flex flex-col justify-between transition-all relative overflow-hidden group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">HR Complaints</span>
             <div className="w-7 h-7 rounded-lg bg-warning/10 border border-warning/20 text-warning flex items-center justify-center">
@@ -180,7 +180,7 @@ export default function FounderHrView() {
       </div>
 
       {/* 2. 👥 DEPARTMENT HEADCOUNT BREAKDOWN */}
-      <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-3.5">
+      <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3.5">
         <div className="flex items-center justify-between border-b border-border pb-2.5">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Department Headcount Breakdown</h3>
@@ -214,7 +214,7 @@ export default function FounderHrView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* 3. ACTIVE HIRING & UPCOMING JOINERS */}
-        <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-3.5">
+        <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3.5">
           <div className="flex items-center justify-between border-b border-border pb-2.5">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-muted/10 flex items-center justify-center text-muted-foreground border border-muted/20 shrink-0">
@@ -248,7 +248,7 @@ export default function FounderHrView() {
         </div>
 
         {/* 4. 🚨 HR ESCALATED COMPLAINTS (ACTION NEEDED) */}
-        <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-3.5">
+        <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3.5">
           <div className="flex items-center justify-between border-b border-border pb-2.5">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center text-warning border border-warning/20 shrink-0">

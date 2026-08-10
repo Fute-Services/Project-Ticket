@@ -295,7 +295,7 @@ export default function FounderReportsView() {
   return (
     <div className="w-full flex flex-col gap-6">
       {/* Page Header */}
-      <div className="bg-card border border-border rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-card border border-border rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-xl bg-muted/10 flex items-center justify-center text-muted-foreground border border-muted/20 shrink-0">
             <BarChart2 size={20} />
@@ -355,7 +355,7 @@ export default function FounderReportsView() {
       </div>
 
       {/* Department Header Summary Banner */}
-      <div className="bg-card border border-border border-l-2 rounded-lg p-5 flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ borderLeftColor: DEPT_ACCENT_HEX[selectedDept] }}>
+      <div className="bg-card border border-border border-l-2 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ borderLeftColor: DEPT_ACCENT_HEX[selectedDept] }}>
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-muted border border-border text-muted-foreground">
@@ -389,7 +389,7 @@ export default function FounderReportsView() {
           {computedKpis.map((kpi) => (
             <div
               key={kpi.label}
-              className="bg-card border border-border hover:border-muted-foreground/40 rounded-lg p-4 flex flex-col justify-between transition-all group relative overflow-hidden"
+              className="bg-card border border-border hover:border-muted-foreground/40 rounded-2xl p-4 flex flex-col justify-between transition-all group relative overflow-hidden"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">{kpi.label}</span>
@@ -419,7 +419,7 @@ export default function FounderReportsView() {
       {/* Performance & Deliverables Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Progress & Targets Breakdown */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-5 flex flex-col gap-4">
+        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div>
               <h4 className="text-sm font-semibold text-foreground">Performance Deliverables</h4>
@@ -449,7 +449,7 @@ export default function FounderReportsView() {
         </div>
 
         {/* Right 1 Col: Recent Department Activity Log */}
-        <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-4">
+        <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4">
           <div className="border-b border-border pb-3">
             <h4 className="text-sm font-semibold text-foreground">Milestones & Audit Log</h4>
             <p className="text-xs text-muted-foreground">Recent recorded highlights ({currentTimeframeConfig.label})</p>
@@ -478,7 +478,7 @@ export default function FounderReportsView() {
       {/* ================= CSV EXPORT PREVIEW MODAL ================= */}
       {showExportModal && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-background border border-border rounded-lg max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-background border border-border rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="p-4 sm:p-5 bg-muted border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">

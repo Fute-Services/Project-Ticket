@@ -40,7 +40,7 @@ export default function FounderDeptView({ dept }) {
   return (
     <div className="w-full flex flex-col gap-6">
       {/* Header */}
-      <div className="bg-card border border-border rounded-lg p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-card border border-border rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">
             <Icon size={20} />
@@ -69,7 +69,7 @@ export default function FounderDeptView({ dept }) {
         {data.kpis.map((kpi) => (
           <div
             key={kpi.label}
-            className="bg-card border border-border hover:border-muted-foreground/40 rounded-lg p-4 flex flex-col justify-between transition-all"
+            className="bg-card border border-border hover:border-muted-foreground/40 rounded-2xl p-4 flex flex-col justify-between transition-all"
           >
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{kpi.label}</span>
             <div className="mt-3 flex items-baseline gap-2 flex-wrap">
@@ -83,7 +83,7 @@ export default function FounderDeptView({ dept }) {
       </div>
 
       {/* Breakdown — meters, not a chart: these are parts of one known total */}
-      <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-3.5">
+      <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3.5">
         <div className="flex items-center justify-between border-b border-border pb-2.5 gap-3">
           <div>
             <h3 className="text-sm font-semibold text-foreground">{data.breakdownTitle}</h3>
@@ -111,7 +111,7 @@ export default function FounderDeptView({ dept }) {
 
       {/* Needs attention + recently finished */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-3.5">
+        <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3.5">
           <div className="border-b border-border pb-2.5">
             <h3 className="text-sm font-semibold text-foreground">{data.itemsTitle}</h3>
             <p className="text-xs text-muted-foreground">{data.itemsNote}</p>
@@ -143,7 +143,7 @@ export default function FounderDeptView({ dept }) {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-3.5">
+        <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3.5">
           <div className="border-b border-border pb-2.5">
             <h3 className="text-sm font-semibold text-foreground">{data.logTitle}</h3>
             <p className="text-xs text-muted-foreground">Closed out in the last few weeks</p>
