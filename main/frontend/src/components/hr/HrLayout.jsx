@@ -26,7 +26,6 @@ import {
   interviews,
   notifications as allNotifications,
 } from '../../data/hrMockData';
-import ThemeToggle from '../ThemeToggle';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/hr/overview' },
@@ -239,7 +238,6 @@ export default function HrLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 ml-3">
-            <ThemeToggle />
             {/* Notification Bell */}
             <div className="relative">
               <button

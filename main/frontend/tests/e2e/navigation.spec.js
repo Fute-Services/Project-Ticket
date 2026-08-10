@@ -89,19 +89,11 @@ test('external project links are absolute and open in a new tab', async ({ page 
   }
 });
 
-test('theme toggle flips the theme and persists it', async ({ page }) => {
+test('there is no light mode — dark is always on and there is no toggle', async ({ page }) => {
   await loginAs(page, 'hr');
-  const start = await page.evaluate(() => document.documentElement.className);
-  await page.getByRole('button', { name: /switch to (dark|light) theme/i }).click();
-  await expect
-    .poll(() => page.evaluate(() => document.documentElement.className))
-    .not.toBe(start);
-
-  const stored = await page.evaluate(() => localStorage.getItem('fute_theme'));
-  expect(stored).toBeTruthy();
+  expect(await page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(true);
+  await expect(page.getByRole('button', { name: /switch to (dark|light) theme/i })).toHaveCount(0);
 
   await page.reload();
-  await expect
-    .poll(() => page.evaluate(() => localStorage.getItem('fute_theme')))
-    .toBe(stored);
+  expect(await page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(true);
 });

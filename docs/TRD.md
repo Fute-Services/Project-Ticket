@@ -85,7 +85,7 @@ Project-Ticket/
     │   │   │   ├── NewItTicketModal.jsx, DataTransferModal.jsx, TeamChatDrawer.jsx
     │   │   │   └── RequireAuth.jsx            # Route guard (role allow-list)
     │   │   ├── context/                       # AuthContext, TicketContext, LeaveContext,
-    │   │   │                                   # ApprovalContext, TaskProjectContext, ThemeContext
+    │   │   │                                   # ApprovalContext, TaskProjectContext
     │   │   ├── data/                           # coordinatorMockData, hrMockData, itMockData, deptDemoData
     │   │   ├── hooks/useOverlayDismiss.js
     │   │   ├── utils/

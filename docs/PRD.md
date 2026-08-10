@@ -71,7 +71,7 @@ Role is derived from the account, not chosen at login — see [BACKEND_WORKFLOW.
 - Team Chat Hub — company channels (`#general`, `#it-support`, `#hr-announcements`, `#project-coordination`) plus per-project channels.
 
 ### 4.7 Cross-cutting
-- Light/dark theme, persisted per browser.
+- Dark theme only — no light mode or toggle.
 - Responsive down to 390px — sidebars collapse to off-canvas drawers, tables reflow to cards.
 - Every dashboard's data tables support sort, search/filter, and pagination.
 

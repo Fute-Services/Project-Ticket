@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { tasks as allTasks } from '../../data/coordinatorMockData';
 import TeamChatDrawer from '../TeamChatDrawer';
-import ThemeToggle from '../ThemeToggle';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/coordinator/overview' },
@@ -215,7 +214,6 @@ export default function CoordinatorLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-3 shrink-0 ml-3">
-            <ThemeToggle />
             <div className="relative">
               <button
                 type="button"

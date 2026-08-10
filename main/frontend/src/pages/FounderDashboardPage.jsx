@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 import TeamChatDrawer from '../components/TeamChatDrawer';
 import AppleDock from '../components/AppleDock';
-import ThemeToggle from '../components/ThemeToggle';
 import FounderApprovalView from '../components/FounderApprovalView';
 import FounderReportsView from '../components/FounderReportsView';
 import FounderHrView from '../components/FounderHrView';
@@ -238,7 +237,6 @@ export default function FounderDashboardPage() {
             <span className="text-muted-foreground">{currentDept.label}</span>
           </div>
           <div className="flex items-center gap-2">
-            <ThemeToggle className="!w-8 !h-8" />
             <button
               type="button"
               onClick={() => setShowNotifs((p) => !p)}

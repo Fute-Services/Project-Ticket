@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { LeaveProvider } from './context/LeaveContext';
 import { TicketProvider } from './context/TicketContext';
@@ -53,8 +52,7 @@ const COORDINATOR_ROUTES = [
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
       <LeaveProvider>
       <TicketProvider>
       <ApprovalProvider>
@@ -129,7 +127,6 @@ export default function App() {
       </ApprovalProvider>
       </TicketProvider>
       </LeaveProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    </AuthProvider>
   );
 }

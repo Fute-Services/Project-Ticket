@@ -25,7 +25,6 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import TeamChatDrawer from './TeamChatDrawer';
-import ThemeToggle from './ThemeToggle';
 import AppleDock from './AppleDock';
 
 const ROLE_LABEL = {
@@ -244,7 +243,6 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
 
           {/* Header Right Actions */}
           <div className="flex items-center gap-2.5">
-            <ThemeToggle />
             <div className="relative">
               <button
                 type="button"

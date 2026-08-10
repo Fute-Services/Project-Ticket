@@ -2,7 +2,6 @@ import { TrendingUp, Code2, Megaphone, Palette, Factory, LogOut } from 'lucide-r
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import FounderDeptView from '../components/FounderDeptView';
-import ThemeToggle from '../components/ThemeToggle';
 
 /**
  * Standalone dashboard for the five departments that only ever existed as a
@@ -39,7 +38,6 @@ export default function DepartmentDashboardPage() {
           <span>{dept.label}</span>
         </div>
         <div className="flex items-center gap-2">
-          <ThemeToggle className="!w-8 !h-8" />
           <div className="flex items-center gap-2 pl-2 border-l border-border">
             <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">
               {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'D'}
