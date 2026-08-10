@@ -1,240 +1,178 @@
-# USER_FLOW.md — User Flow Diagrams & Descriptions
-# Fute Complaint Token Generation Portal
+# USER_FLOW.md — User Flows
+# Fute Services — Project Ticket Portal
+
+> Traced against `App.jsx`'s actual route table and each dashboard's real controls — not the original single-role complaint-form concept.
 
 ---
 
-## 1. Overall System Flow
+## 1. Overall Flow
 
-```
-[User visits portal]
-        |
-        v
-[Landing Page — Fute Branding]
-        |
-        v
-[Login / Register]
-        |
-        +---> Role detected from email
-        |
-        +---> employee  --> Employee Dashboard
-        +---> hr        --> HR Dashboard
-        +---> it        --> IT Dashboard
-        +---> founder   --> Founder Dashboard
+```mermaid
+flowchart TD
+    START(["Visit the portal"]) --> LOGIN["/ — Login"]
+    LOGIN -->|"quick-demo tile\nor real credentials"| ROLE{"Role on the account"}
+    ROLE -->|founder| FDASH["/founder/dashboard"]
+    ROLE -->|hr| HDASH["/hr/overview"]
+    ROLE -->|it| IDASH["/it/dashboard"]
+    ROLE -->|coordinator| CDASH["/coordinator/overview"]
+    ROLE -->|employee| EDASH["/employee/dashboard"]
+
+    LOGIN -.->|"backend unreachable"| DEMO["Falls back to a local\ndemo account automatically"]
+    DEMO --> ROLE
 ```
 
----
+A visitor who isn't signed in, or who is signed in as the wrong role, is redirected straight back to `/` — there is no "access denied" page (`RequireAuth`, enforced on every protected route).
 
-## 2. Employee Flow
+## 2. Authentication Flow
 
-```
-[Employee Login]
-        |
-        v
-[Employee Dashboard]
-  - See all my complaints (HR + IT) with tokens
-  - Button: "Raise HR Complaint"
-  - Button: "Raise IT Complaint"
-  - Search bar: search by token
-        |
-        +---> [Raise HR Complaint]
-        |           |
-        |           v
-        |     [HR Complaint Form]
-        |     Fill: Name, Dept, Description,
-        |           Date, Priority
-        |     Auto: Duration, Current Time
-        |           |
-        |           v
-        |     [Submit] --> Token Generated: FT-HR-XXXXXX
-        |                  Email sent to HR Staff
-        |                  Token shown on screen
-        |                  Complaint saved to dashboard
-        |
-        +---> [Raise IT Complaint]
-        |           |
-        |           v
-        |     [IT Complaint Form]
-        |     Fill: Name, Dept, Category,
-        |           Sub-category, Description,
-        |           Date, Priority, Approval
-        |     Auto: Duration, Current Time
-        |           |
-        |           v
-        |     [Submit] --> Token Generated: FT-IT-XXXXXX
-        |                  Email sent to IT Staff
-        |                  Token shown on screen
-        |
-        +---> [Search by Token]
-                    |
-                    v
-              [Complaint Detail View]
-              Shows: all fields + current status
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as Login Page
+    participant API as Express /api/auth
+    participant Demo as Local demo accounts
+
+    U->>FE: Enter email + password, submit
+    FE->>API: POST /login
+    alt backend reachable & credentials valid
+        API-->>FE: { token, role, full_name, email }
+        FE->>FE: store in localStorage or sessionStorage\n(per "Remember me")
+    else backend unreachable (network error)
+        FE->>Demo: dummyLogin(email, password)
+        Demo-->>FE: same-shaped { token, role, ... }
+    else backend reachable but 401
+        API-->>FE: 401 Invalid credentials
+        FE-->>U: "That email and password do not match."
+    end
+    FE->>FE: navigate to homeFor(role)
 ```
 
----
+Five quick-demo tiles on the login screen (Founder, HR, IT, Coordinator, Employee) skip typing entirely and log in as a seeded account for exactly this reason — trying every role without a live backend.
 
-## 3. HR Staff Flow
+## 3. Employee Flow
 
-```
-[HR Staff Login]
-  (email: hr.fute2@gmail.com)
-        |
-        v
-[HR Dashboard]
-  - View all HR complaints (table/card view)
-  - Filter: by status, priority, department
-  - Search: by token
-        |
-        +---> [Click on complaint]
-        |           |
-        |           v
-        |     [Complaint Detail]
-        |     - View all fields
-        |     - Update Status dropdown
-        |       (Pending / In Progress / Completed)
-        |     - Save → Employee gets email notification
-        |
-        +---> [Raise IT Complaint] (HR can raise IT complaints)
-                    |
-                    v
-              [IT Complaint Form] → same as employee IT flow
+```mermaid
+flowchart TD
+    L["Employee logs in"] --> D["/employee/dashboard"]
+    D --> T1["Dashboard tab —\nRaise Ticket button"]
+    D --> T2["My Tickets tab"]
+    D --> T3["My Tasks tab"]
+
+    T1 --> FORM["Ticket form:\ncategory, sub-category,\npriority, department, description"]
+    FORM -->|"description required"| VALID{Valid?}
+    VALID -->|no| FORM
+    VALID -->|yes| CREATE["Ticket created (client state)\nStatus: Open"]
+    CREATE --> QUEUE["Appears immediately in\nIT's Tickets Queue"]
+    CREATE --> T2
+
+    T3 --> TASKS["Tasks assigned by the\nCoordinator, read-only here"]
 ```
 
----
+## 4. IT Service Desk Flow
 
-## 4. IT Staff Flow
+```mermaid
+flowchart TD
+    L["IT staff logs in"] --> D["/it/dashboard"]
+    D --> Q["Tickets Queue —\nfilter: All / Open / In Progress /\nWaiting Approval / Resolved / Closed"]
+    D --> AC["Approval Center"]
+    D --> DR["Data Requests"]
+    D --> AM["Asset Management"]
+    D --> RL["Reports & Logs"]
 
-```
-[IT Staff Login]
-  (email: system.futeservice@gmail.com)
-        |
-        v
-[IT Dashboard]
-  - View all IT complaints (table/card view)
-  - Filter: by status, priority, category
-  - Search: by token
-        |
-        +---> [Click on complaint]
-        |           |
-        |           v
-        |     [Complaint Detail]
-        |     - View all fields
-        |     - Update Status dropdown
-        |       (Pending / In Progress / Completed)
-        |     - Save → Employee gets email notification
-        |
-        +---> [Raise HR Complaint] (IT can raise HR complaints)
-                    |
-                    v
-              [HR Complaint Form] → same as employee HR flow
+    Q -->|"change status"| Q
+    AC -->|"raise a request needing\nelevated clearance"| SUB["Submitted to ApprovalContext\nstatus: pending_founder"]
+    SUB --> FA["Shows up on Founder's\nApproval System"]
+    FA -->|approved / declined| AC
+
+    DR -->|"New Data Transfer Request"| SUB2["Server → Server transfer\nrouted the same way"]
+    SUB2 --> FA
 ```
 
----
+## 5. HR Flow
 
-## 5. Founder Flow
+```mermaid
+flowchart TD
+    L["HR logs in"] --> D["/hr/overview"]
+    D --> DIR["Directory — filter by department"]
+    D --> CAND["Candidates — pipeline stages,\nsearch, filter"]
+    D --> INT["Interviews — schedule, change status"]
+    D --> ATT["Attendance — today's snapshot +\nper-employee monthly history"]
+    D --> EM["Email — inbox / sent / drafts / templates"]
+    D --> REP["Reports — 6 report types,\nCSV + printable export"]
 
-```
-[Founder Login]
-  (role manually set in DB)
-        |
-        v
-[Founder Dashboard]
-  - Unified view: ALL complaints (HR + IT)
-  - Each card tagged: [HR] or [IT]
-  - Filter: by dept (HR/IT), status, priority
-  - Search: by token
-        |
-        +---> [Click on any complaint]
-                    |
-                    v
-              [Complaint Detail]
-              - View all fields
-              - Update Status (any complaint)
-              - Save → Employee gets email notification
-        |
-        +---> [Raise HR Complaint]
-        +---> [Raise IT Complaint]
-              (Founders can also submit complaints)
+    CAND -->|"stage: Applied → ... → Joined"| CAND
+    ATT -->|"employee has a leave request"| LEAVE["Leave shows on employee's record"]
+    LEAVE -->|"submitter is HR or IT staff"| FOUNDER_APPROVAL["Routes to Founder\nfor approval, not HR"]
+    LEAVE -->|"submitter is any other dept"| HR_NOTE["No separate HR approval\nqueue currently exists"]
 ```
 
----
+> HR currently has no dedicated leave-approval screen of its own — every leave request, regardless of department, is decided on the Founder's dashboard. This is a deliberate current design, not an oversight (see [BACKEND_WORKFLOW.md](./BACKEND_WORKFLOW.md) §5), but worth knowing if you're looking for an "HR approves leave" screen and can't find one.
 
-## 6. Token Search Flow
+## 6. Coordinator Flow
 
-```
-[Any logged-in user]
-        |
-        v
-[Search bar — enter token e.g. FT-HR-A3X9K2]
-        |
-        v
-[API call: GET /api/hr/complaints/search?token=FT-HR-A3X9K2]
-        |
-        v
-[Complaint Detail View]
-  - Token, Name, Department
-  - Description, Date, Duration
-  - Priority, Status
-  - Submitted At, Last Updated
+```mermaid
+flowchart TD
+    L["Coordinator logs in"] --> D["/coordinator/overview"]
+    D --> P["/coordinator/projects"]
+    D --> T["/coordinator/tasks"]
+    P --> PD["/coordinator/projects/:id\n(Project not found + back-link\nif the id doesn't exist)"]
+    T -->|"Assign Task"| FORM["Title (required), Project,\nAssignee, Priority, Due Date (required),\nDuration, Figma link, PR link"]
+    FORM -->|"missing title or due date"| FORM
+    FORM -->|valid| CREATE["Task created, appears in\nboard/list view immediately"]
+    CREATE --> EMP["Assignee sees it on their\n/employee/dashboard My Tasks tab"]
 ```
 
----
+## 7. Founder Flow
 
-## 7. Email Notification Flow
+```mermaid
+flowchart TD
+    L["Founder logs in"] --> D["/founder/dashboard"]
+    D --> DOCK["Left AppleDock — switches\nthe active department view"]
+    DOCK --> OV["Founder Overview"]
+    DOCK --> APV["Approval System —\nIT approvals + HR/IT leave requests"]
+    DOCK --> PROJ["Project Details"]
+    DOCK --> REP["Reports"]
+    DOCK --> HRV["HR Department view"]
+    DOCK --> ITV["IT Service Desk view"]
+    DOCK --> AI["AI Agent Command Room"]
+    DOCK --> CHAT["Team Chat Hub"]
+    DOCK --> OUT["Sign Out"]
 
-```
-[Complaint Submitted]
-        |
-        +---> Backend triggers Nodemailer
-        |     Recipient: HR or IT staff email
-        |     Subject: "New Complaint Received — FT-HR-XXXXXX"
-        |     Body: Submitter name, dept, priority, token
-        |
-[Status Updated by HR/IT/Founder]
-        |
-        +---> Backend triggers Nodemailer
-              Recipient: Complaint submitter email
-              Subject: "Your Complaint FT-HR-XXXXXX has been updated"
-              Body: New status, updated by, timestamp
-```
-
----
-
-## 8. Registration Flow
-
-```
-[User visits /register]
-        |
-        v
-[Fill: Full Name, Email, Password, Department]
-        |
-        v
-[Backend checks email pattern]
-  - hr.fute* → role = hr
-  - system.fute* / system.futeservice* → role = it
-  - founder set manually in DB
-  - others → role = employee
-        |
-        v
-[Account created in Supabase Auth + users table]
-        |
-        v
-[Redirect to appropriate dashboard]
+    APV -->|"Approve / Decline"| DECIDE["Context state updated;\nrequester's view reflects it live"]
+    AI -->|"pick a template or type a question"| CABINET["See AI_WORKFLOW.md"]
 ```
 
----
+## 8. Sign-out Flow (all roles)
 
-## 9. Page Map
+```mermaid
+flowchart LR
+    A["Profile menu\n(sidebar footer, or the\nFounder's AppleDock)"] --> B["Sign out"]
+    B --> C["AuthContext.logout():\nclears localStorage AND sessionStorage"]
+    C --> D["Redirect to /"]
+    D --> E{"Try the old protected URL again?"}
+    E -->|yes| D
+```
+
+## 9. Page Map (as routed in `App.jsx`)
 
 ```
-/                        → Landing Page (Fute branding)
-/login                   → Login Page
-/register                → Register Page
-/employee/dashboard      → Employee Dashboard
-/employee/complaint/hr   → HR Complaint Form
-/employee/complaint/it   → IT Complaint Form
-/hr/dashboard            → HR Staff Dashboard
-/it/dashboard            → IT Staff Dashboard
-/founder/dashboard       → Founder Dashboard
-/search                  → Token Search Page
+/                              → Login
+/login, /signup                → both redirect to /
+/founder                       → redirects to /founder/dashboard
+/founder/dashboard             → Founder (role: founder)
+/it/dashboard                  → IT Service Desk (role: it)
+/employee/dashboard            → Employee (role: employee)
+/hr/dashboard                  → redirects to /hr/overview (legacy path)
+/hr/overview                   → HR Dashboard (role: hr)
+/hr/candidates                 → HR Candidates
+/hr/interviews                 → HR Interviews
+/hr/attendance                 → HR Attendance
+/hr/email                      → HR Email
+/hr/directory                  → HR Directory
+/hr/reports                    → HR Reports
+/coordinator/overview          → Coordinator Dashboard (role: coordinator)
+/coordinator/tasks             → Coordinator Tasks
+/coordinator/projects          → Coordinator Projects
+/coordinator/projects/:id      → Coordinator Project Detail
+*                              → redirects to /
 ```

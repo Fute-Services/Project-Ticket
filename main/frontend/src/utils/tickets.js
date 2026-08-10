@@ -2,8 +2,10 @@
  * Ticket helpers — formatting and counting only, no JSX, so the dashboard
  * component stays about layout.
  *
- * Colour tokens come from docs/brand-guidelines.md (Status / Priority tables).
- * Never return a hex from here; the CSS variables are the source of truth.
+ * Colours are theme CSS variables, not literal hexes — never return a hex
+ * from here; the CSS variables (see src/styles/tokens.css) are the source
+ * of truth so status/priority colours stay consistent across light and
+ * dark mode.
  */
 
 // Must match validStatuses in backend/controllers/{hr,it}Controller.js exactly —

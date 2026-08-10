@@ -1,8 +1,8 @@
 // Local, in-memory demo data for the HR dashboard. Nothing here touches the
 // real backend — every HR page reads and mutates these arrays directly so
-// the module set from HR_DASHBOARD_REQUIREMENTS.md is fully clickable
-// without needing ATS/email/resume-parsing infrastructure that doesn't
-// exist yet.
+// the whole HR module is fully clickable without needing ATS/email/
+// resume-parsing infrastructure that doesn't exist yet. See
+// docs/BACKEND_WORKFLOW.md §5 for what wiring this to a real API would take.
 
 export const employees = [
   { id: 'E-01', name: 'Rahul Sen', designation: 'Engineering Manager', department: 'Engineering', email: 'rahul.sen@futeservices.com', phone: '+91 90011 22334', joiningDate: '2022-03-14', manager: 'Founder', status: 'Active', photo: 'RS' },

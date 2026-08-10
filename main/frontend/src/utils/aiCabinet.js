@@ -1,7 +1,8 @@
 // Backs the Founder dashboard's "AI Agent Command Room" (FounderAiAdvisorView).
-// The system prompt below is the one specified in docs/AI_AGENT_PROMPT.md —
-// five department personas that discuss a live dashboard snapshot and hand
-// back a chat log plus a structured report, separated by [REPORT_BREAK].
+// The system prompt below implements the five-persona Cabinet design
+// documented in docs/AI_WORKFLOW.md — department personas that discuss a
+// live dashboard snapshot and hand back a chat log plus a structured
+// report, separated by [REPORT_BREAK].
 //
 // The report half of that contract is intentionally not parsed here: the
 // component already builds a report deterministically from the same React
