@@ -80,7 +80,6 @@ Project-Ticket/
     │   │   │   ├── ui/                        # shadcn/Radix primitives
     │   │   │   ├── ui.jsx                     # Card, Badge, StatCard, Modal, Drawer, etc.
     │   │   │   ├── hr/HrLayout.jsx, coordinator/CoordinatorLayout.jsx, ItDeskLayout.jsx
-    │   │   │   ├── AppleDock.jsx              # Founder's left-rail department switcher
     │   │   │   ├── FounderAiAdvisorView.jsx   # AI Agent Command Room
     │   │   │   ├── NewItTicketModal.jsx, DataTransferModal.jsx, TeamChatDrawer.jsx
     │   │   │   └── RequireAuth.jsx            # Route guard (role allow-list)

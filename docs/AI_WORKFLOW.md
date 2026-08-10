@@ -7,7 +7,7 @@
 
 ## 1. What It Is
 
-A panel on the Founder dashboard (AppleDock → "AI Agent Hub") where the Founder can pick a quick-operation template or type a free-form question, and watch five department personas — HR, IT, Coordinator, Employee-rep, and the Founder's own chief-of-staff persona — discuss the live dashboard data and land on an action plan.
+A panel on the Founder dashboard (sidebar → "Fute AI+") where the Founder can pick a quick-operation template or type a free-form question, and watch five department personas — HR, IT, Coordinator, Employee-rep, and the Founder's own chief-of-staff persona — discuss the live dashboard data and land on an action plan.
 
 ## 2. The Two Modes
 

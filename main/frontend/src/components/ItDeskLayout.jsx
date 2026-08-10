@@ -25,7 +25,6 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import TeamChatDrawer from './TeamChatDrawer';
-import AppleDock from './AppleDock';
 
 const ROLE_LABEL = {
   founder: 'Founder / Admin',

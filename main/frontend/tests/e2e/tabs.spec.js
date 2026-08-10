@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAs, collectErrors } from './helpers';
+import { loginAs, collectErrors, signOut } from './helpers';
 
 /**
  * The IT desk, employee portal and founder dashboard are each a single route
@@ -60,26 +60,29 @@ test.describe('employee tabs', () => {
 });
 
 test.describe('founder department views', () => {
+  // Visible sidebar labels (the SIDEBAR_ORDER shortLabels in
+  // FounderDashboardPage.jsx), not the old floating dock's full aria-labels.
   const DEPARTMENTS = [
-    'Founder Overview',
-    'Approval System',
-    'Project Details',
+    'Overview',
+    'Approvals',
+    'Projects',
     'Reports',
-    'HR Department',
-    'IT Service Desk',
-    'Sales Operations',
-    'Developer Portal',
-    'Marketing Suite',
-    'Branding Hub',
+    'HR',
+    'IT',
+    'Sales',
+    'Developers',
+    'Marketing',
+    'Branding',
     'Production',
   ];
 
-  test('every department view renders without runtime errors', async ({ page }) => {
+  test('every department view renders without runtime errors', async ({ page, viewport }) => {
+    test.skip(!!viewport && viewport.width < 1024, 'the sidebar is an off-canvas drawer below lg');
     const errors = collectErrors(page);
     await loginAs(page, 'founder');
 
     for (const dept of DEPARTMENTS) {
-      await page.locator(`button[aria-label="${dept}"]`).click();
+      await page.locator('aside nav button', { hasText: new RegExp(`^${dept}$`) }).click();
       const main = page.locator('main');
       await expect(main).not.toBeEmpty();
       expect((await main.innerText()).trim().length, `${dept} rendered almost nothing`).toBeGreaterThan(100);
@@ -87,9 +90,9 @@ test.describe('founder department views', () => {
     expect(errors).toEqual([]);
   });
 
-  test('the founder dock exposes a working sign out', async ({ page }) => {
+  test('the founder sidebar exposes a working sign out', async ({ page }) => {
     await loginAs(page, 'founder');
-    await page.locator('button[aria-label="Sign Out"]').click();
+    await signOut(page);
     await expect(page).toHaveURL(/\/$/);
     expect(await page.evaluate(() => localStorage.getItem('fute_token'))).toBeNull();
   });

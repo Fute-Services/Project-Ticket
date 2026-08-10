@@ -127,16 +127,16 @@ flowchart TD
 ```mermaid
 flowchart TD
     L["Founder logs in"] --> D["/founder/dashboard"]
-    D --> DOCK["Left AppleDock — switches\nthe active department view"]
-    DOCK --> OV["Founder Overview"]
-    DOCK --> APV["Approval System —\nIT approvals + HR/IT leave requests"]
-    DOCK --> PROJ["Project Details"]
-    DOCK --> REP["Reports"]
-    DOCK --> HRV["HR Department view"]
-    DOCK --> ITV["IT Service Desk view"]
-    DOCK --> AI["AI Agent Command Room"]
-    DOCK --> CHAT["Team Chat Hub"]
-    DOCK --> OUT["Sign Out"]
+    D --> SIDE["Left sidebar — same collapsible,\nmobile-drawer pattern as every\nother dashboard — switches the\nactive department view"]
+    SIDE --> OV["Founder Overview"]
+    SIDE --> APV["Approval System —\nIT approvals + HR/IT leave requests"]
+    SIDE --> PROJ["Project Details"]
+    SIDE --> REP["Reports"]
+    SIDE --> HRV["HR Department view"]
+    SIDE --> ITV["IT Service Desk view"]
+    SIDE --> CHAT["Team Chat Hub"]
+    SIDE --> AI["Fute AI+ — a distinct gradient\nbutton above the profile footer,\nnot one of the regular nav rows"]
+    SIDE --> OUT["Sign out — profile footer,\nsame as every other dashboard"]
 
     APV -->|"Approve / Decline"| DECIDE["Context state updated;\nrequester's view reflects it live"]
     AI -->|"pick a template or type a question"| CABINET["See AI_WORKFLOW.md"]
@@ -146,7 +146,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A["Profile menu\n(sidebar footer, or the\nFounder's AppleDock)"] --> B["Sign out"]
+    A["Profile menu in the sidebar footer\n(same pattern for every role,\nincluding the Founder)"] --> B["Sign out"]
     B --> C["AuthContext.logout():\nclears localStorage AND sessionStorage"]
     C --> D["Redirect to /"]
     D --> E{"Try the old protected URL again?"}
