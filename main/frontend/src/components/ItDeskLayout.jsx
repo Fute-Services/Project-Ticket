@@ -23,6 +23,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   MessageSquare,
+  Film,
 } from 'lucide-react';
 import TeamChatDrawer from './TeamChatDrawer';
 
@@ -48,6 +49,7 @@ const IT_NAV_ITEMS = (approvalCount) => [
   { id: 'datarequests', label: 'Data Requests', icon: Server },
   { id: 'assets', label: 'Asset Management', icon: Monitor },
   { id: 'reports', label: 'Reports & Logs', icon: BarChart2 },
+  { id: 'renderstatus', label: 'Rendering Status', icon: Film },
 ];
 
 const EMPLOYEE_NAV_ITEMS = [

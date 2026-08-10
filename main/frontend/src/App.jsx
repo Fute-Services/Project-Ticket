@@ -4,6 +4,7 @@ import { LeaveProvider } from './context/LeaveContext';
 import { TicketProvider } from './context/TicketContext';
 import { ApprovalProvider } from './context/ApprovalContext';
 import { TaskProjectProvider } from './context/TaskProjectContext';
+import { RenderProvider } from './context/RenderContext';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
@@ -57,6 +58,7 @@ export default function App() {
       <TicketProvider>
       <ApprovalProvider>
       <TaskProjectProvider>
+      <RenderProvider>
       <BrowserRouter>
         <Routes>
           {/* Sign-in is the front door. Signup is reached from the panel's own
@@ -123,6 +125,7 @@ export default function App() {
         </Routes>
         <Toaster position="bottom-right" richColors closeButton />
       </BrowserRouter>
+      </RenderProvider>
       </TaskProjectProvider>
       </ApprovalProvider>
       </TicketProvider>

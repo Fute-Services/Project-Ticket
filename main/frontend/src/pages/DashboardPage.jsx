@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTickets } from '../context/TicketContext';
 import { useApprovals } from '../context/ApprovalContext';
+import { useRenders, frameCount } from '../context/RenderContext';
 import { toast } from 'sonner';
 import ItDeskLayout from '../components/ItDeskLayout';
 import DonutChart from '../components/DonutChart';
@@ -39,6 +40,8 @@ import {
   History as HistoryIcon,
   Cpu,
   Eye,
+  Play,
+  Film,
 } from 'lucide-react';
 
 const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
@@ -869,6 +872,63 @@ function ReportsView() {
   );
 }
 
+// Read-only for IT — Production owns adding jobs and marking them complete
+// (ProductionDashboardView), so this mirrors that same shared RenderContext
+// list rather than giving IT its own editable copy of someone else's queue.
+function RenderingStatusView() {
+  const { renders } = useRenders();
+  const totalFrames = renders.reduce((sum, r) => sum + frameCount(r.frameNo), 0);
+  const activeSystems = renders.filter((r) => r.status === 'Rendering').reduce((sum, r) => sum + Number(r.allocatedSystems || 0), 0);
+
+  return (
+    <div className="w-full flex flex-col gap-6">
+      <div>
+        <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Rendering Status</h1>
+        <p className="text-xs text-muted-foreground">Live view of the Production Floor render farm</p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <StatCard icon={Film} label="Total Frame Renders" value={totalFrames} sub="frames across all jobs" accent="hsl(var(--chart-1))" />
+        <StatCard icon={Cpu} label="Allocated Systems" value={activeSystems} sub="on active renders" accent="hsl(var(--chart-2))" />
+        <StatCard icon={Play} label="Rendering" value={renders.filter((r) => r.status === 'Rendering').length} sub="jobs in flight" accent="hsl(var(--chart-3))" />
+        <StatCard icon={CheckCircle2} label="Completed" value={renders.filter((r) => r.status === 'Completed').length} sub="jobs finished" accent="hsl(var(--chart-4))" />
+      </div>
+
+      <Card>
+        <SectionHeader title="Render Queue" subtitle={`${renders.length} job${renders.length === 1 ? '' : 's'} on the farm`} />
+        <DataTable
+          rows={renders}
+          pageSize={10}
+          emptyMessage="Production hasn't logged any render jobs yet."
+          columns={[
+            { key: 'projectCode', label: 'Project Code', render: (r) => <span className="font-bold text-primary">{r.projectCode}</span> },
+            { key: 'sequenceType', label: 'Sequence', render: (r) => <span className="text-foreground">{r.sequenceType}</span> },
+            { key: 'frameNo', label: 'Frame No', render: (r) => <span className="text-muted-foreground">{r.frameNo}</span> },
+            { key: 'personName', label: 'Assigned To', render: (r) => <span className="text-muted-foreground">{r.personName}</span> },
+            { key: 'date', label: 'Date', render: (r) => <span className="text-muted-foreground">{r.date}</span> },
+            { key: 'allocatedSystems', label: 'Systems', render: (r) => <span className="text-muted-foreground">{r.allocatedSystems}</span> },
+            {
+              key: 'status',
+              label: 'Status',
+              render: (r) => (
+                <span
+                  className={`text-xs px-2.5 py-1 rounded-full border font-semibold whitespace-nowrap ${
+                    r.status === 'Completed'
+                      ? 'bg-primary/10 text-primary border-primary/20'
+                      : 'bg-warning/10 text-warning border-warning/20'
+                  }`}
+                >
+                  {r.status}
+                </span>
+              ),
+            },
+          ]}
+        />
+      </Card>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -1098,6 +1158,8 @@ export default function DashboardPage() {
       {activeTab === 'assets' && <AssetsView />}
 
       {activeTab === 'reports' && <ReportsView />}
+
+      {activeTab === 'renderstatus' && <RenderingStatusView />}
 
       {/* Modals */}
       <DataTransferModal

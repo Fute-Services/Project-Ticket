@@ -3,17 +3,11 @@ import { Play, CheckCircle2, Cpu, Film, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { useTickets } from '../context/TicketContext';
+import { useRenders, frameCount } from '../context/RenderContext';
 import { Card, SectionHeader, StatCard, Modal, Field, inputClass } from './ui';
 import DataTable from './DataTable';
 
 const SEQUENCE_TYPES = ['Steel', 'Animal', '360'];
-
-const SEED_RENDERS = [
-  { id: 1, projectCode: 'PRJ-VFX-04', sequenceType: 'Steel', frameNo: '100-300', personName: 'Sameer Kulkarni', date: '2026-08-08', allocatedSystems: 4, status: 'Rendering' },
-  { id: 2, projectCode: 'PRJ-VFX-04', sequenceType: 'Animal', frameNo: '1-150', personName: 'Priya Nair', date: '2026-08-07', allocatedSystems: 2, status: 'Completed' },
-  { id: 3, projectCode: 'PRJ-AD-11', sequenceType: '360', frameNo: '1-72', personName: 'Sameer Kulkarni', date: '2026-08-09', allocatedSystems: 3, status: 'Rendering' },
-  { id: 4, projectCode: 'PRJ-VFX-02', sequenceType: 'Steel', frameNo: '400-520', personName: 'Priya Nair', date: '2026-08-05', allocatedSystems: 2, status: 'Completed' },
-];
 
 const EMPTY_FORM = () => ({
   projectCode: '',
@@ -24,26 +18,18 @@ const EMPTY_FORM = () => ({
   allocatedSystems: 1,
 });
 
-// "100-300" -> 201 frames. Falls back to counting the job as a single frame
-// if someone types something that isn't a range, rather than throwing.
-function frameCount(frameNo) {
-  const m = String(frameNo).match(/^\s*(\d+)\s*-\s*(\d+)\s*$/);
-  if (!m) return 1;
-  return Math.max(0, parseInt(m[2], 10) - parseInt(m[1], 10) + 1);
-}
-
 /**
  * Interactive Production Floor dashboard — replaces the read-only demo view
  * (FounderDeptView + deptDemoData) for anyone logged in with the production
- * role specifically. Render jobs live in local state (there's no backend for
- * this department, same as every other DEPT_DEMO department), but unlike the
- * static mock, this one actually accepts new jobs and pushes real tickets
- * into the shared TicketContext IT already reads from.
+ * role specifically. Render jobs live in RenderContext, not local state —
+ * the IT desk's read-only "Rendering Status" view reads the exact same list,
+ * so a job logged here shows up there immediately (same pattern as
+ * TicketContext for the "Report to IT" ticket below).
  */
 export default function ProductionDashboardView() {
   const { user } = useAuth();
   const { addTicket } = useTickets();
-  const [renders, setRenders] = useState(SEED_RENDERS);
+  const { renders, addRender, toggleStatus } = useRenders();
   const [form, setForm] = useState(EMPTY_FORM);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [issueTitle, setIssueTitle] = useState('');
@@ -58,18 +44,9 @@ export default function ProductionDashboardView() {
       toast.error('Project code, frame range, and name are required.');
       return;
     }
-    setRenders((prev) => [
-      { id: Date.now(), ...form, allocatedSystems: Number(form.allocatedSystems) || 1, status: 'Rendering' },
-      ...prev,
-    ]);
+    addRender({ ...form, allocatedSystems: Number(form.allocatedSystems) || 1 });
     toast.success('Render job added', { description: `${form.projectCode} · ${form.frameNo}` });
     setForm(EMPTY_FORM());
-  }
-
-  function toggleStatus(id) {
-    setRenders((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: r.status === 'Completed' ? 'Rendering' : 'Completed' } : r))
-    );
   }
 
   function submitReport(e) {
