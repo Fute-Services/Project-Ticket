@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Crown, Users, Cpu, FolderKanban, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Crown, Users, Cpu, FolderKanban, User, TrendingUp, Code2, Megaphone, Palette, Factory } from 'lucide-react';
 import { useAuth, homeFor } from '../context/AuthContext';
 import { loginUser } from '../utils/api';
 import { dummyLogin, DEMO_ACCOUNTS } from '../utils/dummyAuth';
@@ -205,6 +205,45 @@ export default function LoginPage() {
                 icon: User,
                 color: 'hover:border-primary/50 hover:bg-primary/[0.04] hover:text-primary',
                 badgeBg: 'bg-primary/10 text-primary',
+              },
+              // These five have no backend behind them yet — same
+              // illustrative data as the Founder's department views
+              // (data/deptDemoData.js). "Demo data" is called out here too,
+              // same as it is on the dashboard itself.
+              sales: {
+                label: 'Sales Operations',
+                sub: 'Demo data only',
+                icon: TrendingUp,
+                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
+                badgeBg: 'bg-muted/10 text-muted-foreground',
+              },
+              developers: {
+                label: 'Developer Portal',
+                sub: 'Demo data only',
+                icon: Code2,
+                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
+                badgeBg: 'bg-muted/10 text-muted-foreground',
+              },
+              marketing: {
+                label: 'Marketing Suite',
+                sub: 'Demo data only',
+                icon: Megaphone,
+                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
+                badgeBg: 'bg-muted/10 text-muted-foreground',
+              },
+              branding: {
+                label: 'Branding Hub',
+                sub: 'Demo data only',
+                icon: Palette,
+                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
+                badgeBg: 'bg-muted/10 text-muted-foreground',
+              },
+              production: {
+                label: 'Production Floor',
+                sub: 'Demo data only',
+                icon: Factory,
+                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
+                badgeBg: 'bg-muted/10 text-muted-foreground',
               },
             };
 

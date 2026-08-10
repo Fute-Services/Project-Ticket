@@ -11,6 +11,15 @@ const SEED_USERS = [
   { email: 'system.demo@futeservices.com', password: 'demo1234', full_name: 'IT Demo', role: 'it', department: 'IT' },
   { email: 'coordinator.demo@futeservices.com', password: 'demo1234', full_name: 'Coordinator Demo', role: 'coordinator', department: 'Project Management' },
   { email: 'employee@futeservices.com', password: 'demo1234', full_name: 'Employee Demo', role: 'employee', department: 'Operations' },
+  // These five have no backend or real workflow behind them yet — same
+  // illustrative data as the Founder's department views (data/deptDemoData.js).
+  // The accounts exist so that data is reachable without going through the
+  // Founder's dashboard first.
+  { email: 'sales.demo@futeservices.com', password: 'demo1234', full_name: 'Sales Demo', role: 'sales', department: 'Sales' },
+  { email: 'dev.demo@futeservices.com', password: 'demo1234', full_name: 'Developer Demo', role: 'developers', department: 'Engineering' },
+  { email: 'marketing.demo@futeservices.com', password: 'demo1234', full_name: 'Marketing Demo', role: 'marketing', department: 'Marketing' },
+  { email: 'branding.demo@futeservices.com', password: 'demo1234', full_name: 'Branding Demo', role: 'branding', department: 'Branding' },
+  { email: 'production.demo@futeservices.com', password: 'demo1234', full_name: 'Production Demo', role: 'production', department: 'Production' },
 ];
 
 export const DEMO_ACCOUNTS = SEED_USERS.map(({ email, password, role }) => ({ email, password, role }));

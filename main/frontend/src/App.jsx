@@ -25,8 +25,14 @@ import CoordinatorProjectDetail from './pages/coordinator/ProjectDetail';
 
 import FounderLandingPage from './pages/FounderLandingPage';
 import FounderDashboardPage from './pages/FounderDashboardPage';
+import DepartmentDashboardPage from './pages/DepartmentDashboardPage';
 
 const DASHBOARD_ROUTES = [{ path: '/it/dashboard', allow: ['it'] }];
+
+// Sales, Developers, Marketing, Branding, Production — demo-only roles with
+// no backend of their own yet (see data/deptDemoData.js). Each gets its own
+// route, scoped to just that role, same isolation as every other dashboard.
+const DEPARTMENT_ROLES = ['sales', 'developers', 'marketing', 'branding', 'production'];
 
 const HR_ROUTES = [
   { path: '/hr/overview', element: <HrOverview /> },
@@ -102,6 +108,17 @@ export default function App() {
               key={path}
               path={path}
               element={<RequireAuth allow={['coordinator']}>{element}</RequireAuth>}
+            />
+          ))}
+          {DEPARTMENT_ROLES.map((role) => (
+            <Route
+              key={role}
+              path={`/department/${role}`}
+              element={
+                <RequireAuth allow={[role]}>
+                  <DepartmentDashboardPage />
+                </RequireAuth>
+              }
             />
           ))}
           <Route path="*" element={<Navigate to="/" replace />} />
