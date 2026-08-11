@@ -10,23 +10,30 @@ import { Switch } from './ui/switch';
 const NEW_USER_FORM_EMPTY = { email: '', full_name: '', password: '' };
 
 const ROLE_LABEL = {
+  founder: 'Founder',
   hr: 'HR',
   it: 'IT',
   coordinator: 'Coordinator',
   employee: 'Employee',
 };
 
-export default function FounderPermissionsView() {
+// Matches the backend's founderController.ASSIGNABLE_ROLES — Super Admin
+// can override an existing Founder's pages, but can't mint a brand-new
+// Founder (or another Super Admin) account from this screen.
+const CREATABLE_ROLES = ['it', 'hr', 'coordinator', 'employee'];
+
+export default function RolePermissionsView() {
   const { permissions, canAccess, togglePermission, setAllForRole } = usePermissions();
   const [role, setRole] = useState(TOGGLABLE_ROLES[0]);
 
   const pages = PAGE_REGISTRY[role];
   const enabledCount = permissions[role]?.size ?? 0;
+  const canCreateForRole = CREATABLE_ROLES.includes(role);
 
   function handleToggle(pageId, label) {
     const wasEnabled = canAccess(role, pageId);
     togglePermission(role, pageId);
-    toast.success(`${label} ${wasEnabled ? 'disabled' : 'enabled'} for ${ROLE_LABEL[role]}`);
+    toast.success(`${label} ${wasEnabled ? 'disabled' : 'enabled'} for ${ROLE_LABEL[role] || role}`);
   }
 
   // --- Per-user overrides ---
@@ -92,7 +99,7 @@ export default function FounderPermissionsView() {
     const next = { ...current };
     delete next[pageId];
     updateSelectedUser(next);
-    toast.success(`${label} reset to ${ROLE_LABEL[role]} default for ${selectedUser.full_name || selectedUser.email}`);
+    toast.success(`${label} reset to ${ROLE_LABEL[role] || role} default for ${selectedUser.full_name || selectedUser.email}`);
   }
 
   // --- Create a new account for this role, right from this page ---
@@ -148,7 +155,7 @@ export default function FounderPermissionsView() {
         ))}
         <div className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-warning/10 border border-warning/20 text-warning flex items-center gap-1.5">
           <Crown size={13} />
-          Founder — full access, always on
+          Super Admin — full access, always on
         </div>
       </div>
 
@@ -201,18 +208,20 @@ export default function FounderPermissionsView() {
           title="Per-user overrides"
           subtitle={`Give a specific ${ROLE_LABEL[role] || role} person more or fewer pages than the role default above`}
           action={
-            <button
-              type="button"
-              onClick={() => setShowNewUserForm((p) => !p)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              {showNewUserForm ? <X size={12} /> : <UserPlus size={12} />}
-              {showNewUserForm ? 'Cancel' : `Add ${ROLE_LABEL[role] || role} account`}
-            </button>
+            canCreateForRole && (
+              <button
+                type="button"
+                onClick={() => setShowNewUserForm((p) => !p)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                {showNewUserForm ? <X size={12} /> : <UserPlus size={12} />}
+                {showNewUserForm ? 'Cancel' : `Add ${ROLE_LABEL[role] || role} account`}
+              </button>
+            )
           }
         />
 
-        {showNewUserForm && (
+        {showNewUserForm && canCreateForRole && (
           <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5 p-3.5 rounded-lg bg-muted border border-border">
             <input
               required
@@ -251,7 +260,9 @@ export default function FounderPermissionsView() {
         {usersLoading ? (
           <p className="text-xs text-muted-foreground py-4">Loading users…</p>
         ) : users.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4">No {ROLE_LABEL[role] || role} accounts yet — add one above.</p>
+          <p className="text-xs text-muted-foreground py-4">
+            No {ROLE_LABEL[role] || role} accounts {canCreateForRole ? 'yet — add one above.' : 'found.'}
+          </p>
         ) : (
           <div className="flex flex-col sm:flex-row gap-4">
             {/* User list */}

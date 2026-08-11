@@ -34,6 +34,23 @@ export const PAGE_REGISTRY = {
     { id: '/coordinator/projects', label: 'Projects' },
     { id: '/coordinator/tasks', label: 'Tasks' },
   ],
+  // Founder's own sidebar (FounderDashboardPage.jsx SIDEBAR_ORDER) — no
+  // longer auto-granted; Super Admin is the one role that bypasses this
+  // registry entirely (see canAccess below).
+  founder: [
+    { id: 'overview', label: 'Overview' },
+    { id: 'approvals', label: 'Approvals' },
+    { id: 'projects', label: 'Projects' },
+    { id: 'reports', label: 'Reports' },
+    { id: 'hr', label: 'HR' },
+    { id: 'it', label: 'IT' },
+    { id: 'sales', label: 'Sales' },
+    { id: 'developers', label: 'Developers' },
+    { id: 'marketing', label: 'Marketing' },
+    { id: 'branding', label: 'Branding' },
+    { id: 'production', label: 'Production' },
+    { id: 'chat', label: 'Team Chat' },
+  ],
 };
 
 // Demo-only department roles (sales/developers/marketing/branding/production)
@@ -107,13 +124,14 @@ export function PermissionsProvider({ children }) {
     });
   }
 
-  // Founder always has full access — never gated, so a founder can never
-  // lock themselves out by toggling their own dashboard off. A per-user
-  // override (only meaningful for the currently logged-in user — nobody
-  // else's overrides need to be known client-side) wins over the role
-  // default when both apply to the same page.
+  // Super Admin always has full access — never gated, so Super Admin can
+  // never lock themselves out. Founder is a regular gate-able role now (see
+  // the 'founder' entry in PAGE_REGISTRY above). A per-user override (only
+  // meaningful for the currently logged-in user — nobody else's overrides
+  // need to be known client-side) wins over the role default when both
+  // apply to the same page.
   function canAccess(role, pageId) {
-    if (role === 'founder') return true;
+    if (role === 'superadmin') return true;
     if (user?.role === role && user.permissionOverrides?.[pageId] !== undefined) {
       return user.permissionOverrides[pageId];
     }

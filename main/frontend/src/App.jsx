@@ -26,6 +26,7 @@ import CoordinatorProjectDetail from './pages/coordinator/ProjectDetail';
 
 import FounderLandingPage from './pages/FounderLandingPage';
 import FounderDashboardPage from './pages/FounderDashboardPage';
+import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
 import DepartmentDashboardPage from './pages/DepartmentDashboardPage';
 
 const DASHBOARD_ROUTES = [{ path: '/it/dashboard', allow: ['it'] }];
@@ -74,6 +75,14 @@ export default function App() {
             element={
               <RequireAuth allow={['founder']}>
                 <FounderDashboardPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/superadmin/dashboard"
+            element={
+              <RequireAuth allow={['superadmin']}>
+                <SuperAdminDashboardPage />
               </RequireAuth>
             }
           />

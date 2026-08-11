@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Crown, Users, Cpu, FolderKanban, User, TrendingUp, Code2, Megaphone, Palette, Factory } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Crown, Shield, Users, Cpu, FolderKanban, User, TrendingUp, Code2, Megaphone, Palette, Factory } from 'lucide-react';
 import { useAuth, homeFor } from '../context/AuthContext';
 import { loginUser } from '../utils/api';
 import { dummyLogin, DEMO_ACCOUNTS } from '../utils/dummyAuth';
@@ -173,10 +173,17 @@ export default function LoginPage() {
             const roleMeta = {
               founder: {
                 label: 'Founder Portal',
-                sub: 'Super Admin Access',
+                sub: 'Business Leadership',
                 icon: Crown,
                 color: 'hover:border-warning/50 hover:bg-warning/[0.04] hover:text-warning',
                 badgeBg: 'bg-warning/10 text-warning',
+              },
+              superadmin: {
+                label: 'Super Admin',
+                sub: 'Full Platform Access',
+                icon: Shield,
+                color: 'hover:border-destructive/50 hover:bg-destructive/[0.04] hover:text-destructive',
+                badgeBg: 'bg-destructive/10 text-destructive',
               },
               hr: {
                 label: 'HR Department',

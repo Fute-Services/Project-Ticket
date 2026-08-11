@@ -10,6 +10,10 @@ export const DUMMY_USERS_STORAGE_KEY = STORE_KEY;
 
 const SEED_USERS = [
   { email: 'founder@futeservices.com', password: 'demo1234', full_name: 'Founder Demo', role: 'founder', department: 'Leadership', permissionOverrides: {} },
+  // Manually seeded, same as founder — not reachable via self-signup's
+  // email-pattern role detection. The real top authority: owns Role
+  // Permissions, which Founder itself no longer has.
+  { email: 'superadmin.demo@futeservices.com', password: 'demo1234', full_name: 'Super Admin Demo', role: 'superadmin', department: 'Platform Admin', permissionOverrides: {} },
   { email: 'hr.demo@futeservices.com', password: 'demo1234', full_name: 'HR Demo', role: 'hr', department: 'Human Resources', permissionOverrides: {} },
   { email: 'system.demo@futeservices.com', password: 'demo1234', full_name: 'IT Demo', role: 'it', department: 'IT', permissionOverrides: {} },
   { email: 'coordinator.demo@futeservices.com', password: 'demo1234', full_name: 'Coordinator Demo', role: 'coordinator', department: 'Project Management', permissionOverrides: {} },

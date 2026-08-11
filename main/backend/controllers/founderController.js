@@ -1,9 +1,8 @@
 const { auth, db } = require('../config/firebase');
 
-// Roles a Founder is allowed to hand-create an account for — matches the
-// TOGGLABLE_ROLES the frontend's Role Permissions page offers a tab for.
-// Deliberately excludes 'founder' (there's no self-service way to mint
-// another founder from this screen).
+// Roles Super Admin is allowed to hand-create an account for from the Role
+// Permissions page. Deliberately excludes 'founder' and 'superadmin' —
+// there's no self-service way to mint either from this screen.
 const ASSIGNABLE_ROLES = ['it', 'hr', 'coordinator', 'employee'];
 
 // GET /api/founder/complaints — returns all HR + IT complaints combined
@@ -63,7 +62,7 @@ async function updateUserPermissions(req, res) {
 // POST /api/founder/users — { email, password, full_name, role, department }
 // Unlike POST /api/auth/register (self-signup, role always auto-detected
 // from the email pattern — a user can never pick their own role), this lets
-// a Founder assign the role explicitly, since they're deliberately creating
+// Super Admin assign the role explicitly, since they're deliberately creating
 // the account for a specific role's permissions panel rather than the email
 // happening to match a pattern like system.fute*.
 async function createUser(req, res) {

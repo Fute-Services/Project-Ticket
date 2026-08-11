@@ -26,7 +26,6 @@ import {
   Menu,
   ChevronsLeft,
   ChevronsRight,
-  Shield,
 } from 'lucide-react';
 import TeamChatDrawer from '../components/TeamChatDrawer';
 import FounderApprovalView from '../components/FounderApprovalView';
@@ -35,7 +34,7 @@ import FounderHrView from '../components/FounderHrView';
 import FounderItView from '../components/FounderItView';
 import FounderDeptView from '../components/FounderDeptView';
 import FounderAiAdvisorView from '../components/FounderAiAdvisorView';
-import FounderPermissionsView from '../components/FounderPermissionsView';
+import { usePermissions } from '../context/PermissionsContext';
 import { DEPT_DEMO } from '../data/deptDemoData';
 import { tint } from '../styles/seriesColors';
 import { employees, candidates, attendanceRecords } from '../data/hrMockData';
@@ -214,15 +213,6 @@ export default function FounderDashboardPage() {
       tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
     },
     {
-      id: 'permissions',
-      label: 'Role Permissions',
-      shortLabel: 'Permissions',
-      icon: Shield,
-      gradient: 'from-muted via-muted to-muted',
-      welcomeMsg: 'Control which pages each role can access',
-      tagColor: 'text-muted-foreground border-muted/20 bg-muted/10',
-    },
-    {
       id: 'chat',
       label: 'Team Chat Hub',
       shortLabel: 'Team Chat',
@@ -240,8 +230,19 @@ export default function FounderDashboardPage() {
   // between views via activeDept rather than real routes, so "navigating"
   // here means setActiveDept, not react-router's navigate(). AI Agent Hub
   // isn't in this list — it keeps its own "Fute AI+" entry point.
-  const SIDEBAR_ORDER = ['overview', 'approvals', 'projects', 'reports', 'permissions', 'hr', 'it', 'sales', 'developers', 'marketing', 'branding', 'production', 'chat'];
-  const sidebarItems = SIDEBAR_ORDER.map((id) => departments.find((d) => d.id === id)).filter(Boolean);
+  const SIDEBAR_ORDER = ['overview', 'approvals', 'projects', 'reports', 'hr', 'it', 'sales', 'developers', 'marketing', 'branding', 'production', 'chat'];
+  const { canAccess } = usePermissions();
+  const sidebarItems = SIDEBAR_ORDER.map((id) => departments.find((d) => d.id === id))
+    .filter(Boolean)
+    .filter((d) => canAccess('founder', d.id));
+
+  // A page Super Admin revokes while Founder is sitting on it shouldn't
+  // leave them stranded there — same pattern as ItDeskLayout/HrLayout.
+  useEffect(() => {
+    if (sidebarItems.length && !sidebarItems.some((d) => d.id === activeDept)) {
+      setActiveDept(sidebarItems[0].id);
+    }
+  }, [sidebarItems, activeDept]);
 
   function goToDept(id) {
     setActiveDept(id);
@@ -621,9 +622,6 @@ export default function FounderDashboardPage() {
         ) : activeDept === 'reports' ? (
           /* Weekly and Monthly Reports View */
           <FounderReportsView />
-        ) : activeDept === 'permissions' ? (
-          /* Role Permissions View */
-          <FounderPermissionsView />
         ) : activeDept === 'ai-agents' ? (
           /* AI Agent Hub View */
           <FounderAiAdvisorView onNavigate={setActiveDept} />
