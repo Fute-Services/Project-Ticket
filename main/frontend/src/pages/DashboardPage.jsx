@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useTickets } from '../context/TicketContext';
 import { useApprovals } from '../context/ApprovalContext';
 import { useRenders, frameCount } from '../context/RenderContext';
@@ -31,8 +30,6 @@ import {
   Pencil,
   Trash2,
   Download,
-  Mail,
-  BadgeCheck,
   ChevronDown,
   X,
   Search,
@@ -930,10 +927,8 @@ function RenderingStatusView() {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(false);
 
   const { approvals, submitApproval } = useApprovals();
   const itPendingFounder = approvals.filter((a) => a.source === 'IT' && a.status === 'pending_founder').length;
@@ -1063,23 +1058,6 @@ export default function DashboardPage() {
             <div>
               <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1">IT Service Desk</h1>
               <p className="text-xs text-muted-foreground">Overview of active tickets, pending approvals, and IT infrastructure.</p>
-            </div>
-            <div className="flex items-center gap-2.5">
-              {emailVerified ? (
-                <span className="bg-primary/10 border border-primary/20 text-primary font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2">
-                  <BadgeCheck size={15} />
-                  <span>Verified</span>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => { setEmailVerified(true); toast.success('Verification email sent', { description: user?.email || 'Check your inbox to confirm your address.' }); }}
-                  className="bg-muted border border-border hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <Mail size={15} />
-                  <span>Send Verification Email</span>
-                </button>
-              )}
             </div>
           </div>
 

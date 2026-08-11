@@ -17,15 +17,15 @@ import {
   Bell,
   FileText,
   Search,
-  Calendar,
   LogOut,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  MessageSquare,
   Film,
+  Calendar,
 } from 'lucide-react';
-import TeamChatDrawer from './TeamChatDrawer';
 
 const ROLE_LABEL = {
   founder: 'Founder / Admin',
@@ -39,8 +39,6 @@ const NOTIFICATIONS = [
   { id: 2, text: 'Data Transfer request is waiting for approval', time: '35 min ago' },
   { id: 3, text: 'VPN request approved for John Doe', time: '2 hr ago' },
 ];
-
-const DATE_RANGES = ['Exact Date', 'Today', 'This Week', 'This Month'];
 
 const IT_NAV_ITEMS = (approvalCount) => [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
@@ -58,15 +56,125 @@ const EMPLOYEE_NAV_ITEMS = [
   { id: 'tasks', label: 'My Tasks', icon: CheckSquare },
 ];
 
-export default function ItDeskLayout({ activeTab, setActiveTab, children, searchIndex = [], role = 'it', approvalCount = 0, projectChannels = [] }) {
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function toDateStr(year, month, day) {
+  return `${year}-${pad2(month + 1)}-${pad2(day)}`;
+}
+
+function MiniCalendar({ selectedDate, onSelect }) {
+  const initial = selectedDate ? new Date(`${selectedDate}T00:00:00`) : new Date();
+  const [viewYear, setViewYear] = useState(initial.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initial.getMonth());
+
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const monthLabel = firstDay.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  function goPrevMonth() {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  }
+
+  function goNextMonth() {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  }
+
+  const today = new Date();
+  const todayStr = toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
+
+  return (
+    <div className="w-[240px]">
+      <div className="flex items-center justify-between mb-2">
+        <button
+          type="button"
+          onClick={goPrevMonth}
+          aria-label="Previous month"
+          className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground cursor-pointer"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        <span className="text-xs font-semibold text-foreground">{monthLabel}</span>
+        <button
+          type="button"
+          onClick={goNextMonth}
+          aria-label="Next month"
+          className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground cursor-pointer"
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {WEEKDAY_LABELS.map((d, i) => (
+          <div key={i} className="text-[9px] text-center text-muted-foreground font-medium">
+            {d}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((d, i) => {
+          if (d === null) return <div key={i} />;
+          const dateStr = toDateStr(viewYear, viewMonth, d);
+          const isSelected = dateStr === selectedDate;
+          const isToday = dateStr === todayStr;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onSelect(dateStr)}
+              className={`w-7 h-7 rounded-lg text-[11px] flex items-center justify-center cursor-pointer transition-colors ${
+                isSelected
+                  ? 'bg-primary text-primary-foreground font-semibold'
+                  : isToday
+                  ? 'border border-primary/50 text-foreground hover:bg-accent'
+                  : 'text-foreground hover:bg-accent'
+              }`}
+            >
+              {d}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function ItDeskLayout({ activeTab, setActiveTab, children, searchIndex = [], role = 'it', approvalCount = 0 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [dateRangeLabel, setDateRangeLabel] = useState('Exact Date');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const selectedDateLabel = selectedDate
+    ? new Date(`${selectedDate}T00:00:00`).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        weekday: 'short',
+      })
+    : 'Select date';
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
@@ -87,13 +195,6 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
   }
 
   const navItems = role === 'employee' ? EMPLOYEE_NAV_ITEMS : IT_NAV_ITEMS(approvalCount);
-
-  const currentDateStr = new Date().toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    weekday: 'short',
-  });
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row font-sans selection:bg-primary/30 selection:text-primary">
@@ -270,34 +371,52 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
               )}
             </div>
 
-            {/* Team Chat Hub Button */}
-            <button
-              type="button"
-              onClick={() => setIsChatOpen(true)}
-              aria-label="Team Chat"
-              className="h-9 px-3 rounded-xl bg-card border border-border text-foreground text-xs font-medium flex items-center gap-2 shadow hover:bg-accent transition-all cursor-pointer"
-            >
-              <MessageSquare size={14} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]" />
-              <span className="hidden sm:inline drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)]">Team Chat</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setDateRangeLabel((l) => DATE_RANGES[(DATE_RANGES.indexOf(l) + 1) % DATE_RANGES.length])}
-              className="h-9 flex items-center gap-2 px-3 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-xs text-muted-foreground font-medium shrink-0 cursor-pointer transition-colors"
-            >
-              <Calendar size={13} className="text-primary" />
-              <span>{dateRangeLabel === 'Exact Date' ? currentDateStr : dateRangeLabel}</span>
-              <ChevronDown size={11} className="text-muted-foreground" />
-            </button>
           </div>
         </header>
 
         {/* View Content — Zero Page Scrollbar */}
-        <main className="flex-1 p-3 lg:p-4 min-w-0 overflow-y-auto flex flex-col h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)]">{children}</main>
-      </div>
+        <main className="flex-1 p-3 lg:p-4 min-w-0 overflow-y-auto flex flex-col h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)]">
+          {/* Date Picker — shown above content on every IT dashboard page */}
+          <div className="flex items-center justify-end gap-2.5 mb-3 shrink-0">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowDatePicker((p) => !p)}
+                className="h-9 flex items-center gap-2 px-3 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-xs text-muted-foreground font-medium shrink-0 cursor-pointer transition-colors"
+              >
+                <Calendar size={13} className="text-primary" />
+                <span>{selectedDateLabel}</span>
+                <ChevronDown size={11} className="text-muted-foreground" />
+              </button>
+              {showDatePicker && (
+                <div className="absolute top-full right-0 mt-2 p-3 bg-muted border border-border rounded-xl shadow-xl z-30">
+                  <MiniCalendar
+                    selectedDate={selectedDate}
+                    onSelect={(dateStr) => {
+                      setSelectedDate(dateStr);
+                      setShowDatePicker(false);
+                    }}
+                  />
+                  {selectedDate && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDate('');
+                        setShowDatePicker(false);
+                      }}
+                      className="mt-2 w-full text-[11px] text-muted-foreground hover:text-foreground text-center cursor-pointer"
+                    >
+                      Clear date
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
-      <TeamChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} projectChannels={projectChannels} />
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
