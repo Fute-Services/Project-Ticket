@@ -17,6 +17,12 @@ import IconField from '../components/IconField';
  * Google/Apple sign-in isn't shown at all — no OAuth is wired up, and unlike
  * a disabled state, an entire missing feature has no honest way to display.
  */
+// Toggle: flip to `true` to bring the password field back — mirrors
+// authController's PASSWORD_LOGIN_ENABLED on the backend. Both must agree,
+// since the backend already ignores/doesn't require password when its own
+// flag is off.
+const PASSWORD_LOGIN_ENABLED = false;
+
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [remember, setRemember] = useState(true);
@@ -64,7 +70,9 @@ export default function LoginPage() {
     } catch (err) {
       setError(
         err.response?.status === 401
-          ? 'That email and password do not match. Please try again.'
+          ? PASSWORD_LOGIN_ENABLED
+            ? 'That email and password do not match. Please try again.'
+            : 'No account found for that email. Please try again.'
           : 'We could not sign you in. Please try again in a few moments.'
       );
     } finally {
@@ -99,26 +107,28 @@ export default function LoginPage() {
           placeholder="you@futeservices.com"
         />
 
-        <IconField
-          icon={Lock}
-          label="PASSWORD"
-          type={showPass ? 'text' : 'password'}
-          required
-          autoComplete="current-password"
-          value={form.password}
-          onChange={(e) => update('password', e.target.value)}
-          placeholder="Enter your password"
-          right={
-            <button
-              type="button"
-              onClick={() => setShowPass((p) => !p)}
-              aria-label={showPass ? 'Hide password' : 'Show password'}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showPass ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-            </button>
-          }
-        />
+        {PASSWORD_LOGIN_ENABLED && (
+          <IconField
+            icon={Lock}
+            label="PASSWORD"
+            type={showPass ? 'text' : 'password'}
+            required
+            autoComplete="current-password"
+            value={form.password}
+            onChange={(e) => update('password', e.target.value)}
+            placeholder="Enter your password"
+            right={
+              <button
+                type="button"
+                onClick={() => setShowPass((p) => !p)}
+                aria-label={showPass ? 'Hide password' : 'Show password'}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPass ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+              </button>
+            }
+          />
+        )}
 
         <div className="flex items-center justify-between text-xs py-0.5">
           <label className="flex items-center gap-2 cursor-pointer text-muted-foreground select-none">

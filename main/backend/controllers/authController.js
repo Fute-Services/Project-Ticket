@@ -1,6 +1,19 @@
-const { auth, db } = require('../config/firebase');
+const { auth, db, usingEmulator } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+
+// Toggle: flip to `true` to require the password again — login() branches
+// on this below, both code paths are kept intact so switching back is a
+// one-line change, not a rewrite.
+const PASSWORD_LOGIN_ENABLED = false;
+
+// The emulator exposes the same Identity Toolkit REST surface locally —
+// any non-empty `key` works against it, unlike the real endpoint which
+// requires the project's actual Web API key.
+const IDENTITY_TOOLKIT_BASE = usingEmulator
+  ? `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1`
+  : 'https://identitytoolkit.googleapis.com/v1';
+const IDENTITY_TOOLKIT_KEY = usingEmulator ? 'emulator-key' : process.env.FIREBASE_API_KEY;
 
 // Detect role from email pattern
 function detectRole(email) {
@@ -46,32 +59,49 @@ async function register(req, res) {
 // POST /api/auth/login
 async function login(req, res) {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+  if (!email) return res.status(400).json({ error: 'email required' });
 
-  // Verify password via Firebase Auth REST API (Admin SDK can't verify passwords directly)
-  const resp = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, returnSecureToken: true }),
+  let uid;
+
+  if (PASSWORD_LOGIN_ENABLED) {
+    if (!password) return res.status(400).json({ error: 'email and password required' });
+
+    // Verify password via Firebase Auth REST API (Admin SDK can't verify passwords directly)
+    const resp = await fetch(
+      `${IDENTITY_TOOLKIT_BASE}/accounts:signInWithPassword?key=${IDENTITY_TOOLKIT_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: true }),
+      }
+    );
+    const authData = await resp.json();
+    if (!resp.ok) return res.status(401).json({ error: 'Invalid credentials' });
+    uid = authData.localId;
+  } else {
+    // Password check disabled — email alone identifies the account. Still
+    // routes through Firebase Auth (not just Firestore) so a nonexistent
+    // account 401s the same way it would with the password path.
+    try {
+      const userRecord = await auth.getUserByEmail(email);
+      uid = userRecord.uid;
+    } catch {
+      return res.status(401).json({ error: 'No account found for that email' });
     }
-  );
-  const authData = await resp.json();
-  if (!resp.ok) return res.status(401).json({ error: 'Invalid credentials' });
+  }
 
-  const userDoc = await db.collection('users').doc(authData.localId).get();
+  const userDoc = await db.collection('users').doc(uid).get();
   if (!userDoc.exists) return res.status(400).json({ error: 'User profile not found' });
   const user = userDoc.data();
 
   const token = jwt.sign(
-    { id: authData.localId, email: user.email, role: user.role, full_name: user.full_name },
+    { id: uid, email: user.email, role: user.role, full_name: user.full_name },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
 
   res.json({
-    id: authData.localId,
+    id: uid,
     token,
     role: user.role,
     full_name: user.full_name,

@@ -72,11 +72,16 @@ function fakeToken(user) {
   return `dummy.${btoa(unescape(encodeURIComponent(JSON.stringify({ id: user.email, role: user.role }))))}.token`;
 }
 
+// Toggle: flip to `true` to require the password again — mirrors
+// authController's PASSWORD_LOGIN_ENABLED on the backend, and LoginPage's
+// own copy of the same flag. Keep all three in sync.
+const PASSWORD_LOGIN_ENABLED = false;
+
 // Shaped like the axios response the pages expect: { data: {...} }
 export function dummyLogin({ email, password }) {
   const users = readUsers();
   const user = users.find((u) => u.email.toLowerCase() === String(email).toLowerCase());
-  if (!user || user.password !== password) {
+  if (!user || (PASSWORD_LOGIN_ENABLED && user.password !== password)) {
     const err = new Error('Invalid credentials');
     err.response = { status: 401, data: { error: 'Invalid credentials' } };
     throw err;
