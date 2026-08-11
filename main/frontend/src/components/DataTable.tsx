@@ -157,7 +157,7 @@ export default function DataTable<T extends Record<string, any>>({
                     scope="col"
                     style={col.width ? { width: col.width } : undefined}
                     aria-sort={isSorted ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                    className={`py-2.5 px-3 font-medium border-b border-border ${col.align === 'right' ? 'text-right' : ''}`}
+                    className={`py-2 px-2 font-medium border-b border-border ${col.align === 'right' ? 'text-right' : ''}`}
                   >
                     {col.sortable === false ? (
                       col.label
@@ -185,7 +185,7 @@ export default function DataTable<T extends Record<string, any>>({
                 className="border-b border-border last:border-0 hover:bg-muted/60 transition-colors"
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={`py-3 px-3 align-middle ${col.align === 'right' ? 'text-right' : ''}`}>
+                  <td key={col.key} className={`py-2 px-2 align-middle ${col.align === 'right' ? 'text-right' : ''}`}>
                     {col.render ? col.render(row, safePage * pageSize + i) : row[col.key]}
                   </td>
                 ))}

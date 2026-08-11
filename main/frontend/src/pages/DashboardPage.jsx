@@ -98,56 +98,56 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
             {
               key: 'sno',
               label: 'S.No.',
-              width: '60px',
+              width: '40px',
               sortable: false,
               render: (_, index) => <span className="text-muted-foreground font-semibold text-xs">{(index ?? 0) + 1}</span>,
             },
             {
               key: 'date',
               label: 'Date',
-              width: '95px',
+              width: '80px',
               render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '—'}</span>,
             },
             {
               key: 'username',
               label: 'Username',
-              width: '110px',
-              render: (t) => <span className="text-foreground font-medium text-xs">{t.username || t.user || '—'}</span>,
+              width: '90px',
+              render: (t) => <span className="text-foreground font-medium text-xs truncate block">{t.username || t.user || '—'}</span>,
             },
             {
               key: 'employeeId',
               label: 'Employee ID',
-              width: '110px',
+              width: '90px',
               render: (t) => <span className="font-semibold text-primary text-xs">{t.employeeId || '—'}</span>,
             },
             {
               key: 'vpnNo',
               label: 'VPN ID',
-              width: '100px',
+              width: '80px',
               render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '—'}</span>,
             },
             {
               key: 'dept',
               label: 'Department',
-              width: '110px',
-              render: (t) => <span className="text-muted-foreground text-xs">{t.dept || '—'}</span>,
+              width: '85px',
+              render: (t) => <span className="text-muted-foreground text-xs truncate block">{t.dept || '—'}</span>,
             },
             {
               key: 'title',
               label: 'Issue',
-              width: '180px',
+              width: '150px',
               render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.title}>{t.title}</span>,
             },
             {
               key: 'status',
               label: 'IT Dept Status',
-              width: '140px',
+              width: '135px',
               render: (t) => (
                 <select
                   value={t.status}
                   onChange={(e) => onStatusChange(t.id, e.target.value)}
                   aria-label={`IT Status for ticket ${t.token || t.id}`}
-                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                  className="w-full bg-muted border border-border rounded-lg px-1.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                 >
                   {TICKET_STATUSES.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -158,7 +158,7 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
             {
               key: 'employeeStatus',
               label: 'Employee Status',
-              width: '135px',
+              width: '120px',
               render: (t) => {
                 const canEdit = isTicketOwner(t);
                 if (canEdit) {
@@ -167,7 +167,7 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
                       value={t.employeeStatus || 'Active'}
                       onChange={(e) => onFieldChange && onFieldChange(t.id, 'employeeStatus', e.target.value)}
                       aria-label={`Employee Status for ticket ${t.token || t.id}`}
-                      className="bg-primary/10 border border-primary/30 rounded-lg px-2 py-1 text-xs text-primary font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                      className="w-full bg-primary/10 border border-primary/30 rounded-lg px-1.5 py-1 text-xs text-primary font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                     >
                       {['Active', 'Pending', 'Satisfied', 'Closed'].map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -197,13 +197,13 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
             {
               key: 'solver',
               label: 'Solver',
-              width: '135px',
+              width: '110px',
               render: (t) => (
                 <select
                   value={t.solver || 'Team 1'}
                   onChange={(e) => onFieldChange && onFieldChange(t.id, 'solver', e.target.value)}
                   aria-label={`Solver for ticket ${t.token || t.id}`}
-                  className="bg-muted/70 border border-border rounded-lg px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                  className="w-full bg-muted/70 border border-border rounded-lg px-1.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                 >
                   {['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Unassigned'].map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -213,9 +213,9 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
             },
             {
               key: 'remarks',
-              label: 'Remarks (Editable)',
+              label: 'Remarks',
               sortable: false,
-              width: '180px',
+              width: '130px',
               render: (t) => (
                 <input
                   type="text"
