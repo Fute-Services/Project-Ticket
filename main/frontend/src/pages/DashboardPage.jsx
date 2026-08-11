@@ -83,14 +83,32 @@ function TicketsQueueView({ tickets, onStatusChange }) {
           }
           columns={[
             {
-              key: 'token',
-              label: 'Token',
-              width: '110px',
-              render: (t) => <span className="font-bold text-primary">{t.token}</span>,
+              key: 'employeeId',
+              label: 'Employee ID',
+              width: '120px',
+              render: (t) => <span className="font-semibold text-primary">{t.employeeId || '—'}</span>,
             },
-            { key: 'title', label: 'Issue', render: (t) => <span className="text-foreground">{t.title}</span> },
-            { key: 'user', label: 'Requester', render: (t) => <span className="text-muted-foreground">{t.user}</span> },
-            { key: 'dept', label: 'Department', render: (t) => <span className="text-muted-foreground">{t.dept}</span> },
+            {
+              key: 'vpnNo',
+              label: 'VPN No',
+              width: '110px',
+              render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '—'}</span>,
+            },
+            {
+              key: 'username',
+              label: 'Username',
+              render: (t) => <span className="text-foreground font-medium">{t.username || t.user || '—'}</span>,
+            },
+            {
+              key: 'dept',
+              label: 'Department',
+              render: (t) => <span className="text-muted-foreground">{t.dept || '—'}</span>,
+            },
+            {
+              key: 'title',
+              label: 'Issue',
+              render: (t) => <span className="text-foreground">{t.title}</span>,
+            },
             {
               key: 'status',
               label: 'Status',
@@ -99,7 +117,7 @@ function TicketsQueueView({ tickets, onStatusChange }) {
                 <select
                   value={t.status}
                   onChange={(e) => onStatusChange(t.id, e.target.value)}
-                  aria-label={`Status for ticket ${t.token}`}
+                  aria-label={`Status for ticket ${t.token || t.id}`}
                   className="bg-muted border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                 >
                   {TICKET_STATUSES.map((s) => (
@@ -117,7 +135,7 @@ function TicketsQueueView({ tickets, onStatusChange }) {
                 <button
                   type="button"
                   onClick={() => setDetailsTicket(t)}
-                  aria-label={`View details for ticket ${t.token}`}
+                  aria-label={`View details for ticket ${t.token || t.id}`}
                   title="View details"
                   className="w-7 h-7 rounded-lg bg-muted border border-border hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
                 >

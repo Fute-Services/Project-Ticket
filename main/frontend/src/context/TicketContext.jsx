@@ -28,7 +28,7 @@ export function TicketProvider({ children }) {
           // derived here — same sequential-ID convention as the token
           // itself — rather than left blank on every new ticket.
           employeeId: req.employeeId || `EMP-${3000 + seq}`,
-          vpnNo: req.vpnNo || '—',
+          vpnNo: req.vpnNo || `VPN-${4000 + seq}`,
           date: req.date || new Date().toISOString().slice(0, 10),
           username: req.username || (requesterName || 'you').toLowerCase().replace(/\s+/g, '.'),
         },
