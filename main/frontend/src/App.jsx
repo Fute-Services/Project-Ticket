@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { LeaveProvider } from './context/LeaveContext';
 import { TicketProvider } from './context/TicketContext';
 import { ApprovalProvider } from './context/ApprovalContext';
+import { PermissionsProvider } from './context/PermissionsContext';
 import { TaskProjectProvider } from './context/TaskProjectContext';
 import { RenderProvider } from './context/RenderContext';
 import LoginPage from './pages/LoginPage';
@@ -54,6 +55,7 @@ const COORDINATOR_ROUTES = [
 export default function App() {
   return (
     <AuthProvider>
+      <PermissionsProvider>
       <LeaveProvider>
       <TicketProvider>
       <ApprovalProvider>
@@ -130,6 +132,7 @@ export default function App() {
       </ApprovalProvider>
       </TicketProvider>
       </LeaveProvider>
+      </PermissionsProvider>
     </AuthProvider>
   );
 }

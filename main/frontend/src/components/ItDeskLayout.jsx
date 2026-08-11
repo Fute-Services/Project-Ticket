@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePermissions } from '../context/PermissionsContext';
 import {
   Building2,
   LayoutGrid,
@@ -79,7 +80,17 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
     navigate('/', { replace: true });
   }
 
-  const navItems = role === 'employee' ? EMPLOYEE_NAV_ITEMS : IT_NAV_ITEMS(approvalCount);
+  const { canAccess } = usePermissions();
+  const allNavItems = role === 'employee' ? EMPLOYEE_NAV_ITEMS : IT_NAV_ITEMS(approvalCount);
+  const navItems = allNavItems.filter((item) => canAccess(role, item.id));
+
+  // A permission revoked while the user is sitting on that exact tab
+  // shouldn't leave them on a page they can no longer reach from the nav.
+  useEffect(() => {
+    if (navItems.length && !navItems.some((item) => item.id === activeTab)) {
+      setActiveTab(navItems[0].id);
+    }
+  }, [navItems, activeTab, setActiveTab]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row font-sans selection:bg-primary/30 selection:text-primary">

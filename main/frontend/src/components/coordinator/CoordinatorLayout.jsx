@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../context/PermissionsContext';
 import {
   LayoutGrid,
   ListChecks,
@@ -61,6 +62,20 @@ export default function CoordinatorLayout({ children }) {
     setMobileNavOpen(false);
   }
 
+  const { canAccess } = usePermissions();
+  const navItems = NAV_ITEMS.filter((item) => canAccess('coordinator', item.path));
+
+  // A permission revoked while the user is on that page (or a sub-route of
+  // it, e.g. a project detail page) shouldn't leave them stranded there.
+  useEffect(() => {
+    const stillAllowed = navItems.some(
+      (item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+    );
+    if (navItems.length && !stillAllowed) {
+      navigate(navItems[0].path, { replace: true });
+    }
+  }, [navItems, location.pathname, navigate]);
+
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans selection:bg-primary/30 selection:text-primary">
       <aside
@@ -86,7 +101,7 @@ export default function CoordinatorLayout({ children }) {
           </div>
 
           <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
               return (

@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../context/PermissionsContext';
 import {
   Users2,
   LayoutGrid,
@@ -78,7 +79,18 @@ export default function HrLayout({ children }) {
   }
 
   const unreadCount = allNotifications.filter((n) => n.unread).length;
-  const currentNavLabel = NAV_ITEMS.find((item) => item.path === location.pathname)?.label || 'Dashboard';
+
+  const { canAccess } = usePermissions();
+  const navItems = NAV_ITEMS.filter((item) => canAccess('hr', item.path));
+  const currentNavLabel = navItems.find((item) => item.path === location.pathname)?.label || 'Dashboard';
+
+  // A permission revoked while the user is sitting on that exact page
+  // shouldn't leave them stuck on a page that's no longer in their nav.
+  useEffect(() => {
+    if (navItems.length && !navItems.some((item) => item.path === location.pathname)) {
+      navigate(navItems[0].path, { replace: true });
+    }
+  }, [navItems, location.pathname, navigate]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans selection:bg-primary/30 selection:text-primary">
@@ -102,7 +114,7 @@ export default function HrLayout({ children }) {
 
           {/* Navigation Items */}
           <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               return (

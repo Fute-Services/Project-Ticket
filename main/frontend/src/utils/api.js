@@ -15,6 +15,13 @@ api.interceptors.request.use((config) => {
 // Auth
 export const registerUser = (data) => api.post('/api/auth/register', data);
 export const loginUser = (data) => api.post('/api/auth/login', data);
+export const getMe = () => api.get('/api/auth/me');
+
+// Founder — role permissions' per-user overrides
+export const getUsers = (role) => api.get('/api/founder/users', { params: { role } });
+export const createUser = (data) => api.post('/api/founder/users', data);
+export const updateUserPermissions = (uid, permissionOverrides) =>
+  api.patch(`/api/founder/users/${uid}/permissions`, { permissionOverrides });
 
 // Complaints — the queue each role is allowed to see
 export const getFounderComplaints = () => api.get('/api/founder/complaints');

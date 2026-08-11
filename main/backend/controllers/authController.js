@@ -40,7 +40,7 @@ async function register(req, res) {
     { expiresIn: '7d' }
   );
 
-  res.status(201).json({ token, role, full_name, email });
+  res.status(201).json({ id: userRecord.uid, token, role, full_name, email, permissionOverrides: {} });
 }
 
 // POST /api/auth/login
@@ -70,7 +70,31 @@ async function login(req, res) {
     { expiresIn: '7d' }
   );
 
-  res.json({ token, role: user.role, full_name: user.full_name, email: user.email });
+  res.json({
+    id: authData.localId,
+    token,
+    role: user.role,
+    full_name: user.full_name,
+    email: user.email,
+    permissionOverrides: user.permissionOverrides || {},
+  });
 }
 
-module.exports = { register, login };
+// GET /api/auth/me — re-fetches the caller's own profile (role, department,
+// permissionOverrides may have changed since they logged in; AuthContext
+// calls this on reload rather than trusting a possibly-stale cached copy).
+async function getMe(req, res) {
+  const userDoc = await db.collection('users').doc(req.user.id).get();
+  if (!userDoc.exists) return res.status(404).json({ error: 'User profile not found' });
+  const user = userDoc.data();
+  res.json({
+    id: userDoc.id,
+    email: user.email,
+    role: user.role,
+    full_name: user.full_name,
+    department: user.department,
+    permissionOverrides: user.permissionOverrides || {},
+  });
+}
+
+module.exports = { register, login, getMe };
