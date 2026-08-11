@@ -32,14 +32,28 @@ const SEED_USERS = [
 export const DEMO_ACCOUNTS = SEED_USERS.map(({ email, password, role }) => ({ email, password, role }));
 
 function readUsers() {
+  let stored;
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw) throw new Error('empty');
-    return JSON.parse(raw);
+    stored = JSON.parse(raw);
   } catch {
     localStorage.setItem(STORE_KEY, JSON.stringify(SEED_USERS));
     return SEED_USERS;
   }
+
+  // A browser that used this app before a new SEED_USERS entry (e.g.
+  // superadmin.demo@) was added has that stale list cached — merge in any
+  // seed account missing by email so it appears without wiping whatever the
+  // user has since created or changed on their own accounts.
+  const missing = SEED_USERS.filter(
+    (seed) => !stored.some((u) => u.email.toLowerCase() === seed.email.toLowerCase())
+  );
+  if (missing.length) {
+    stored = [...stored, ...missing];
+    writeUsers(stored);
+  }
+  return stored;
 }
 
 function writeUsers(users) {
