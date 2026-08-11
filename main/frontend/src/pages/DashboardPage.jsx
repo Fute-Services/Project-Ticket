@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTickets } from '../context/TicketContext';
 import { useApprovals } from '../context/ApprovalContext';
+import { useAuth } from '../context/AuthContext';
 import { useRenders, frameCount } from '../context/RenderContext';
 import { toast } from 'sonner';
 import ItDeskLayout from '../components/ItDeskLayout';
@@ -34,6 +35,7 @@ import {
   Download,
   ChevronDown,
   X,
+  Search,
   HardDrive,
   History as HistoryIcon,
   Cpu,
@@ -44,10 +46,19 @@ import {
 
 const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
-function TicketsQueueView({ tickets, onStatusChange }) {
+function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
+  const { user } = useAuth();
   const [filter, setFilter] = useState('All');
   const [detailsTicket, setDetailsTicket] = useState(null);
   const visible = filter === 'All' ? tickets : tickets.filter((t) => t.status === filter);
+
+  function isTicketOwner(t) {
+    if (!user) return false;
+    const matchesName = user.full_name && t.user && user.full_name.toLowerCase() === t.user.toLowerCase();
+    const matchesUsername = user.username && t.username && user.username.toLowerCase() === t.username.toLowerCase();
+    const matchesEmailName = user.email && t.username && user.email.toLowerCase().startsWith(t.username.toLowerCase());
+    return matchesName || matchesUsername || matchesEmailName;
+  }
 
   return (
     <div className="w-full flex flex-col gap-6">
@@ -85,42 +96,58 @@ function TicketsQueueView({ tickets, onStatusChange }) {
           }
           columns={[
             {
-              key: 'employeeId',
-              label: 'Employee ID',
-              width: '120px',
-              render: (t) => <span className="font-semibold text-primary">{t.employeeId || '—'}</span>,
+              key: 'sno',
+              label: 'S.No.',
+              width: '60px',
+              sortable: false,
+              render: (_, index) => <span className="text-muted-foreground font-semibold text-xs">{(index ?? 0) + 1}</span>,
             },
             {
-              key: 'vpnNo',
-              label: 'VPN No',
-              width: '110px',
-              render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '—'}</span>,
+              key: 'date',
+              label: 'Date',
+              width: '95px',
+              render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '—'}</span>,
             },
             {
               key: 'username',
               label: 'Username',
-              render: (t) => <span className="text-foreground font-medium">{t.username || t.user || '—'}</span>,
+              width: '110px',
+              render: (t) => <span className="text-foreground font-medium text-xs">{t.username || t.user || '—'}</span>,
+            },
+            {
+              key: 'employeeId',
+              label: 'Employee ID',
+              width: '110px',
+              render: (t) => <span className="font-semibold text-primary text-xs">{t.employeeId || '—'}</span>,
+            },
+            {
+              key: 'vpnNo',
+              label: 'VPN ID',
+              width: '100px',
+              render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '—'}</span>,
             },
             {
               key: 'dept',
               label: 'Department',
-              render: (t) => <span className="text-muted-foreground">{t.dept || '—'}</span>,
+              width: '110px',
+              render: (t) => <span className="text-muted-foreground text-xs">{t.dept || '—'}</span>,
             },
             {
               key: 'title',
               label: 'Issue',
-              render: (t) => <span className="text-foreground">{t.title}</span>,
+              width: '180px',
+              render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.title}>{t.title}</span>,
             },
             {
               key: 'status',
-              label: 'Status',
-              width: '150px',
+              label: 'IT Dept Status',
+              width: '140px',
               render: (t) => (
                 <select
                   value={t.status}
                   onChange={(e) => onStatusChange(t.id, e.target.value)}
-                  aria-label={`Status for ticket ${t.token || t.id}`}
-                  className="bg-muted border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                  aria-label={`IT Status for ticket ${t.token || t.id}`}
+                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                 >
                   {TICKET_STATUSES.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -129,20 +156,74 @@ function TicketsQueueView({ tickets, onStatusChange }) {
               ),
             },
             {
-              key: 'details',
-              label: 'Details',
-              sortable: false,
-              width: '70px',
+              key: 'employeeStatus',
+              label: 'Employee Status',
+              width: '135px',
+              render: (t) => {
+                const canEdit = isTicketOwner(t);
+                if (canEdit) {
+                  return (
+                    <select
+                      value={t.employeeStatus || 'Active'}
+                      onChange={(e) => onFieldChange && onFieldChange(t.id, 'employeeStatus', e.target.value)}
+                      aria-label={`Employee Status for ticket ${t.token || t.id}`}
+                      className="bg-primary/10 border border-primary/30 rounded-lg px-2 py-1 text-xs text-primary font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                    >
+                      {['Active', 'Pending', 'Satisfied', 'Closed'].map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  );
+                }
+
+                const statusStr = t.employeeStatus || 'Active';
+                const badgeColor =
+                  statusStr === 'Satisfied'
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    : statusStr === 'Closed'
+                    ? 'bg-muted text-muted-foreground border-border'
+                    : 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+
+                return (
+                  <span
+                    className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold whitespace-nowrap ${badgeColor}`}
+                    title="Only the employee who raised this ticket can edit Employee Status"
+                  >
+                    {statusStr}
+                  </span>
+                );
+              },
+            },
+            {
+              key: 'solver',
+              label: 'Solver',
+              width: '135px',
               render: (t) => (
-                <button
-                  type="button"
-                  onClick={() => setDetailsTicket(t)}
-                  aria-label={`View details for ticket ${t.token || t.id}`}
-                  title="View details"
-                  className="w-7 h-7 rounded-lg bg-muted border border-border hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
+                <select
+                  value={t.solver || 'Team 1'}
+                  onChange={(e) => onFieldChange && onFieldChange(t.id, 'solver', e.target.value)}
+                  aria-label={`Solver for ticket ${t.token || t.id}`}
+                  className="bg-muted/70 border border-border rounded-lg px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                 >
-                  <Eye size={12} />
-                </button>
+                  {['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Unassigned'].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              ),
+            },
+            {
+              key: 'remarks',
+              label: 'Remarks (Editable)',
+              sortable: false,
+              width: '180px',
+              render: (t) => (
+                <input
+                  type="text"
+                  value={t.remarks || ''}
+                  onChange={(e) => onFieldChange && onFieldChange(t.id, 'remarks', e.target.value)}
+                  placeholder="Type remarks..."
+                  className="w-full bg-background border border-input rounded-md px-2 py-1 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring placeholder:text-muted-foreground/60"
+                />
               ),
             },
           ]}
@@ -200,7 +281,17 @@ function TicketsQueueView({ tickets, onStatusChange }) {
   );
 }
 
-const APPROVAL_FORM_EMPTY = { title: '', sub: '', requestedBy: '', priority: 'medium', category: 'General' };
+const APPROVAL_FORM_EMPTY = {
+  date: new Date().toISOString().slice(0, 10),
+  title: '',
+  department: 'IT Support',
+  sub: '',
+  employeeId: '',
+  username: '',
+  requestedBy: '',
+  priority: 'medium',
+  category: 'General',
+};
 const APPROVAL_CATEGORIES = ['General', 'Software', 'Hardware', 'System Access', 'Data Transfer'];
 
 function ApprovalCenterView() {
@@ -230,7 +321,11 @@ function ApprovalCenterView() {
       });
       return;
     }
-    submitApproval({ ...form, source: 'IT' });
+    submitApproval({
+      ...form,
+      requestedBy: form.username || form.employeeId || 'IT Support',
+      source: 'IT',
+    });
     setForm(APPROVAL_FORM_EMPTY);
     toast.success('Sent for founder approval', { description: form.title });
   }
@@ -247,49 +342,112 @@ function ApprovalCenterView() {
 
       <Card>
         <h3 className="font-semibold text-sm text-foreground mb-3">Send for Founder Approval</h3>
-        <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input
-            required
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            placeholder="Request title"
-            className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-          <input
-            value={form.requestedBy}
-            onChange={(e) => setForm((f) => ({ ...f, requestedBy: e.target.value }))}
-            placeholder="Requested by"
-            className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-          <input
-            value={form.sub}
-            onChange={(e) => setForm((f) => ({ ...f, sub: e.target.value }))}
-            placeholder="Details"
-            className="sm:col-span-2 bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-          <select
-            value={form.category}
-            onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-            aria-label="Category"
-            className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-          >
-            {APPROVAL_CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <select
-            value={form.priority}
-            onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
-            aria-label="Priority"
-            className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
+        <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* 1. Date */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Date</label>
+            <input
+              type="date"
+              required
+              value={form.date || new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          {/* 2. Request Title */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Request Title</label>
+            <input
+              required
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              placeholder="Request title"
+              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          {/* 3. Department */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Department</label>
+            <select
+              value={form.department || 'IT Support'}
+              onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
+              aria-label="Department"
+              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+            >
+              {['IT Support', 'Engineering', 'Network', 'Software', 'VPN', 'Data Team', 'Design', 'HR', 'Finance'].map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 4. Details */}
+          <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-3">
+            <label className="text-[11px] font-medium text-muted-foreground">Details</label>
+            <input
+              value={form.sub}
+              onChange={(e) => setForm((f) => ({ ...f, sub: e.target.value }))}
+              placeholder="Details"
+              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          {/* 5. Employee ID */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Employee ID</label>
+            <input
+              value={form.employeeId}
+              onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
+              placeholder="Employee ID (e.g. EMP-2001)"
+              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          {/* 6. Username */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Username</label>
+            <input
+              value={form.username}
+              onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+              placeholder="Username (e.g. john.doe)"
+              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          {/* Category (Existing) */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Category</label>
+            <select
+              value={form.category}
+              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+              aria-label="Category"
+              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+            >
+              {APPROVAL_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Priority (Existing) */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-muted-foreground">Priority</label>
+            <select
+              value={form.priority}
+              onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
+              aria-label="Priority"
+              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+
           <button
             type="submit"
-            className="sm:col-span-2 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+            className="sm:col-span-2 lg:col-span-3 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer mt-1"
           >
             Send for Founder Approval
           </button>
@@ -529,11 +687,25 @@ function AssetsView() {
   const { approvals, submitApproval } = useApprovals();
   const [assets, setAssets] = useState(SEED_ASSETS);
   const [typeFilter, setTypeFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
   const [auditAsset, setAuditAsset] = useState(null);
 
-  const visible = assets.filter((a) => typeFilter === 'All' || a.type === typeFilter);
+  const visible = useMemo(() => {
+    return assets
+      .filter((a) => typeFilter === 'All' || a.type === typeFilter)
+      .filter((a) => {
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.trim().toLowerCase();
+        return (
+          (a.id && a.id.toLowerCase().includes(q)) ||
+          (a.model && a.model.toLowerCase().includes(q)) ||
+          (a.assignedTo && a.assignedTo.toLowerCase().includes(q)) ||
+          (a.department && a.department.toLowerCase().includes(q))
+        );
+      });
+  }, [assets, typeFilter, searchQuery]);
 
   // Warranty is "expiring" if it lapses within 90 days of the demo date —
   // the whole point of tracking it is catching that before it lapses.
@@ -631,6 +803,19 @@ function AssetsView() {
       </div>
 
       <Card>
+        {/* Search Bar at the top */}
+        <div className="relative mb-4">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by asset ID, model, user, or department…"
+            aria-label="Search assets"
+            className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+
+        {/* Category Filters below Search Bar */}
         <div className="flex flex-wrap gap-2 mb-4">
           {['All', ...ASSET_TYPES].map((t) => (
             <button
@@ -649,10 +834,7 @@ function AssetsView() {
         <DataTable
           rows={visible}
           pageSize={10}
-          searchable
-          searchKeys={['id', 'model', 'assignedTo', 'department']}
-          searchPlaceholder="Search by asset ID, model, user, or department…"
-          emptyMessage="No assets of this type are on record yet."
+          emptyMessage="No assets match your search or filter criteria."
           emptyAction={
             <button
               type="button"
@@ -919,9 +1101,8 @@ function ReportsView() {
 // (ProductionDashboardView), so this mirrors that same shared RenderContext
 // list rather than giving IT its own editable copy of someone else's queue.
 function RenderingStatusView() {
-  const { renders } = useRenders();
-  const totalFrames = renders.reduce((sum, r) => sum + frameCount(r.frameNo), 0);
-  const activeSystems = renders.filter((r) => r.status === 'Rendering').reduce((sum, r) => sum + Number(r.allocatedSystems || 0), 0);
+  const { renders, updateRenderField } = useRenders();
+  const activeJobs = renders.filter((r) => r.status === 'Queue' || r.status === 'Pending').length;
 
   return (
     <div className="w-full flex flex-col gap-6">
@@ -934,9 +1115,9 @@ function RenderingStatusView() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <StatCard icon={Film} label="Total Frame Renders" value={totalFrames} sub="frames across all jobs" accent="hsl(var(--chart-1))" />
-        <StatCard icon={Cpu} label="Allocated Systems" value={activeSystems} sub="on active renders" accent="hsl(var(--chart-2))" />
-        <StatCard icon={Play} label="Rendering" value={renders.filter((r) => r.status === 'Rendering').length} sub="jobs in flight" accent="hsl(var(--chart-3))" />
+        <StatCard icon={Film} label="Total Renders" value={renders.length} sub="jobs recorded" accent="hsl(var(--chart-1))" />
+        <StatCard icon={Play} label="Active / Queue" value={activeJobs} sub="jobs in flight" accent="hsl(var(--chart-2))" />
+        <StatCard icon={Clock} label="On Hold" value={renders.filter((r) => r.status === 'On Hold').length} sub="paused jobs" accent="hsl(var(--chart-3))" />
         <StatCard icon={CheckCircle2} label="Completed" value={renders.filter((r) => r.status === 'Completed').length} sub="jobs finished" accent="hsl(var(--chart-4))" />
       </div>
 
@@ -945,27 +1126,97 @@ function RenderingStatusView() {
         <DataTable
           rows={renders}
           pageSize={10}
-          emptyMessage="Production hasn't logged any render jobs yet."
+          emptyMessage="No render jobs logged yet."
           columns={[
-            { key: 'projectCode', label: 'Project Code', render: (r) => <span className="font-bold text-primary">{r.projectCode}</span> },
-            { key: 'sequenceType', label: 'Sequence', render: (r) => <span className="text-foreground">{r.sequenceType}</span> },
-            { key: 'frameNo', label: 'Frame No', render: (r) => <span className="text-muted-foreground">{r.frameNo}</span> },
-            { key: 'personName', label: 'Assigned To', render: (r) => <span className="text-muted-foreground">{r.personName}</span> },
-            { key: 'date', label: 'Date', render: (r) => <span className="text-muted-foreground">{r.date}</span> },
-            { key: 'allocatedSystems', label: 'Systems', render: (r) => <span className="text-muted-foreground">{r.allocatedSystems}</span> },
+            {
+              key: 'sno',
+              label: 'S.No.',
+              width: '60px',
+              sortable: false,
+              render: (_, index) => <span className="text-muted-foreground font-semibold text-xs">{(index ?? 0) + 1}</span>,
+            },
+            {
+              key: 'date',
+              label: 'Date',
+              width: '100px',
+              render: (r) => <span className="text-muted-foreground text-xs whitespace-nowrap">{r.date || '—'}</span>,
+            },
+            {
+              key: 'sequence',
+              label: 'Sequence',
+              width: '170px',
+              sortable: false,
+              render: (r) => (
+                <input
+                  type="text"
+                  value={r.sequence || ''}
+                  onChange={(e) => updateRenderField && updateRenderField(r.id, 'sequence', e.target.value)}
+                  placeholder="Type sequence..."
+                  className="w-full bg-background border border-input rounded-md px-2 py-1 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring placeholder:text-muted-foreground/60"
+                />
+              ),
+            },
+            {
+              key: 'frameNo',
+              label: 'Frame No',
+              width: '170px',
+              sortable: false,
+              render: (r) => (
+                <input
+                  type="text"
+                  value={r.frameNo || ''}
+                  onChange={(e) => updateRenderField && updateRenderField(r.id, 'frameNo', e.target.value)}
+                  placeholder="Type frame no..."
+                  className="w-full bg-background border border-input rounded-md px-2 py-1 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring placeholder:text-muted-foreground/60"
+                />
+              ),
+            },
+            {
+              key: 'personName',
+              label: 'Assigned To',
+              width: '160px',
+              render: (r) => (
+                <select
+                  value={r.personName || 'Unassigned'}
+                  onChange={(e) => updateRenderField && updateRenderField(r.id, 'personName', e.target.value)}
+                  aria-label={`Assigned employee for render job ${r.id}`}
+                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                >
+                  {['Sameer Kulkarni', 'Priya Nair', 'John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'Robert Brown', 'Unassigned'].map((emp) => (
+                    <option key={emp} value={emp}>{emp}</option>
+                  ))}
+                </select>
+              ),
+            },
+            {
+              key: 'endDate',
+              label: 'End Date',
+              width: '135px',
+              sortable: false,
+              render: (r) => (
+                <input
+                  type="date"
+                  value={r.endDate || ''}
+                  onChange={(e) => updateRenderField && updateRenderField(r.id, 'endDate', e.target.value)}
+                  className="w-full bg-background border border-input rounded-md px-2 py-1 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              ),
+            },
             {
               key: 'status',
               label: 'Status',
+              width: '140px',
               render: (r) => (
-                <span
-                  className={`text-xs px-2.5 py-1 rounded-full border font-semibold whitespace-nowrap ${
-                    r.status === 'Completed'
-                      ? 'bg-primary/10 text-primary border-primary/20'
-                      : 'bg-warning/10 text-warning border-warning/20'
-                  }`}
+                <select
+                  value={r.status || 'Queue'}
+                  onChange={(e) => updateRenderField && updateRenderField(r.id, 'status', e.target.value)}
+                  aria-label={`Status for render job ${r.id}`}
+                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                 >
-                  {r.status}
-                </span>
+                  {['Completed', 'Pending', 'On Hold', 'Queue'].map((st) => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
               ),
             },
           ]}
@@ -1064,7 +1315,7 @@ export default function DashboardPage() {
 
   // Shared with the Employee dashboard — a ticket raised there appears
   // here immediately, and a status change made here reflects there too.
-  const { tickets: recentTickets, changeStatus: changeTicketStatus } = useTickets();
+  const { tickets: recentTickets, changeStatus: changeTicketStatus, updateTicketField } = useTickets();
 
   // Derived from the live ticket list rather than hard-coded. The previous
   // fixed figures summed to 174%, which the old hand-rolled donut rendered as
@@ -1174,7 +1425,11 @@ export default function DashboardPage() {
       )}
 
       {activeTab === 'tickets' && (
-        <TicketsQueueView tickets={recentTickets} onStatusChange={changeTicketStatusWithUndo} />
+        <TicketsQueueView
+          tickets={recentTickets}
+          onStatusChange={changeTicketStatusWithUndo}
+          onFieldChange={updateTicketField}
+        />
       )}
 
       {activeTab === 'approval' && <ApprovalCenterView />}

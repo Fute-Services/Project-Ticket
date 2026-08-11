@@ -8,7 +8,7 @@ export type Column<T = any> = {
   sortable?: boolean;
   align?: 'left' | 'right';
   width?: string;
-  render?: (row: T) => React.ReactNode;
+  render?: (row: T, index?: number) => React.ReactNode;
   /** Hide on small screens — the row card shows it instead. */
   hideOnMobile?: boolean;
 };
@@ -186,7 +186,7 @@ export default function DataTable<T extends Record<string, any>>({
               >
                 {columns.map((col) => (
                   <td key={col.key} className={`py-3 px-3 align-middle ${col.align === 'right' ? 'text-right' : ''}`}>
-                    {col.render ? col.render(row) : row[col.key]}
+                    {col.render ? col.render(row, safePage * pageSize + i) : row[col.key]}
                   </td>
                 ))}
               </tr>

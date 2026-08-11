@@ -31,6 +31,9 @@ export function TicketProvider({ children }) {
           vpnNo: req.vpnNo || `VPN-${4000 + seq}`,
           date: req.date || new Date().toISOString().slice(0, 10),
           username: req.username || (requesterName || 'you').toLowerCase().replace(/\s+/g, '.'),
+          employeeStatus: 'Pending',
+          solver: 'Team 1',
+          remarks: '',
         },
         ...prev,
       ];
@@ -43,8 +46,20 @@ export function TicketProvider({ children }) {
     );
   }
 
+  function updateTicketField(id, field, value) {
+    setTickets((prev) =>
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        if (field === 'status') {
+          return { ...t, status: value, statusColor: TICKET_STATUS_COLOR[value] };
+        }
+        return { ...t, [field]: value };
+      })
+    );
+  }
+
   return (
-    <TicketContext.Provider value={{ tickets, addTicket, changeStatus }}>
+    <TicketContext.Provider value={{ tickets, addTicket, changeStatus, updateTicketField }}>
       {children}
     </TicketContext.Provider>
   );

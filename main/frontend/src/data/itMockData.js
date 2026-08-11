@@ -53,6 +53,9 @@ export const initialTickets = [
     vpnNo: 'VPN-1082',
     date: '2026-08-09',
     username: 'john.doe',
+    employeeStatus: 'Active',
+    solver: 'Team 1',
+    remarks: '',
   },
   {
     id: 2,
@@ -66,6 +69,9 @@ export const initialTickets = [
     vpnNo: 'VPN-1095',
     date: '2026-08-09',
     username: 'jane.smith',
+    employeeStatus: 'Pending',
+    solver: 'Team 2',
+    remarks: '',
   },
   {
     id: 3,
@@ -79,6 +85,9 @@ export const initialTickets = [
     vpnNo: 'VPN-2018',
     date: '2026-08-08',
     username: 'mike.johnson',
+    employeeStatus: 'Pending',
+    solver: 'Team 3',
+    remarks: '',
   },
   {
     id: 4,
@@ -92,6 +101,9 @@ export const initialTickets = [
     vpnNo: 'VPN-2044',
     date: '2026-08-08',
     username: 'sarah.wilson',
+    employeeStatus: 'Active',
+    solver: 'Team 1',
+    remarks: '',
   },
   {
     id: 5,
@@ -105,6 +117,9 @@ export const initialTickets = [
     vpnNo: 'VPN-3051',
     date: '2026-08-07',
     username: 'robert.brown',
+    employeeStatus: 'Active',
+    solver: 'Team 4',
+    remarks: '',
   },
 ];
 
