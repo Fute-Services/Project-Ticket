@@ -20,8 +20,8 @@ import { employees, candidates, attendanceRecords } from '../data/hrMockData';
 const INITIAL_HR_COMPLAINTS = [
   {
     id: 'FT-HR-9012',
-    name: 'Sneha Iyer',
-    department: 'Engineering',
+    name: 'Sangeetha KS',
+    department: 'Admin/Ops',
     issue: 'Overtime Allowance Discrepancy for July sprint deployment',
     priority: 'High',
     submittedAt: '2 days ago',

@@ -4,13 +4,50 @@
 // resume-parsing infrastructure that doesn't exist yet. See
 // docs/BACKEND_WORKFLOW.md §5 for what wiring this to a real API would take.
 
+// Real company roster (replaces the earlier six-person illustrative list).
+// No phone/joiningDate on file for these yet, so those fields are left out
+// rather than invented — Directory.jsx already renders blank for missing
+// values instead of a placeholder.
 export const employees = [
-  { id: 'E-01', name: 'Rahul Sen', designation: 'Engineering Manager', department: 'Engineering', email: 'rahul.sen@futeservices.com', phone: '+91 90011 22334', joiningDate: '2022-03-14', manager: 'Founder', status: 'Active', photo: 'RS' },
-  { id: 'E-02', name: 'Payal Shah', designation: 'HR Manager', department: 'Human Resources', email: 'payal.shah@futeservices.com', phone: '+91 90022 33445', joiningDate: '2021-11-02', manager: 'Founder', status: 'Active', photo: 'PS' },
-  { id: 'E-03', name: 'Sneha Iyer', designation: 'HR Executive', department: 'Human Resources', email: 'sneha.iyer@futeservices.com', phone: '+91 90033 44556', joiningDate: '2023-06-19', manager: 'Payal Shah', status: 'Active', photo: 'SI' },
-  { id: 'E-04', name: 'Devansh Gupta', designation: 'Mobile Engineer', department: 'Engineering', email: 'devansh.g@futeservices.com', phone: '+91 90044 55667', joiningDate: '2026-07-01', manager: 'Rahul Sen', status: 'Active', photo: 'DG' },
-  { id: 'E-05', name: 'Meera Pillai', designation: 'IT Support', department: 'IT', email: 'system.meera@futeservices.com', phone: '+91 90055 66778', joiningDate: '2023-01-10', manager: 'Founder', status: 'On Leave', photo: 'MP' },
-  { id: 'E-06', name: 'Arjun Verma', designation: 'DevOps Manager', department: 'Engineering', email: 'arjun.verma@futeservices.com', phone: '+91 90066 77889', joiningDate: '2020-09-23', manager: 'Founder', status: 'Active', photo: 'AV' },
+  { id: '10068', name: 'Nitish Kumar Sharma', designation: 'TL', department: 'Production', email: 'bangalore.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'NS' },
+  { id: '10163', name: 'Pradeep Kumar', designation: 'SR 3D', department: 'Production', email: 'team1.fute@gmail.com', manager: 'Nitish (TL)', status: 'Active', photo: 'PK' },
+  { id: '10188', name: 'Kanhu', designation: 'Model', department: 'Production', email: 'team8.fute@gmail.com', manager: 'Nitish (TL)', status: 'Active', photo: 'KA' },
+  { id: '10191', name: 'Abhinav Rai', designation: 'Model', department: 'Production', email: 'team4.fute@gmail.com', manager: 'Nitish (TL)', status: 'Active', photo: 'AR' },
+  { id: '10205', name: 'Mayank', designation: 'TL', department: 'Production', email: 'team11.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'MA' },
+  { id: '10208', name: 'Himanshu', designation: '3D', department: 'Production', email: 'team15.fute@gmail.com', manager: 'Mayank (TL)', status: 'Active', photo: 'HI' },
+  { id: '10209', name: 'Kalyani', designation: 'TL -Plan', department: 'Production', email: 'team6.fute@gmail.com', manager: 'Nitish (TL)', status: 'Active', photo: 'KA' },
+  { id: '10214', name: 'Vipin', designation: 'SR 3D', department: 'Production', email: 'team13.fute@gmail.com', manager: 'Mayank (TL)', status: 'Active', photo: 'VI' },
+  { id: '10230', name: 'Amit Gomasta', designation: 'compositor', department: 'Production', email: 'post6.fute@gmail.com', manager: '', status: 'Active', photo: 'AG' },
+  { id: '10244', name: 'Anushtha Saini', designation: 'Interior', department: 'Production', email: 'team9.fute@gmail.com', manager: 'Nitish (TL)', status: 'Active', photo: 'AS' },
+  { id: '10249', name: 'Debashish Das', designation: 'Floor plan', department: 'Production', email: 'team23.fute@gmail.com', manager: 'Kalyani (TL-Plan)', status: 'Active', photo: 'DD' },
+  { id: '10274', name: 'Hridesh Kumar', designation: 'POST', department: 'Production', email: 'post9.fute@gmail.com', manager: '', status: 'Active', photo: 'HK' },
+  { id: '10280', name: 'Sonali Das', designation: 'Plans', department: 'Production', email: 'team24.fute@gmail.com', manager: 'Kalyani (TL-Plan)', status: 'Active', photo: 'SD' },
+  { id: '10286', name: 'Chetan Khirekar', designation: 'Interior', department: 'Production', email: 'team27.fute@gmail.com', manager: 'Nitish (TL)', status: 'Active', photo: 'CK' },
+  { id: '10288', name: 'Tilottama Paramanik', designation: 'Floor plan', department: 'Production', email: 'team29.fute@gmail.com', manager: 'Kalyani (TL-Plan)', status: 'Active', photo: 'TP' },
+  { id: '10292', name: 'Mohanprabu', designation: 'IT', department: 'Admin/Ops', email: 'tech1.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'MO' },
+  { id: '10299', name: 'Mohit', designation: 'SR 3D', department: 'Production', email: 'team32.fute@gmail.com', manager: 'Nitish (TL)', status: 'Active', photo: 'MO' },
+  { id: '10301', name: 'Priyal Chorge', designation: 'post-Sr', department: 'Production', email: 'post10.fute@gmail.com', manager: '', status: 'Active', photo: 'PC' },
+  { id: '10303', name: 'Akila S', designation: 'Developer', department: 'Production', email: 'fute.fwd@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'AS' },
+  { id: '10310', name: 'Prathiti A C', designation: 'Proj-Cord', department: 'Admin/Ops', email: 'project8.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'PA' },
+  { id: '10319', name: 'Srinivasan Neelakandan', designation: 'Developer', department: 'Production', email: 'fute.fwd2@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'SN' },
+  { id: '10323', name: 'Jyothi Ranjan Jena', designation: 'Plan', department: 'Production', email: 'team33.fute@gmail.com', manager: 'Kalyani (TL-Plan)', status: 'Active', photo: 'JJ' },
+  { id: '10331', name: 'Sangeetha KS', designation: 'HR intern', department: 'Admin/Ops', email: 'hr.fute3@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'SK' },
+  { id: '10332', name: 'Trupthi S', designation: 'HR intern', department: 'Admin/Ops', email: 'hr.fute3@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'TS' },
+  { id: '10333', name: 'Lavanya Yaligar', designation: 'Project-Coordinator', department: 'Production', email: 'int2.fute@gmail.com', manager: 'Mrs. Soma Rathish', status: 'Active', photo: 'LY' },
+  { id: '10334', name: 'Sai Charan', designation: 'Animation Film Design Intern', department: 'Production', email: 'int7.fute@gmail.com', manager: 'Mrs. Soma Rathish', status: 'Active', photo: 'SC' },
+  { id: '10336', name: 'Shivani AS', designation: 'Inside Sales Executive', department: 'Sales', email: 'Sales2.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'SA' },
+  { id: '10337', name: 'Yogesh Kumar', designation: 'Full stack developer intern', department: 'Software', email: 'int6.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'YK' },
+  { id: '10338', name: 'Kumar Gautam', designation: 'Full stack developer intern', department: 'Software', email: 'int8.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'KG' },
+  { id: '10339', name: 'Aabhya Gupta', designation: 'Project coordinator', department: 'Production', email: 'fute.cordination2@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'AG' },
+  { id: '10340', name: 'Sofiya K N', designation: 'Project coordinator', department: 'Production', email: 'project9.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'SK' },
+  { id: '10341', name: 'Kapil Chauhan', designation: '3D Visualiser', department: 'Production', email: 'team34.fute@gmail.com', manager: 'Nithish (TL)', status: 'Active', photo: 'KC' },
+  { id: '10342', name: 'Sayantani Mukherjee', designation: 'Project coordinator', department: 'Production', email: 'Project1.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'SM' },
+  { id: '10344', name: 'Saubhagya Anubhav', designation: 'Full stack developer intern', department: 'Software', email: 'int11.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'SA' },
+  { id: '10347', name: 'Nesamanikandan', designation: 'System Administrator', department: 'IT', email: 'tech2.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'NE' },
+  { id: '10348', name: 'Puja Thakur', designation: 'Business Development Executive', department: 'Sales', email: 'sales3.fute@gmail.com', manager: 'Shivani', status: 'Active', photo: 'PT' },
+  { id: '10349', name: 'Ann Mary Anu', designation: 'Project coordinator', department: 'Production', email: 'project8.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'AA' },
+  { id: '10350', name: 'Lavanya Rathi', designation: 'Visual Communication and Brand Identity Executive', department: 'Marketing', email: 'branding.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'LR' },
+  { id: '10351', name: 'Charan Billava', designation: 'UI/UX intern', department: 'Software', email: 'int4.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'CB' },
 ];
 
 // Bank details are shown only inside the employee profile drawer, never in
@@ -53,71 +90,71 @@ export const INTERVIEW_TYPES = ['HR', 'Technical', 'Manager', 'Final Round'];
 export const INTERVIEW_STATUSES = ['Scheduled', 'Completed', 'Cancelled', 'Rescheduled'];
 
 export const interviews = [
-  { id: 'IV-501', candidateId: 'C-1001', candidate: 'Ananya Rao', type: 'Technical', interviewer: 'Rahul Sen', date: '2026-08-07', time: '11:00 AM', link: 'meet.fute.com/iv-501', location: 'Remote', status: 'Scheduled', notes: 'Focus on system design.' },
-  { id: 'IV-502', candidateId: 'C-1002', candidate: 'Rohit Malhotra', type: 'HR', interviewer: 'Payal Shah', date: '2026-08-06', time: '03:00 PM', link: '', location: 'Conference Room B', status: 'Scheduled', notes: 'Discuss notice period.' },
+  { id: 'IV-501', candidateId: 'C-1001', candidate: 'Ananya Rao', type: 'Technical', interviewer: 'Nesamanikandan', date: '2026-08-07', time: '11:00 AM', link: 'meet.fute.com/iv-501', location: 'Remote', status: 'Scheduled', notes: 'Focus on system design.' },
+  { id: 'IV-502', candidateId: 'C-1002', candidate: 'Rohit Malhotra', type: 'HR', interviewer: 'Ms. Payel Saha', date: '2026-08-06', time: '03:00 PM', link: '', location: 'Conference Room B', status: 'Scheduled', notes: 'Discuss notice period.' },
   { id: 'IV-503', candidateId: 'C-1003', candidate: 'Priya Nair', type: 'Final Round', interviewer: 'Founder', date: '2026-08-05', time: '05:00 PM', link: 'meet.fute.com/iv-503', location: 'Remote', status: 'Completed', notes: 'Strong portfolio.' },
-  { id: 'IV-504', candidateId: 'C-1006', candidate: 'Arjun Verma', type: 'Manager', interviewer: 'Payal Shah', date: '2026-08-08', time: '10:30 AM', link: 'meet.fute.com/iv-504', location: 'Remote', status: 'Scheduled', notes: '' },
-  { id: 'IV-505', candidateId: 'C-1007', candidate: 'Meera Pillai', type: 'HR', interviewer: 'Payal Shah', date: '2026-07-30', time: '02:00 PM', link: '', location: 'Conference Room A', status: 'Cancelled', notes: 'Candidate withdrew.' },
-  { id: 'IV-506', candidateId: 'C-1004', candidate: 'Karan Mehta', type: 'Technical', interviewer: 'Rahul Sen', date: '2026-08-09', time: '01:00 PM', link: 'meet.fute.com/iv-506', location: 'Remote', status: 'Rescheduled', notes: 'Moved from Aug 4.' },
+  { id: 'IV-504', candidateId: 'C-1006', candidate: 'Arjun Verma', type: 'Manager', interviewer: 'Ms. Payel Saha', date: '2026-08-08', time: '10:30 AM', link: 'meet.fute.com/iv-504', location: 'Remote', status: 'Scheduled', notes: '' },
+  { id: 'IV-505', candidateId: 'C-1007', candidate: 'Meera Pillai', type: 'HR', interviewer: 'Ms. Payel Saha', date: '2026-07-30', time: '02:00 PM', link: '', location: 'Conference Room A', status: 'Cancelled', notes: 'Candidate withdrew.' },
+  { id: 'IV-506', candidateId: 'C-1004', candidate: 'Karan Mehta', type: 'Technical', interviewer: 'Nesamanikandan', date: '2026-08-09', time: '01:00 PM', link: 'meet.fute.com/iv-506', location: 'Remote', status: 'Rescheduled', notes: 'Moved from Aug 4.' },
 ];
 
 export const meetings = [
-  { id: 'MT-201', title: 'Weekly HR Sync', type: 'HR Meeting', agenda: 'Review open positions and pipeline health.', participants: ['Payal Shah', 'Rahul Sen', 'Sneha Iyer'], date: '2026-08-06', time: '09:30 AM', notes: '' },
-  { id: 'MT-202', title: 'Offer discussion — Priya Nair', type: 'Candidate Meeting', agenda: 'Finalize compensation before sending offer.', participants: ['Payal Shah', 'Founder'], date: '2026-08-06', time: '04:00 PM', notes: 'Budget approved up to ₹15 LPA.' },
-  { id: 'MT-203', title: 'Q3 Hiring Plan', type: 'Team Meeting', agenda: 'Headcount planning for Q3.', participants: ['Founder', 'Payal Shah', 'Department Managers'], date: '2026-08-10', time: '11:00 AM', notes: '' },
+  { id: 'MT-201', title: 'Weekly HR Sync', type: 'HR Meeting', agenda: 'Review open positions and pipeline health.', participants: ['Ms. Payel Saha', 'Nesamanikandan', 'Sangeetha KS'], date: '2026-08-06', time: '09:30 AM', notes: '' },
+  { id: 'MT-202', title: 'Offer discussion — Priya Nair', type: 'Candidate Meeting', agenda: 'Finalize compensation before sending offer.', participants: ['Ms. Payel Saha', 'Founder'], date: '2026-08-06', time: '04:00 PM', notes: 'Budget approved up to ₹15 LPA.' },
+  { id: 'MT-203', title: 'Q3 Hiring Plan', type: 'Team Meeting', agenda: 'Headcount planning for Q3.', participants: ['Founder', 'Ms. Payel Saha', 'Department Managers'], date: '2026-08-10', time: '11:00 AM', notes: '' },
 ];
 
 export const ATTENDANCE_STATUSES = ['Present', 'Absent', 'Late', 'Half Day', 'Work From Home'];
 
 // yyyy-mm-dd -> status, per employee id, for the current month demo view
 export const attendanceRecords = [
-  { employeeId: 'E-01', date: '2026-08-01', status: 'Present', checkIn: '09:12', checkOut: '18:30' },
-  { employeeId: 'E-01', date: '2026-08-02', status: 'Present', checkIn: '09:05', checkOut: '18:20' },
-  { employeeId: 'E-01', date: '2026-08-03', status: 'Work From Home', checkIn: '09:30', checkOut: '18:00' },
-  { employeeId: 'E-01', date: '2026-08-04', status: 'Late', checkIn: '10:45', checkOut: '19:00' },
-  { employeeId: 'E-01', date: '2026-08-05', status: 'Present', checkIn: '09:00', checkOut: '18:15' },
-  { employeeId: 'E-02', date: '2026-08-01', status: 'Present', checkIn: '09:00', checkOut: '18:00' },
-  { employeeId: 'E-02', date: '2026-08-02', status: 'Present', checkIn: '08:55', checkOut: '18:10' },
-  { employeeId: 'E-02', date: '2026-08-03', status: 'Half Day', checkIn: '09:00', checkOut: '13:00' },
-  { employeeId: 'E-02', date: '2026-08-04', status: 'Present', checkIn: '09:10', checkOut: '18:05' },
-  { employeeId: 'E-02', date: '2026-08-05', status: 'Present', checkIn: '09:02', checkOut: '18:25' },
-  { employeeId: 'E-03', date: '2026-08-01', status: 'Present', checkIn: '09:20', checkOut: '18:00' },
-  { employeeId: 'E-03', date: '2026-08-02', status: 'Absent', checkIn: '-', checkOut: '-' },
-  { employeeId: 'E-03', date: '2026-08-03', status: 'Present', checkIn: '09:15', checkOut: '18:10' },
-  { employeeId: 'E-03', date: '2026-08-04', status: 'Present', checkIn: '09:10', checkOut: '18:00' },
-  { employeeId: 'E-03', date: '2026-08-05', status: 'Work From Home', checkIn: '09:00', checkOut: '17:45' },
-  { employeeId: 'E-05', date: '2026-08-01', status: 'Present', checkIn: '09:30', checkOut: '18:00' },
-  { employeeId: 'E-05', date: '2026-08-02', status: 'Absent', checkIn: '-', checkOut: '-' },
-  { employeeId: 'E-05', date: '2026-08-03', status: 'Absent', checkIn: '-', checkOut: '-' },
-  { employeeId: 'E-05', date: '2026-08-04', status: 'Absent', checkIn: '-', checkOut: '-' },
-  { employeeId: 'E-05', date: '2026-08-05', status: 'Absent', checkIn: '-', checkOut: '-' },
+  { employeeId: '10347', date: '2026-08-01', status: 'Present', checkIn: '09:12', checkOut: '18:30' },
+  { employeeId: '10347', date: '2026-08-02', status: 'Present', checkIn: '09:05', checkOut: '18:20' },
+  { employeeId: '10347', date: '2026-08-03', status: 'Work From Home', checkIn: '09:30', checkOut: '18:00' },
+  { employeeId: '10347', date: '2026-08-04', status: 'Late', checkIn: '10:45', checkOut: '19:00' },
+  { employeeId: '10347', date: '2026-08-05', status: 'Present', checkIn: '09:00', checkOut: '18:15' },
+  { employeeId: '10068', date: '2026-08-01', status: 'Present', checkIn: '09:00', checkOut: '18:00' },
+  { employeeId: '10068', date: '2026-08-02', status: 'Present', checkIn: '08:55', checkOut: '18:10' },
+  { employeeId: '10068', date: '2026-08-03', status: 'Half Day', checkIn: '09:00', checkOut: '13:00' },
+  { employeeId: '10068', date: '2026-08-04', status: 'Present', checkIn: '09:10', checkOut: '18:05' },
+  { employeeId: '10068', date: '2026-08-05', status: 'Present', checkIn: '09:02', checkOut: '18:25' },
+  { employeeId: '10331', date: '2026-08-01', status: 'Present', checkIn: '09:20', checkOut: '18:00' },
+  { employeeId: '10331', date: '2026-08-02', status: 'Absent', checkIn: '-', checkOut: '-' },
+  { employeeId: '10331', date: '2026-08-03', status: 'Present', checkIn: '09:15', checkOut: '18:10' },
+  { employeeId: '10331', date: '2026-08-04', status: 'Present', checkIn: '09:10', checkOut: '18:00' },
+  { employeeId: '10331', date: '2026-08-05', status: 'Work From Home', checkIn: '09:00', checkOut: '17:45' },
+  { employeeId: '10292', date: '2026-08-01', status: 'Present', checkIn: '09:30', checkOut: '18:00' },
+  { employeeId: '10292', date: '2026-08-02', status: 'Absent', checkIn: '-', checkOut: '-' },
+  { employeeId: '10292', date: '2026-08-03', status: 'Absent', checkIn: '-', checkOut: '-' },
+  { employeeId: '10292', date: '2026-08-04', status: 'Absent', checkIn: '-', checkOut: '-' },
+  { employeeId: '10292', date: '2026-08-05', status: 'Absent', checkIn: '-', checkOut: '-' },
 ];
 
 export const LEAVE_TYPES = ['Casual Leave', 'Sick Leave', 'Earned Leave', 'Maternity Leave', 'Paternity Leave'];
 export const LEAVE_STATUSES = ['Pending', 'Approved', 'Rejected'];
 
 export const leaveRequests = [
-  { id: 'LV-301', employeeId: 'E-03', employee: 'Sneha Iyer', type: 'Casual Leave', from: '2026-08-12', to: '2026-08-13', days: 2, reason: 'Family function', status: 'Pending' },
-  { id: 'LV-302', employeeId: 'E-04', employee: 'Devansh Gupta', type: 'Sick Leave', from: '2026-08-06', to: '2026-08-06', days: 1, reason: 'Fever', status: 'Approved' },
-  { id: 'LV-303', employeeId: 'E-05', employee: 'Meera Pillai', type: 'Earned Leave', from: '2026-08-01', to: '2026-08-05', days: 5, reason: 'Personal travel', status: 'Approved' },
-  { id: 'LV-304', employeeId: 'E-01', employee: 'Rahul Sen', type: 'Casual Leave', from: '2026-08-20', to: '2026-08-20', days: 1, reason: 'Personal work', status: 'Pending' },
-  { id: 'LV-305', employeeId: 'E-06', employee: 'Arjun Verma', type: 'Earned Leave', from: '2026-08-15', to: '2026-08-18', days: 4, reason: 'Vacation', status: 'Rejected' },
+  { id: 'LV-301', employeeId: '10331', employee: 'Sangeetha KS', type: 'Casual Leave', from: '2026-08-12', to: '2026-08-13', days: 2, reason: 'Family function', status: 'Pending' },
+  { id: 'LV-302', employeeId: '10337', employee: 'Yogesh Kumar', type: 'Sick Leave', from: '2026-08-06', to: '2026-08-06', days: 1, reason: 'Fever', status: 'Approved' },
+  { id: 'LV-303', employeeId: '10292', employee: 'Mohanprabu', type: 'Earned Leave', from: '2026-08-01', to: '2026-08-05', days: 5, reason: 'Personal travel', status: 'Approved' },
+  { id: 'LV-304', employeeId: '10347', employee: 'Nesamanikandan', type: 'Casual Leave', from: '2026-08-20', to: '2026-08-20', days: 1, reason: 'Personal work', status: 'Pending' },
+  { id: 'LV-305', employeeId: '10338', employee: 'Kumar Gautam', type: 'Earned Leave', from: '2026-08-15', to: '2026-08-18', days: 4, reason: 'Vacation', status: 'Rejected' },
 ];
 
 export const leaveBalances = [
-  { employeeId: 'E-01', casual: 6, sick: 5, earned: 10 },
-  { employeeId: 'E-02', casual: 8, sick: 6, earned: 12 },
-  { employeeId: 'E-03', casual: 4, sick: 3, earned: 8 },
-  { employeeId: 'E-04', casual: 9, sick: 6, earned: 12 },
-  { employeeId: 'E-05', casual: 2, sick: 1, earned: 5 },
-  { employeeId: 'E-06', casual: 5, sick: 4, earned: 7 },
+  { employeeId: '10347', casual: 6, sick: 5, earned: 10 },
+  { employeeId: '10068', casual: 8, sick: 6, earned: 12 },
+  { employeeId: '10331', casual: 4, sick: 3, earned: 8 },
+  { employeeId: '10337', casual: 9, sick: 6, earned: 12 },
+  { employeeId: '10292', casual: 2, sick: 1, earned: 5 },
+  { employeeId: '10338', casual: 5, sick: 4, earned: 7 },
 ];
 
 export const notifications = [
   { id: 'N-1', type: 'Interview Scheduled', text: 'Technical round scheduled with Ananya Rao — Aug 7, 11:00 AM', time: '10 min ago', unread: true },
-  { id: 'N-2', type: 'Leave Request', text: 'Sneha Iyer requested Casual Leave (Aug 12-13)', time: '32 min ago', unread: true },
+  { id: 'N-2', type: 'Leave Request', text: 'Sangeetha KS requested Casual Leave (Aug 12-13)', time: '32 min ago', unread: true },
   { id: 'N-3', type: 'New Candidate', text: 'Karan Mehta applied for Backend Developer', time: '2 hr ago', unread: true },
-  { id: 'N-4', type: 'Employee Joined', text: 'Devansh Gupta joined as Mobile Engineer', time: '1 day ago', unread: false },
+  { id: 'N-4', type: 'Employee Joined', text: 'Yogesh Kumar joined as Full stack developer intern', time: '1 day ago', unread: false },
   { id: 'N-5', type: 'Task Assigned', text: 'You were assigned "Update employee handbook"', time: '2 days ago', unread: false },
   { id: 'N-6', type: 'Offer Letter', text: 'Offer sent to Priya Nair for Product Designer', time: '3 days ago', unread: false },
 ];
@@ -125,7 +162,7 @@ export const notifications = [
 export const emails = {
   inbox: [
     { id: 'EM-1', from: 'ananya.rao@mail.com', subject: 'Re: Technical Round Confirmation', preview: 'Thanks, I confirm 11 AM on Aug 7 works for me...', time: '9:14 AM', unread: true, thread: [
-      { from: 'Payal Shah', to: 'ananya.rao@mail.com', body: 'Hi Ananya, confirming your technical round on Aug 7, 11 AM with Rahul Sen.', time: 'Aug 5, 4:02 PM' },
+      { from: 'Ms. Payel Saha', to: 'ananya.rao@mail.com', body: 'Hi Ananya, confirming your technical round on Aug 7, 11 AM with Nesamanikandan.', time: 'Aug 5, 4:02 PM' },
       { from: 'Ananya Rao', to: 'HR', body: 'Thanks, I confirm 11 AM on Aug 7 works for me. Looking forward to it!', time: 'Aug 6, 9:14 AM' },
     ] },
     { id: 'EM-2', from: 'careers@naukri.com', subject: 'New application: Backend Developer', preview: 'Karan Mehta has applied for Backend Developer role...', time: 'Yesterday', unread: true, thread: [
@@ -151,17 +188,17 @@ export const emails = {
 
 export const feedbackEntries = [
   { id: 'FB-1', candidate: 'Priya Nair', interviewId: 'IV-503', interviewer: 'Founder', rating: 5, recommendation: 'Hire', comments: 'Excellent design sense, strong portfolio, great communication.' },
-  { id: 'FB-2', candidate: 'Meera Pillai', interviewId: 'IV-505', interviewer: 'Payal Shah', rating: 2, recommendation: 'Reject', comments: 'Candidate withdrew before the round could be completed.' },
-  { id: 'FB-3', candidate: 'Devansh Gupta', interviewId: 'IV-500', interviewer: 'Rahul Sen', rating: 4, recommendation: 'Hire', comments: 'Solid React Native fundamentals, good problem solving.' },
+  { id: 'FB-2', candidate: 'Meera Pillai', interviewId: 'IV-505', interviewer: 'Ms. Payel Saha', rating: 2, recommendation: 'Reject', comments: 'Candidate withdrew before the round could be completed.' },
+  { id: 'FB-3', candidate: 'Devansh Gupta', interviewId: 'IV-500', interviewer: 'Nesamanikandan', rating: 4, recommendation: 'Hire', comments: 'Solid React Native fundamentals, good problem solving.' },
 ];
 
 export const activityLogs = [
-  { id: 'AL-1', user: 'Payal Shah', action: 'Approved leave request LV-302', time: '2026-08-05 18:22', ip: '10.0.0.14', device: 'Chrome / Windows' },
-  { id: 'AL-2', user: 'Sneha Iyer', action: 'Uploaded resume for Karan Mehta', time: '2026-08-05 16:03', ip: '10.0.0.22', device: 'Chrome / macOS' },
-  { id: 'AL-3', user: 'Rahul Sen', action: 'Scheduled interview IV-506', time: '2026-08-05 14:47', ip: '10.0.0.31', device: 'Edge / Windows' },
-  { id: 'AL-4', user: 'Payal Shah', action: 'Sent offer letter to Priya Nair', time: '2026-08-03 12:10', ip: '10.0.0.14', device: 'Chrome / Windows' },
+  { id: 'AL-1', user: 'Ms. Payel Saha', action: 'Approved leave request LV-302', time: '2026-08-05 18:22', ip: '10.0.0.14', device: 'Chrome / Windows' },
+  { id: 'AL-2', user: 'Sangeetha KS', action: 'Uploaded resume for Karan Mehta', time: '2026-08-05 16:03', ip: '10.0.0.22', device: 'Chrome / macOS' },
+  { id: 'AL-3', user: 'Nesamanikandan', action: 'Scheduled interview IV-506', time: '2026-08-05 14:47', ip: '10.0.0.31', device: 'Edge / Windows' },
+  { id: 'AL-4', user: 'Ms. Payel Saha', action: 'Sent offer letter to Priya Nair', time: '2026-08-03 12:10', ip: '10.0.0.14', device: 'Chrome / Windows' },
   { id: 'AL-5', user: 'Founder', action: 'Logged in', time: '2026-08-06 08:55', ip: '10.0.0.5', device: 'Safari / macOS' },
-  { id: 'AL-6', user: 'Sneha Iyer', action: 'Updated attendance for E-03', time: '2026-08-05 09:31', ip: '10.0.0.22', device: 'Chrome / macOS' },
+  { id: 'AL-6', user: 'Sangeetha KS', action: 'Updated attendance for 10331', time: '2026-08-05 09:31', ip: '10.0.0.22', device: 'Chrome / macOS' },
 ];
 
 export const hiringTrend = [12, 18, 15, 22, 19, 27, 24, 30]; // last 8 weeks, offers made

@@ -12,6 +12,7 @@ import AssetFormModal from '../components/AssetFormModal';
 import DataTable from '../components/DataTable';
 import { BarChartCard, LineChartCard } from '../components/charts';
 import { Card, SectionHeader, StatCard, Drawer, Modal, Field, inputClass } from '../components/ui';
+import { DateField } from '../components/ui/date-field';
 import {
   assets as SEED_ASSETS,
   ASSET_TYPES,
@@ -346,6 +347,20 @@ const APPROVAL_FORM_EMPTY = {
 };
 const APPROVAL_CATEGORIES = ['General', 'Software', 'Hardware', 'System Access', 'Data Transfer'];
 
+// Numbers the "Send for Founder Approval" fields 1-8 in fill order, so the
+// form reads top-to-bottom / left-to-right the same way the numbered
+// comments beside each field already document it.
+function FieldLabel({ n, text }) {
+  return (
+    <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
+      <span className="shrink-0 w-3.5 h-3.5 rounded-full bg-muted-foreground/15 text-[9px] font-bold text-muted-foreground flex items-center justify-center">
+        {n}
+      </span>
+      {text}
+    </span>
+  );
+}
+
 function ApprovalCenterView() {
   const { approvals, submitApproval } = useApprovals();
   const [form, setForm] = useState(APPROVAL_FORM_EMPTY);
@@ -409,122 +424,149 @@ function ApprovalCenterView() {
         <ItDatePicker />
       </div>
 
-      <Card>
-        <h3 className="font-semibold text-sm text-foreground mb-3">Send for Founder Approval</h3>
-        <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {/* 1. Date */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Date</label>
-            <input
-              type="date"
-              required
+      {/* Form on the left, Awaiting Founder Sign-off list on the right —
+          side by side instead of stacked, so the form can stay compact. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <Card>
+          <h3 className="font-semibold text-sm text-foreground mb-3">Send for Founder Approval</h3>
+          <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* 1. Date */}
+            <DateField
+              label={<FieldLabel n={1} text="Date" />}
               value={form.date || new Date().toISOString().slice(0, 10)}
-              onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              onChange={(dateStr) => setForm((f) => ({ ...f, date: dateStr }))}
             />
-          </div>
 
-          {/* 2. Request Title */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Request Title</label>
-            <input
-              required
-              value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              placeholder="Request title"
-              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-          </div>
+            {/* 2. Request Title */}
+            <div className="flex flex-col gap-1">
+              <FieldLabel n={2} text="Request Title" />
+              <input
+                required
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Request title"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
 
-          {/* 3. Department */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Department</label>
-            <select
-              value={form.department || 'IT Support'}
-              onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
-              aria-label="Department"
-              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+            {/* 3. Department */}
+            <div className="flex flex-col gap-1">
+              <FieldLabel n={3} text="Department" />
+              <select
+                value={form.department || 'IT Support'}
+                onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
+                aria-label="Department"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+              >
+                {['IT Support', 'Engineering', 'Network', 'Software', 'VPN', 'Data Team', 'Design', 'HR', 'Finance'].map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 4. Details */}
+            <div className="flex flex-col gap-1">
+              <FieldLabel n={4} text="Details" />
+              <input
+                value={form.sub}
+                onChange={(e) => setForm((f) => ({ ...f, sub: e.target.value }))}
+                placeholder="Details"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+
+            {/* 5. Employee ID */}
+            <div className="flex flex-col gap-1">
+              <FieldLabel n={5} text="Employee ID" />
+              <input
+                value={form.employeeId}
+                onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
+                placeholder="Employee ID (e.g. EMP-2001)"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+
+            {/* 6. Username */}
+            <div className="flex flex-col gap-1">
+              <FieldLabel n={6} text="Username" />
+              <input
+                value={form.username}
+                onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+                placeholder="Username (e.g. john.doe)"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+
+            {/* 7. Category */}
+            <div className="flex flex-col gap-1">
+              <FieldLabel n={7} text="Category" />
+              <select
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                aria-label="Category"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+              >
+                {APPROVAL_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 8. Priority */}
+            <div className="flex flex-col gap-1">
+              <FieldLabel n={8} text="Priority" />
+              <select
+                value={form.priority}
+                onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
+                aria-label="Priority"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              className="sm:col-span-2 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer mt-1"
             >
-              {['IT Support', 'Engineering', 'Network', 'Software', 'VPN', 'Data Team', 'Design', 'HR', 'Finance'].map((d) => (
-                <option key={d} value={d}>{d}</option>
+              Send for Founder Approval
+            </button>
+          </form>
+        </Card>
+
+        <Card>
+          <SectionHeader title="Awaiting Founder Sign-off" subtitle={`${pendingFounder.length} pending`} />
+          {pendingFounder.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-4">Nothing matches these filters.</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {pendingFounder.map((app, i) => (
+                <div key={app.id} className="p-3.5 rounded-lg bg-muted border border-border flex items-center gap-3">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-background border border-border text-[10px] font-bold text-muted-foreground flex items-center justify-center">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 pr-2 flex-1">
+                    <div className="text-xs font-bold text-foreground truncate">{app.title}</div>
+                    <div className="text-xs text-muted-foreground truncate">{app.sub}</div>
+                    <div className="text-xs text-muted-foreground">Requested by {app.requestedBy} · {app.timestamp}</div>
+                    <div className="text-xs text-muted-foreground">{app.category || 'General'} · {app.priority}</div>
+                  </div>
+                  <span className="text-xs px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 bg-warning/10 text-warning border-warning/20">
+                    Pending Founder
+                  </span>
+                </div>
               ))}
-            </select>
-          </div>
-
-          {/* 4. Details */}
-          <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-3">
-            <label className="text-[11px] font-medium text-muted-foreground">Details</label>
-            <input
-              value={form.sub}
-              onChange={(e) => setForm((f) => ({ ...f, sub: e.target.value }))}
-              placeholder="Details"
-              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-          </div>
-
-          {/* 5. Employee ID */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Employee ID</label>
-            <input
-              value={form.employeeId}
-              onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
-              placeholder="Employee ID (e.g. EMP-2001)"
-              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-          </div>
-
-          {/* 6. Username */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Username</label>
-            <input
-              value={form.username}
-              onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
-              placeholder="Username (e.g. john.doe)"
-              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-          </div>
-
-          {/* Category (Existing) */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Category</label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              aria-label="Category"
-              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-            >
-              {APPROVAL_CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Priority (Existing) */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Priority</label>
-            <select
-              value={form.priority}
-              onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
-              aria-label="Priority"
-              className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            className="sm:col-span-2 lg:col-span-3 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer mt-1"
-          >
-            Send for Founder Approval
-          </button>
-        </form>
-      </Card>
+            </div>
+          )}
+        </Card>
+      </div>
 
       <Card>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <SectionHeader title="Decision History" subtitle={`${decided.length} decided`} />
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
           <div className="relative flex-1 max-w-md">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
@@ -591,38 +633,17 @@ function ApprovalCenterView() {
             </select>
           </div>
         </div>
-      </Card>
 
-      <div className="bg-card border border-border rounded-lg p-5">
-        <h3 className="font-semibold text-sm text-foreground mb-4">Awaiting Founder Sign-off</h3>
-        {pendingFounder.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4">Nothing matches these filters.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-            {pendingFounder.map((app) => (
-              <div key={app.id} className="p-3.5 rounded-lg bg-muted border border-border flex items-center justify-between">
-                <div className="min-w-0 pr-2">
-                  <div className="text-xs font-bold text-foreground truncate">{app.title}</div>
-                  <div className="text-xs text-muted-foreground truncate">{app.sub}</div>
-                  <div className="text-xs text-muted-foreground">Requested by {app.requestedBy} · {app.timestamp}</div>
-                  <div className="text-xs text-muted-foreground">{app.category || 'General'} · {app.priority}</div>
-                </div>
-                <span className="text-xs px-2 py-0.5 rounded-full border font-bold capitalize shrink-0 bg-warning/10 text-warning border-warning/20">
-                  Pending Founder
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <h3 className="font-semibold text-sm text-foreground mb-4">Decision History</h3>
         {decided.length === 0 ? (
           <p className="text-xs text-muted-foreground py-4">Nothing matches these filters.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {decided.map((app) => (
-              <div key={app.id} className="p-3.5 rounded-lg bg-muted border border-border flex items-center justify-between">
-                <div className="min-w-0 pr-2">
+            {decided.map((app, i) => (
+              <div key={app.id} className="p-3.5 rounded-lg bg-muted border border-border flex items-center gap-3">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-background border border-border text-[10px] font-bold text-muted-foreground flex items-center justify-center">
+                  {i + 1}
+                </span>
+                <div className="min-w-0 pr-2 flex-1">
                   <div className="text-xs font-bold text-foreground truncate">{app.title}</div>
                   <div className="text-xs text-muted-foreground">{app.requestedBy} · {app.timestamp}</div>
                   <div className="text-xs text-muted-foreground">{app.category || 'General'} · {app.priority}</div>
@@ -640,7 +661,7 @@ function ApprovalCenterView() {
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -825,7 +846,7 @@ function AssetsView() {
   function handleRequestApproval(asset) {
     submitApproval({
       assetIdRef: asset.id,
-      title: `Asset Approval — ${asset.model}`,
+      title: `Asset Approval: ${asset.model}`,
       sub: `${asset.id} · ${asset.assignedTo || 'IT Store'} (${asset.department})`,
       requestedBy: 'IT Desk',
       category: 'Hardware',
@@ -838,7 +859,7 @@ function AssetsView() {
     );
 
     toast.success(`Approval request sent to Founder for ${asset.id}`, {
-      description: `${asset.model} — Added to Founder approval queue.`,
+      description: `${asset.model} added to Founder approval queue.`,
     });
   }
 
@@ -1046,7 +1067,7 @@ function AssetsView() {
       </Card>
 
       {/* Asset Audit Sidebar */}
-      <Drawer open={!!auditAsset} onClose={() => setAuditAsset(null)} title={auditAsset ? `Audit — ${auditAsset.id}` : 'Asset Audit'}>
+      <Drawer open={!!auditAsset} onClose={() => setAuditAsset(null)} title={auditAsset ? `Audit: ${auditAsset.id}` : 'Asset Audit'}>
         {auditAsset && (
           <div className="flex flex-col gap-6">
             <div>
@@ -1079,7 +1100,7 @@ function AssetsView() {
                 <ul className="flex flex-col gap-2">
                   {auditAsset.componentsLog.map((entry, i) => (
                     <li key={i} className="text-xs bg-muted border border-border rounded-lg p-2.5">
-                      <span className="text-muted-foreground">{entry.date}</span> — <span className="text-foreground">{entry.change}</span>
+                      <span className="text-muted-foreground">{entry.date}:</span> <span className="text-foreground">{entry.change}</span>
                     </li>
                   ))}
                 </ul>
@@ -1094,7 +1115,7 @@ function AssetsView() {
                 <ul className="flex flex-col gap-2">
                   {auditAsset.history.map((entry, i) => (
                     <li key={i} className="text-xs bg-muted border border-border rounded-lg p-2.5">
-                      <span className="text-muted-foreground">{entry.date}</span> — <span className="text-foreground">{entry.event}</span>
+                      <span className="text-muted-foreground">{entry.date}:</span> <span className="text-foreground">{entry.event}</span>
                     </li>
                   ))}
                 </ul>
@@ -1477,7 +1498,7 @@ function RenderingStatusView() {
                   aria-label={`Assigned employee for render job ${r.id}`}
                   className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                 >
-                  {['Sameer Kulkarni', 'Priya Nair', 'John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'Robert Brown', 'Unassigned'].map((emp) => (
+                  {['Kapil Chauhan', 'Tilottama Paramanik', 'Vipin', 'Himanshu', 'Kanhu', 'Sonali Das', 'Debashish Das', 'Unassigned'].map((emp) => (
                     <option key={emp} value={emp}>{emp}</option>
                   ))}
                 </select>
@@ -1576,7 +1597,7 @@ export default function DashboardPage() {
 
     if (targetApprover) {
       submitApproval({
-        title: `Data Transfer Approval — ${req.folder || 'Data Copy'}`,
+        title: `Data Transfer Approval: ${req.folder || 'Data Copy'}`,
         sub: `${req.source} → ${req.destination} · Approver: ${targetApprover}`,
         requestedBy: req.requesterName || 'IT Desk',
         priority: req.priority === 'Critical' ? 'high' : (req.priority || 'medium').toLowerCase(),
@@ -1632,7 +1653,7 @@ export default function DashboardPage() {
 
   const searchIndex = useMemo(
     () => [
-      ...recentTickets.map((t) => ({ group: 'Tickets', label: `${t.token} — ${t.title}`, sub: `${t.user} · ${t.status}`, tab: 'tickets' })),
+      ...recentTickets.map((t) => ({ group: 'Tickets', label: `${t.token}: ${t.title}`, sub: `${t.user} · ${t.status}`, tab: 'tickets' })),
       ...approvals.filter((a) => a.source === 'IT').map((a) => ({ group: 'Approvals', label: a.title, sub: `${a.requestedBy} · ${a.status}`, tab: 'approval' })),
       ...dataRequests.map((d) => ({ group: 'Data Requests', label: d.path, sub: `${d.name} · ${d.status}`, tab: 'datarequests' })),
     ],

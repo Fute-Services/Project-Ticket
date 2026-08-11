@@ -3,10 +3,10 @@ import { createContext, useContext, useState } from 'react';
 const RenderContext = createContext(null);
 
 const SEED_RENDERS = [
-  { id: 1, date: '2026-08-09', sequence: '', frameNo: '', personName: 'Sameer Kulkarni', endDate: '', status: 'Pending' },
-  { id: 2, date: '2026-08-08', sequence: '', frameNo: '', personName: 'Priya Nair', endDate: '', status: 'Completed' },
-  { id: 3, date: '2026-08-09', sequence: '', frameNo: '', personName: 'John Doe', endDate: '', status: 'On Hold' },
-  { id: 4, date: '2026-08-10', sequence: '', frameNo: '', personName: 'Jane Smith', endDate: '', status: 'Queue' },
+  { id: 1, date: '2026-08-09', sequence: '', frameNo: '', personName: 'Kapil Chauhan', endDate: '', status: 'Pending' },
+  { id: 2, date: '2026-08-08', sequence: '', frameNo: '', personName: 'Tilottama Paramanik', endDate: '', status: 'Completed' },
+  { id: 3, date: '2026-08-09', sequence: '', frameNo: '', personName: 'Vipin', endDate: '', status: 'On Hold' },
+  { id: 4, date: '2026-08-10', sequence: '', frameNo: '', personName: 'Himanshu', endDate: '', status: 'Queue' },
 ];
 
 export function RenderProvider({ children }) {

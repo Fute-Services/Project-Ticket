@@ -35,7 +35,7 @@ const ROLE_LABEL = {
 const NOTIFICATIONS = [
   { id: 1, text: 'New ticket INC-1024 assigned to you', time: '10 min ago' },
   { id: 2, text: 'Data Transfer request is waiting for approval', time: '35 min ago' },
-  { id: 3, text: 'VPN request approved for John Doe', time: '2 hr ago' },
+  { id: 3, text: 'VPN request approved for Abhinav Rai', time: '2 hr ago' },
 ];
 
 const IT_NAV_ITEMS = (approvalCount) => [

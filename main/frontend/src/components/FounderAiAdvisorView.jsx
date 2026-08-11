@@ -200,7 +200,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
           },
           {
             agent: 'employee',
-            text: `Staff opinion checklist: Naye engineers ke aane se pehle documentation verify kar lena chahiye. Sneha aur Arjun ne comment kiya hai ki README configurations outdated hain, unhe updates milne par setup fast ho jayega.`
+            text: `Staff opinion checklist: Naye engineers ke aane se pehle documentation verify kar lena chahiye. Sangeetha aur Kumar ne comment kiya hai ki README configurations outdated hain, unhe updates milne par setup fast ho jayega.`
           },
           {
             agent: 'founder',
@@ -212,7 +212,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
         return [
           {
             agent: 'hr',
-            text: `Founder, status checks complete. HR operations mein ${pendingLeaves.length > 0 ? `${pendingLeaves.length} leave requests pending` : 'koi urgent leaves pending nahi'} hain. Sneha Iyer ki Casual Leave approval ke liye waiting hai. Background logs check kar ke lagta hai unki absence se sprint impact nahi hoga, so you can safely sign off.`
+            text: `Founder, status checks complete. HR operations mein ${pendingLeaves.length > 0 ? `${pendingLeaves.length} leave requests pending` : 'koi urgent leaves pending nahi'} hain. Sangeetha KS ki Casual Leave approval ke liye waiting hai. Background logs check kar ke lagta hai unki absence se sprint impact nahi hoga, so you can safely sign off.`
           },
           {
             agent: 'it',
@@ -240,7 +240,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
           },
           {
             agent: 'coordinator',
-            text: `Coordinator alignment: Database upgrades aur environment integration tasks active hain. DevOps lead Arjun Verma coordinates server patch releases. Weekly task deployment scheduled hai.`
+            text: `Coordinator alignment: Database upgrades aur environment integration tasks active hain. System Administrator Nesamanikandan coordinates server patch releases. Weekly task deployment scheduled hai.`
           },
           {
             agent: 'hr',

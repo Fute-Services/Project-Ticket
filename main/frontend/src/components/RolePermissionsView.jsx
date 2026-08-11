@@ -134,17 +134,17 @@ export default function RolePermissionsView() {
           <Shield size={20} className="text-primary" />
           Role Permissions
         </h1>
-        <p className="text-xs text-muted-foreground">Control which pages each role — or a specific person — can see.</p>
+        <p className="text-xs text-muted-foreground">Control which pages each role, or a specific person, can see.</p>
       </div>
 
       {/* Role selector */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {TOGGLABLE_ROLES.map((r) => (
           <button
             key={r}
             type="button"
             onClick={() => setRole(r)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
               role === r
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted border border-border text-muted-foreground hover:text-foreground'
@@ -153,15 +153,18 @@ export default function RolePermissionsView() {
             {ROLE_LABEL[r] || r}
           </button>
         ))}
-        <div className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-warning/10 border border-warning/20 text-warning flex items-center gap-1.5">
-          <Crown size={13} />
-          Super Admin — full access, always on
+        <div className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-warning/10 border border-warning/20 text-warning flex items-center gap-1.5">
+          <Crown size={12} />
+          Super Admin: full access, always on
         </div>
       </div>
 
+      {/* Role-level toggles on the left, per-user overrides on the right,
+          side by side instead of stacked. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
       <Card>
         <SectionHeader
-          title={`${ROLE_LABEL[role] || role} — visible pages`}
+          title={`${ROLE_LABEL[role] || role}: visible pages`}
           subtitle={`${enabledCount} of ${pages.length} pages enabled`}
           action={
             <div className="flex items-center gap-2">
@@ -206,7 +209,7 @@ export default function RolePermissionsView() {
       <Card>
         <SectionHeader
           title="Per-user overrides"
-          subtitle={`Give a specific ${ROLE_LABEL[role] || role} person more or fewer pages than the role default above`}
+          subtitle={`Override a specific ${ROLE_LABEL[role] || role} person's pages`}
           action={
             canCreateForRole && (
               <button
@@ -222,7 +225,7 @@ export default function RolePermissionsView() {
         />
 
         {showNewUserForm && canCreateForRole && (
-          <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5 p-3.5 rounded-lg bg-muted border border-border">
+          <form onSubmit={handleCreateUser} className="grid grid-cols-1 gap-3 mb-5 p-3.5 rounded-lg bg-muted border border-border">
             <input
               required
               type="email"
@@ -250,7 +253,7 @@ export default function RolePermissionsView() {
             <button
               type="submit"
               disabled={creatingUser}
-              className="sm:col-span-3 bg-primary hover:bg-primary-hover disabled:opacity-60 text-primary-foreground font-semibold px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer"
+              className="bg-primary hover:bg-primary-hover disabled:opacity-60 text-primary-foreground font-semibold px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer"
             >
               {creatingUser ? 'Creating…' : `Create as ${ROLE_LABEL[role] || role}`}
             </button>
@@ -261,12 +264,12 @@ export default function RolePermissionsView() {
           <p className="text-xs text-muted-foreground py-4">Loading users…</p>
         ) : users.length === 0 ? (
           <p className="text-xs text-muted-foreground py-4">
-            No {ROLE_LABEL[role] || role} accounts {canCreateForRole ? 'yet — add one above.' : 'found.'}
+            No {ROLE_LABEL[role] || role} accounts {canCreateForRole ? 'yet. Add one above.' : 'found.'}
           </p>
         ) : (
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             {/* User list */}
-            <div className="flex flex-col gap-1 sm:w-[260px] shrink-0">
+            <div className="flex flex-col gap-1">
               {users.map((u) => (
                 <button
                   key={u.email}
@@ -295,9 +298,9 @@ export default function RolePermissionsView() {
             </div>
 
             {/* Selected user's page overrides */}
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0">
               {!selectedUser ? (
-                <p className="text-xs text-muted-foreground py-4">Pick a person on the left to override their pages.</p>
+                <p className="text-xs text-muted-foreground py-4">Pick a person above to override their pages.</p>
               ) : (
                 <div className="flex flex-col gap-1">
                   {pages.map((page) => {
@@ -321,7 +324,7 @@ export default function RolePermissionsView() {
                               className="shrink-0 flex items-center gap-1 text-[10px] font-semibold text-warning hover:text-warning/80 cursor-pointer"
                             >
                               <RotateCcw size={10} />
-                              Custom — reset
+                              Reset to default
                             </button>
                           )}
                         </div>
@@ -339,6 +342,7 @@ export default function RolePermissionsView() {
           </div>
         )}
       </Card>
+      </div>
     </div>
   );
 }

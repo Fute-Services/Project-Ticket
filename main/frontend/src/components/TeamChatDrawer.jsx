@@ -24,19 +24,19 @@ const INITIAL_CHANNELS = [
 
 const INITIAL_MESSAGES = {
   'general': [
-    { id: 1, sender: 'Payal Shah', role: 'HR Manager', text: 'Welcome team! Q3 goals document is now published in the HR reports tab.', time: '09:30 AM' },
+    { id: 1, sender: 'Ms. Payel Saha', role: 'HR Manager', text: 'Welcome team! Q3 goals document is now published in the HR reports tab.', time: '09:30 AM' },
     { id: 2, sender: 'Founder', role: 'Founder', text: 'Great work on the portal overhaul team! Let us keep SLA compliance above 95%.', time: '10:15 AM' },
   ],
   'it-support': [
     { id: 1, sender: 'System Alert', role: 'Automated Bot', text: '🚨 New IT Ticket INC-1024 raised by Marketing: "VPN connection failing"', time: '10:00 AM', isAlert: true },
-    { id: 2, sender: 'Meera Pillai', role: 'IT Support', text: 'Assigned ticket INC-1024 to network queue. Contacting user for diagnostics.', time: '10:05 AM' },
+    { id: 2, sender: 'Nesamanikandan', role: 'System Administrator', text: 'Assigned ticket INC-1024 to network queue. Contacting user for diagnostics.', time: '10:05 AM' },
   ],
   'hr-announcements': [
-    { id: 1, sender: 'Payal Shah', role: 'HR Manager', text: '📢 Campus Placement Drive scheduled for Aug 12 at RVCE College! 15 candidate interviews lined up.', time: '08:45 AM' },
+    { id: 1, sender: 'Ms. Payel Saha', role: 'HR Manager', text: '📢 Campus Placement Drive scheduled for Aug 12 at RVCE College! 15 candidate interviews lined up.', time: '08:45 AM' },
   ],
   'project-coordination': [
     { id: 1, sender: 'Coordinator', role: 'Project Coordinator', text: 'Hey team! New UI designs for the Founder Dashboard are live in Figma.', time: '11:00 AM' },
-    { id: 2, sender: 'Rahul Sen', role: 'Engineering Manager', text: 'Reviewed and merged pull request #42 for the zero-scroll layout.', time: '11:20 AM' },
+    { id: 2, sender: 'Srinivasan Neelakandan', role: 'Developer', text: 'Reviewed and merged pull request #42 for the zero-scroll layout.', time: '11:20 AM' },
   ],
 };
 

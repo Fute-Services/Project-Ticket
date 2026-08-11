@@ -35,7 +35,7 @@ const PROGRESS_BAR = {
 };
 
 // Members render as overlapping initial-avatars; two letters keeps
-// "Priya Nair" → "PN" readable at 24px.
+// "Yogesh Kumar" → "YK" readable at 24px.
 function initials(name) {
   return name
     .split(' ')

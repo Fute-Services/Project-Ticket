@@ -17,8 +17,10 @@ function formatShort(dateStr) {
 
 // `start`/`end` are yyyy-mm-dd strings, `end` may be empty while a range is
 // still mid-pick. Highlights the whole span between them, not just the two
-// endpoints, so the picker reads as "this date to this date".
-function MiniCalendar({ start, end, onPick }) {
+// endpoints, so the picker reads as "this date to this date". Exported so a
+// single-date field (e.g. DateField.jsx) can reuse it by passing the same
+// value for both start and end.
+export function MiniCalendar({ start, end, onPick }) {
   const initial = start ? new Date(`${start}T00:00:00`) : new Date();
   const [viewYear, setViewYear] = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
@@ -155,11 +157,11 @@ export default function ItDatePicker() {
       <button
         type="button"
         onClick={() => setShowDatePicker((p) => !p)}
-        className="h-9 flex items-center gap-2 px-3 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-xs text-muted-foreground font-medium shrink-0 cursor-pointer transition-colors"
+        className="h-7 flex items-center gap-1.5 px-2.5 rounded-lg bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-[11px] text-muted-foreground font-medium shrink-0 cursor-pointer transition-colors"
       >
-        <Calendar size={13} className="text-primary" />
+        <Calendar size={11} className="text-primary" />
         <span>{label}</span>
-        <ChevronDown size={11} className="text-muted-foreground" />
+        <ChevronDown size={10} className="text-muted-foreground" />
       </button>
       {showDatePicker && (
         <div className="absolute top-full right-0 mt-2 p-3 bg-muted border border-border rounded-xl shadow-xl z-30">

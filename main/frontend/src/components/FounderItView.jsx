@@ -17,8 +17,8 @@ import {
 const INITIAL_IT_COMPLAINTS = [
   {
     id: 'FT-IT-1049',
-    name: 'Rahul Sen',
-    department: 'Engineering',
+    name: 'Srinivasan Neelakandan',
+    department: 'Software',
     category: 'Server & Cloud',
     issue: 'AWS Staging Server High CPU Utilization & Memory Spike (98%)',
     priority: 'High',
@@ -27,8 +27,8 @@ const INITIAL_IT_COMPLAINTS = [
   },
   {
     id: 'FT-IT-1033',
-    name: 'Sneha Iyer',
-    department: 'Engineering',
+    name: 'Sangeetha KS',
+    department: 'Admin/Ops',
     category: 'Hardware',
     issue: 'MacBook Pro M2 Display flickering & Battery Thermal Throttling',
     priority: 'High',
@@ -37,8 +37,8 @@ const INITIAL_IT_COMPLAINTS = [
   },
   {
     id: 'FT-IT-1021',
-    name: 'Devansh Gupta',
-    department: 'Sales',
+    name: 'Yogesh Kumar',
+    department: 'Software',
     category: 'Network & VPN',
     issue: 'OpenVPN Client SSL Certificate Expiry & Connection Failure',
     priority: 'Medium',
@@ -47,7 +47,7 @@ const INITIAL_IT_COMPLAINTS = [
   },
   {
     id: 'FT-IT-1008',
-    name: 'Ananya Rao',
+    name: 'Lavanya Rathi',
     department: 'Marketing',
     category: 'Software Licensing',
     issue: 'Figma Enterprise Workspace Seat Renewal & Asset Permission',
@@ -74,7 +74,7 @@ const HARDWARE_PROCUREMENT_LOGS = [
   },
   {
     item: 'Production Server IAM Access Grant',
-    requestedFor: 'Arjun Verma (On-Call Rotation)',
+    requestedFor: 'Kumar Gautam (On-Call Rotation)',
     estimatedCost: 'N/A (Access Control)',
     status: 'Access Granted',
     date: '3 days ago',
