@@ -4,6 +4,7 @@ import { useApprovals } from '../context/ApprovalContext';
 import { useRenders, frameCount } from '../context/RenderContext';
 import { toast } from 'sonner';
 import ItDeskLayout from '../components/ItDeskLayout';
+import ItDatePicker from '../components/ItDatePicker';
 import DonutChart from '../components/DonutChart';
 import DataTransferModal from '../components/DataTransferModal';
 import AssetFormModal from '../components/AssetFormModal';
@@ -54,6 +55,7 @@ function TicketsQueueView({ tickets, onStatusChange }) {
           <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Tickets Queue</h1>
           <p className="text-xs text-muted-foreground">{tickets.length} total tickets</p>
         </div>
+        <ItDatePicker />
       </div>
 
       <div className="bg-card border border-border rounded-lg p-5">
@@ -234,9 +236,12 @@ function ApprovalCenterView() {
 
   return (
     <div className="w-full flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Approval Center</h1>
-        <p className="text-xs text-muted-foreground">{pendingFounder.length} awaiting founder sign-off · {decided.length} decided</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Approval Center</h1>
+          <p className="text-xs text-muted-foreground">{pendingFounder.length} awaiting founder sign-off · {decided.length} decided</p>
+        </div>
+        <ItDatePicker />
       </div>
 
       <Card>
@@ -398,14 +403,17 @@ function DataRequestsView({ requests, onNewRequest }) {
           <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Data Requests</h1>
           <p className="text-xs text-muted-foreground">{requests.length} transfer requests</p>
         </div>
-        <button
-          type="button"
-          onClick={onNewRequest}
-          className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
-        >
-          <Server size={15} />
-          <span>New Data Request</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <ItDatePicker />
+          <button
+            type="button"
+            onClick={onNewRequest}
+            className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
+          >
+            <Server size={15} />
+            <span>New Data Request</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-card border border-border rounded-lg p-5">
@@ -570,14 +578,17 @@ function AssetsView() {
             {assets.length} assets tracked · {expiring} warranty expiring within 90 days
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
-        >
-          <Plus size={15} />
-          <span>Add Asset</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <ItDatePicker />
+          <button
+            type="button"
+            onClick={openAddModal}
+            className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
+          >
+            <Plus size={15} />
+            <span>Add Asset</span>
+          </button>
+        </div>
       </div>
 
       {/* Counts per type */}
@@ -803,14 +814,17 @@ function ReportsView() {
           <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Reports & Logs</h1>
           <p className="text-xs text-muted-foreground">SLA compliance and resolution velocity, last 6 weeks</p>
         </div>
-        <button
-          type="button"
-          onClick={exportCsv}
-          className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
-        >
-          <Download size={14} />
-          <span>Export CSV</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <ItDatePicker />
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow transition-all cursor-pointer"
+          >
+            <Download size={14} />
+            <span>Export CSV</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -879,9 +893,12 @@ function RenderingStatusView() {
 
   return (
     <div className="w-full flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Rendering Status</h1>
-        <p className="text-xs text-muted-foreground">Live view of the Production Floor render farm</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Rendering Status</h1>
+          <p className="text-xs text-muted-foreground">Live view of the Production Floor render farm</p>
+        </div>
+        <ItDatePicker />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -1059,6 +1076,7 @@ export default function DashboardPage() {
               <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1">IT Service Desk</h1>
               <p className="text-xs text-muted-foreground">Overview of active tickets, pending approvals, and IT infrastructure.</p>
             </div>
+            <ItDatePicker />
           </div>
 
           {/* Key Stat Metrics */}
