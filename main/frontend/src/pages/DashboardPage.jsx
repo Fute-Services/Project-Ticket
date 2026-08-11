@@ -11,7 +11,7 @@ import DataTransferModal from '../components/DataTransferModal';
 import AssetFormModal from '../components/AssetFormModal';
 import DataTable from '../components/DataTable';
 import { BarChartCard, LineChartCard } from '../components/charts';
-import { Card, SectionHeader, StatCard, Drawer } from '../components/ui';
+import { Card, SectionHeader, StatCard, Drawer, Modal, Field, inputClass } from '../components/ui';
 import {
   assets as SEED_ASSETS,
   ASSET_TYPES,
@@ -49,8 +49,34 @@ const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 
 function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
   const { user } = useAuth();
   const [filter, setFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [detailsTicket, setDetailsTicket] = useState(null);
-  const visible = filter === 'All' ? tickets : tickets.filter((t) => t.status === filter);
+
+  const visible = useMemo(() => {
+    return tickets
+      .filter((t) => filter === 'All' || t.status === filter)
+      .filter((t) => {
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.trim().toLowerCase();
+        return (
+          (t.token && t.token.toLowerCase().includes(q)) ||
+          (t.id && String(t.id).toLowerCase().includes(q)) ||
+          (t.title && t.title.toLowerCase().includes(q)) ||
+          (t.user && t.user.toLowerCase().includes(q)) ||
+          (t.username && t.username.toLowerCase().includes(q)) ||
+          (t.employeeId && t.employeeId.toLowerCase().includes(q)) ||
+          (t.vpnNo && t.vpnNo.toLowerCase().includes(q)) ||
+          (t.dept && t.dept.toLowerCase().includes(q)) ||
+          (t.category && t.category.toLowerCase().includes(q)) ||
+          (t.status && t.status.toLowerCase().includes(q)) ||
+          (t.employeeStatus && t.employeeStatus.toLowerCase().includes(q)) ||
+          (t.solver && t.solver.toLowerCase().includes(q)) ||
+          (t.remarks && t.remarks.toLowerCase().includes(q)) ||
+          (t.priority && t.priority.toLowerCase().includes(q)) ||
+          (t.date && t.date.toLowerCase().includes(q))
+        );
+      });
+  }, [tickets, filter, searchQuery]);
 
   function isTicketOwner(t) {
     if (!user) return false;
@@ -71,26 +97,52 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
       </div>
 
       <div className="bg-card border border-border rounded-lg p-5">
-        <div className="flex flex-wrap gap-2 mb-5">
-          {['All', ...TICKET_STATUSES].map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setFilter(s)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                filter === s ? 'bg-primary text-primary-foreground' : 'bg-muted border border-border text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-5">
+          <div className="relative flex-1 max-w-md">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by ticket ID, user, issue, dept, status, resolved by..."
+              aria-label="Search tickets queue"
+              className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
+                aria-label="Clear search"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
+            {['All', ...TICKET_STATUSES].map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setFilter(s)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                  filter === s ? 'bg-primary text-primary-foreground' : 'bg-muted border border-border text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
 
         <DataTable
           rows={visible}
           pageSize={12}
           emptyMessage={
-            filter === 'All'
+            searchQuery
+              ? `No tickets found matching "${searchQuery}".`
+              : filter === 'All'
               ? 'No tickets have been raised yet. They appear here as employees submit them.'
               : `No tickets are currently ${filter.toLowerCase()}.`
           }
@@ -196,13 +248,13 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
             },
             {
               key: 'solver',
-              label: 'Solver',
+              label: 'Resolved By',
               width: '110px',
               render: (t) => (
                 <select
                   value={t.solver || 'Team 1'}
                   onChange={(e) => onFieldChange && onFieldChange(t.id, 'solver', e.target.value)}
-                  aria-label={`Solver for ticket ${t.token || t.id}`}
+                  aria-label={`Resolved by for ticket ${t.token || t.id}`}
                   className="w-full bg-muted/70 border border-border rounded-lg px-1.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                 >
                   {['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Unassigned'].map((s) => (
@@ -301,6 +353,7 @@ function ApprovalCenterView() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const itApprovals = approvals.filter((a) => a.source === 'IT');
   const categories = ['All', ...new Set(itApprovals.map((a) => a.category || 'General'))];
@@ -308,6 +361,22 @@ function ApprovalCenterView() {
   const filtered = itApprovals
     .filter((a) => priorityFilter === 'All' || a.priority === priorityFilter.toLowerCase())
     .filter((a) => categoryFilter === 'All' || (a.category || 'General') === categoryFilter)
+    .filter((a) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.trim().toLowerCase();
+      return (
+        (a.id && String(a.id).toLowerCase().includes(q)) ||
+        (a.title && a.title.toLowerCase().includes(q)) ||
+        (a.sub && a.sub.toLowerCase().includes(q)) ||
+        (a.requestedBy && a.requestedBy.toLowerCase().includes(q)) ||
+        (a.department && a.department.toLowerCase().includes(q)) ||
+        (a.category && a.category.toLowerCase().includes(q)) ||
+        (a.priority && a.priority.toLowerCase().includes(q)) ||
+        (a.status && a.status.toLowerCase().includes(q)) ||
+        (a.timestamp && a.timestamp.toLowerCase().includes(q)) ||
+        (a.date && a.date.toLowerCase().includes(q))
+      );
+    })
     .sort((a, b) => (sortOrder === 'newest' ? (b.createdAt || 0) - (a.createdAt || 0) : (a.createdAt || 0) - (b.createdAt || 0)));
 
   const pendingFounder = statusFilter === 'Resolved' ? [] : filtered.filter((a) => a.status === 'pending_founder');
@@ -455,48 +524,72 @@ function ApprovalCenterView() {
       </Card>
 
       <Card>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Filter</span>
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            aria-label="Sort order"
-            className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-          >
-            <option value="newest">Datewise: Newest first</option>
-            <option value="oldest">Datewise: Oldest first</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            aria-label="Status filter"
-            className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-          >
-            <option value="All">All statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Resolved">Resolved</option>
-          </select>
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            aria-label="Priority filter"
-            className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-          >
-            <option value="All">All priorities</option>
-            <option value="High">High</option>
-            <option value="Medium">Medium</option>
-            <option value="Low">Low</option>
-          </select>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            aria-label="Category filter"
-            className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-          >
-            {categories.map((c) => (
-              <option key={c} value={c}>{c === 'All' ? 'All categories' : c}</option>
-            ))}
-          </select>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by title, requester, department, category, priority..."
+              aria-label="Search approvals"
+              className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
+                aria-label="Clear search"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Filter</span>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              aria-label="Sort order"
+              className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+            >
+              <option value="newest">Datewise: Newest first</option>
+              <option value="oldest">Datewise: Oldest first</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              aria-label="Status filter"
+              className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+            >
+              <option value="All">All statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              aria-label="Priority filter"
+              className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+            >
+              <option value="All">All priorities</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              aria-label="Category filter"
+              className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+            >
+              {categories.map((c) => (
+                <option key={c} value={c}>{c === 'All' ? 'All categories' : c}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </Card>
 
@@ -785,7 +878,6 @@ function AssetsView() {
         </div>
       </div>
 
-      {/* Counts per type */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {ASSET_TYPES.map((type) => {
           const Icon = ASSET_TYPE_ICON[type];
@@ -803,19 +895,17 @@ function AssetsView() {
       </div>
 
       <Card>
-        {/* Search Bar at the top */}
         <div className="relative mb-4">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by asset ID, model, user, or department…"
+            placeholder="Search by asset ID, model, serial no, user, or department…"
             aria-label="Search assets"
             className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
 
-        {/* Category Filters below Search Bar */}
         <div className="flex flex-wrap gap-2 mb-4">
           {['All', ...ASSET_TYPES].map((t) => (
             <button
@@ -852,6 +942,7 @@ function AssetsView() {
               render: (a) => <span className="font-bold text-primary">{a.id}</span>,
             },
             { key: 'model', label: 'Model', render: (a) => <span className="text-foreground">{a.model}</span> },
+            { key: 'serialNo', label: 'Serial No', render: (a) => <span className="text-muted-foreground font-mono text-xs">{a.serialNo || '—'}</span> },
             { key: 'assignedTo', label: 'Assigned To', render: (a) => <span className="text-muted-foreground">{a.assignedTo}</span> },
             { key: 'department', label: 'Department', render: (a) => <span className="text-muted-foreground">{a.department}</span> },
             { key: 'purchaseDate', label: 'Purchased', render: (a) => <span className="text-muted-foreground">{a.purchaseDate}</span> },
@@ -922,6 +1013,33 @@ function AssetsView() {
                   </button>
                 );
               },
+            },
+            {
+              key: 'actions',
+              label: 'Actions',
+              sortable: false,
+              width: '100px',
+              render: (a) => (
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(a)}
+                    className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-semibold text-xs px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Edit all fields of this asset"
+                  >
+                    <Pencil size={12} />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuditAsset(a)}
+                    className="bg-muted hover:bg-accent text-muted-foreground hover:text-foreground border border-border p-1 rounded-lg transition-colors cursor-pointer"
+                    title="Audit / History"
+                  >
+                    <Eye size={13} />
+                  </button>
+                </div>
+              ),
             },
           ]}
         />
@@ -1100,18 +1218,171 @@ function ReportsView() {
 // Read-only for IT — Production owns adding jobs and marking them complete
 // (ProductionDashboardView), so this mirrors that same shared RenderContext
 // list rather than giving IT its own editable copy of someone else's queue.
+function AddRenderModal({ isOpen, onClose, onAdd }) {
+  const [form, setForm] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    sequence: '',
+    frameNo: '',
+    personName: 'Sameer Kulkarni',
+    endDate: '',
+    status: 'Queue',
+  });
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!form.sequence.trim()) {
+      toast.error('Please enter a sequence name');
+      return;
+    }
+    onAdd(form);
+    toast.success('New render job added to queue!', {
+      description: `${form.sequence} (${form.frameNo || '1 frame'})`,
+    });
+    onClose();
+    setForm({
+      date: new Date().toISOString().slice(0, 10),
+      sequence: '',
+      frameNo: '',
+      personName: 'Sameer Kulkarni',
+      endDate: '',
+      status: 'Queue',
+    });
+  }
+
+  return (
+    <Modal open={isOpen} onClose={onClose} title="Add New Render Job">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Start Date">
+            <input
+              type="date"
+              required
+              value={form.date}
+              onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Target End Date">
+            <input
+              type="date"
+              value={form.endDate}
+              onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+
+        <Field label="Sequence / Scene Name">
+          <input
+            required
+            type="text"
+            value={form.sequence}
+            onChange={(e) => setForm((f) => ({ ...f, sequence: e.target.value }))}
+            placeholder="e.g. SQ01_SC04_v2 or Main Intro Shot"
+            className={inputClass}
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Frame Range / Frame No">
+            <input
+              type="text"
+              value={form.frameNo}
+              onChange={(e) => setForm((f) => ({ ...f, frameNo: e.target.value }))}
+              placeholder="e.g. 100-300 or 1-500"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Initial Status">
+            <select
+              value={form.status}
+              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+              className={inputClass}
+            >
+              {['Queue', 'Pending', 'On Hold', 'Completed'].map((st) => (
+                <option key={st} value={st}>{st}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        <Field label="Assigned Artist / Engineer">
+          <select
+            value={form.personName}
+            onChange={(e) => setForm((f) => ({ ...f, personName: e.target.value }))}
+            className={inputClass}
+          >
+            {['Sameer Kulkarni', 'Priya Nair', 'John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'Robert Brown', 'Unassigned'].map((emp) => (
+              <option key={emp} value={emp}>{emp}</option>
+            ))}
+          </select>
+        </Field>
+
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted rounded-lg transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-xs px-4 py-2 rounded-lg shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <Plus size={14} />
+            <span>Add Render Job</span>
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function RenderingStatusView() {
-  const { renders, updateRenderField } = useRenders();
+  const { renders, addRender, updateRenderField } = useRenders();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
   const activeJobs = renders.filter((r) => r.status === 'Queue' || r.status === 'Pending').length;
+
+  const visibleRenders = useMemo(() => {
+    if (!searchQuery.trim()) return renders;
+    const q = searchQuery.trim().toLowerCase();
+    return renders.filter((r) => (
+      (r.sequence && r.sequence.toLowerCase().includes(q)) ||
+      (r.personName && r.personName.toLowerCase().includes(q)) ||
+      (r.frameNo && String(r.frameNo).toLowerCase().includes(q)) ||
+      (r.status && r.status.toLowerCase().includes(q)) ||
+      (r.date && r.date.toLowerCase().includes(q)) ||
+      (r.endDate && r.endDate.toLowerCase().includes(q))
+    ));
+  }, [renders, searchQuery]);
 
   return (
     <div className="w-full flex flex-col gap-6">
+      <AddRenderModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={addRender}
+      />
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">Rendering Status</h1>
           <p className="text-xs text-muted-foreground">Live view of the Production Floor render farm</p>
         </div>
-        <ItDatePicker />
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium text-xs px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+          >
+            <Plus size={14} />
+            <span>Add Render</span>
+          </button>
+          <ItDatePicker />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
@@ -1122,11 +1393,35 @@ function RenderingStatusView() {
       </div>
 
       <Card>
-        <SectionHeader title="Render Queue" subtitle={`${renders.length} job${renders.length === 1 ? '' : 's'} on the farm`} />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <SectionHeader title="Render Queue" subtitle={`${renders.length} job${renders.length === 1 ? '' : 's'} on the farm`} />
+          <div className="relative w-full sm:w-72">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search sequence, artist, status..."
+              aria-label="Search renders"
+              className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
+                aria-label="Clear search"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        </div>
+
         <DataTable
-          rows={renders}
+          rows={visibleRenders}
           pageSize={10}
-          emptyMessage="No render jobs logged yet."
+          emptyMessage={searchQuery ? `No render jobs matching "${searchQuery}".` : "No render jobs logged yet."}
           columns={[
             {
               key: 'sno',

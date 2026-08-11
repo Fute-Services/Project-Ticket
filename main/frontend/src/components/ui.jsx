@@ -203,12 +203,12 @@ export function Drawer({ open, onClose, title, children, wide = false }) {
  * `description` is optional but worth passing: without it screen readers get
  * only the title.
  */
-export function Modal({ open, onClose, title, description, children }) {
+export function Modal({ open, onClose, title, description, children, className }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose?.()}>
       {/* Radix warns when content has no description; passing undefined is the
           documented way to say "there deliberately isn't one". */}
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className={className || "max-w-lg max-h-[85vh] overflow-y-auto"}>
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">{title}</DialogTitle>
           {description ? (

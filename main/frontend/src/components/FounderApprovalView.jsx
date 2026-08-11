@@ -16,6 +16,7 @@ import {
   Calendar,
   FileText,
   Tag,
+  Search,
 } from 'lucide-react';
 
 export default function FounderApprovalView() {
@@ -41,20 +42,44 @@ export default function FounderApprovalView() {
 
   const [itFilter, setItFilter] = useState('all'); // 'all', 'pending', 'approved', 'rejected'
   const [hrFilter, setHrFilter] = useState('all'); // 'all', 'pending', 'approved', 'rejected'
+  const [itSearchQuery, setItSearchQuery] = useState('');
+  const [hrSearchQuery, setHrSearchQuery] = useState('');
 
   // Filter IT approvals
   const filteredItApprovals = approvals.filter((item) => {
-    if (itFilter === 'pending') return item.status === 'pending_founder' || item.status === 'pending';
-    if (itFilter === 'approved') return item.status === 'approved';
-    if (itFilter === 'rejected') return item.status === 'rejected' || item.status === 'not_approved';
+    if (itFilter === 'pending' && !(item.status === 'pending_founder' || item.status === 'pending')) return false;
+    if (itFilter === 'approved' && item.status !== 'approved') return false;
+    if (itFilter === 'rejected' && !(item.status === 'rejected' || item.status === 'not_approved')) return false;
+    if (itSearchQuery.trim()) {
+      const q = itSearchQuery.trim().toLowerCase();
+      return (
+        (item.id && String(item.id).toLowerCase().includes(q)) ||
+        (item.title && item.title.toLowerCase().includes(q)) ||
+        (item.sub && item.sub.toLowerCase().includes(q)) ||
+        (item.requestedBy && item.requestedBy.toLowerCase().includes(q)) ||
+        (item.department && item.department.toLowerCase().includes(q)) ||
+        (item.category && item.category.toLowerCase().includes(q)) ||
+        (item.priority && item.priority.toLowerCase().includes(q))
+      );
+    }
     return true;
   });
 
   // Filter HR leave requests
   const filteredHrLeaves = leaveRequests.filter((item) => {
-    if (hrFilter === 'pending') return item.status === 'Pending';
-    if (hrFilter === 'approved') return item.status === 'Approved';
-    if (hrFilter === 'rejected') return item.status === 'Rejected' || item.status === 'Not Approved';
+    if (hrFilter === 'pending' && item.status !== 'Pending') return false;
+    if (hrFilter === 'approved' && item.status !== 'Approved') return false;
+    if (hrFilter === 'rejected' && !(item.status === 'Rejected' || item.status === 'Not Approved')) return false;
+    if (hrSearchQuery.trim()) {
+      const q = hrSearchQuery.trim().toLowerCase();
+      return (
+        (item.id && String(item.id).toLowerCase().includes(q)) ||
+        (item.employee && item.employee.toLowerCase().includes(q)) ||
+        (item.type && item.type.toLowerCase().includes(q)) ||
+        (item.reason && item.reason.toLowerCase().includes(q)) ||
+        (item.department && item.department.toLowerCase().includes(q))
+      );
+    }
     return true;
   });
 
@@ -132,6 +157,27 @@ export default function FounderApprovalView() {
             </div>
           </div>
 
+          {/* IT Search Input */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={itSearchQuery}
+              onChange={(e) => setItSearchQuery(e.target.value)}
+              placeholder="Search IT approvals by title, requester, department..."
+              className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            {itSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setItSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
           {/* IT Items List */}
           <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-1">
             {filteredItApprovals.length === 0 ? (
@@ -155,68 +201,60 @@ export default function FounderApprovalView() {
                 return (
                   <div
                     key={item.id}
-                    className="bg-card border border-border hover:border-muted-foreground/40 rounded-2xl p-3.5 flex flex-col gap-2.5 transition-all relative group"
+                    className={`p-4 rounded-xl border transition-all flex flex-col gap-3 ${
+                      isPending
+                        ? 'bg-card border-border hover:border-orange-500/40 shadow-sm'
+                        : isApproved
+                        ? 'bg-emerald-500/5 border-emerald-500/20'
+                        : 'bg-destructive/5 border-destructive/20'
+                    }`}
                   >
-                    {/* Top Row: Title & Badges */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-semibold text-foreground truncate">{item.title}</h4>
-                          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border uppercase ${priorityStyle}`}>
-                            {item.priority || 'NORMAL'}
+                    {/* Item Top Row */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-bold text-orange-500">{item.id}</span>
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md border uppercase ${priorityStyle}`}>
+                            {item.priority || 'Normal'}
+                          </span>
+                          <span className="text-xs text-muted-foreground border-l border-border pl-2">
+                            {item.category || 'General'}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 leading-snug">{item.sub}</p>
+                        <h4 className="text-sm font-semibold text-foreground leading-snug">{item.title}</h4>
+                        {item.sub && <p className="text-xs text-muted-foreground line-clamp-2">{item.sub}</p>}
                       </div>
 
-                      {/* Status Tag or Actions */}
+                      {/* Status / Action Buttons */}
                       <div className="shrink-0">
                         {isApproved && (
-                          <div className="px-3 py-1 bg-primary/10 border border-primary/30 text-primary text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm">
-                            <Check size={14} className="stroke-[3]" />
-                            <span>Approved</span>
-                          </div>
+                          <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            <CheckCircle2 size={13} /> Approved
+                          </span>
                         )}
-
                         {isRejected && (
-                          <div className="px-3 py-1 bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm">
-                            <X size={14} className="stroke-[3]" />
-                            <span>Not Approved</span>
-                          </div>
+                          <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+                            <XCircle size={13} /> Not Approved
+                          </span>
                         )}
-
                         {isPending && (
                           <div className="flex items-center gap-1.5">
                             <button
                               type="button"
                               onClick={() => decideIt(item, 'approved')}
-                              className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/40 text-primary hover:bg-primary/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-md"
-                              title="Approve IT Request"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-all flex items-center gap-1 cursor-pointer"
                             >
-                              <Check size={16} className="stroke-[2.5]" />
+                              <Check size={13} /> Approve
                             </button>
                             <button
                               type="button"
                               onClick={() => decideIt(item, 'rejected')}
-                              className="w-8 h-8 rounded-lg bg-destructive/20 border border-destructive/40 text-destructive hover:bg-destructive/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-md"
-                              title="Reject IT Request"
+                              className="bg-destructive/10 hover:bg-destructive/20 text-destructive font-semibold text-xs px-2.5 py-1.5 rounded-lg border border-destructive/20 transition-all flex items-center gap-1 cursor-pointer"
                             >
-                              <X size={16} className="stroke-[2.5]" />
+                              <X size={13} /> Reject
                             </button>
                           </div>
                         )}
-                      </div>
-                    </div>
-
-                    {/* Bottom Metadata Row */}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
-                      <div className="flex items-center gap-1.5">
-                        <User size={12} className="text-muted-foreground" />
-                        <span>Requested by <strong className="text-foreground">{item.requestedBy}</strong></span>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Clock size={11} />
-                        <span>{item.timestamp}</span>
                       </div>
                     </div>
                   </div>
@@ -255,14 +293,35 @@ export default function FounderApprovalView() {
                   onClick={() => setHrFilter(f)}
                   className={`px-3 py-1 rounded-lg capitalize transition-all cursor-pointer ${
                     hrFilter === f
-                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-bold'
-                      : 'text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10'
+                      ? 'bg-warning text-warning-foreground font-bold'
+                      : 'text-muted-foreground hover:text-warning hover:bg-warning/10'
                   }`}
                 >
                   {f === 'rejected' ? 'Not Approved' : f}
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* HR Search Input */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={hrSearchQuery}
+              onChange={(e) => setHrSearchQuery(e.target.value)}
+              placeholder="Search leave requests by employee, type, reason..."
+              className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            {hrSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setHrSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
 
           {/* HR Leave Items List */}
