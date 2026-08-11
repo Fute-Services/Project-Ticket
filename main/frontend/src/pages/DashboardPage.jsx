@@ -20,6 +20,7 @@ import {
 import {
   Clock,
   CheckCircle2,
+  XCircle,
   AlertTriangle,
   ShieldCheck,
   Server,
@@ -525,6 +526,7 @@ const ASSET_STATUS_COLOR = {
 };
 
 function AssetsView() {
+  const { approvals, submitApproval } = useApprovals();
   const [assets, setAssets] = useState(SEED_ASSETS);
   const [typeFilter, setTypeFilter] = useState('All');
   const [modalOpen, setModalOpen] = useState(false);
@@ -553,6 +555,26 @@ function AssetsView() {
     const isEdit = !!editingAsset;
     setAssets((prev) => (isEdit ? prev.map((a) => (a.id === editingAsset.id ? asset : a)) : [asset, ...prev]));
     toast.success(isEdit ? `Saved ${asset.id}` : `Added ${asset.id}`, { description: asset.model });
+  }
+
+  function handleRequestApproval(asset) {
+    submitApproval({
+      assetIdRef: asset.id,
+      title: `Asset Approval — ${asset.model}`,
+      sub: `${asset.id} · ${asset.assignedTo || 'IT Store'} (${asset.department})`,
+      requestedBy: 'IT Desk',
+      category: 'Hardware',
+      priority: 'high',
+      status: 'pending_founder',
+    });
+
+    setAssets((prev) =>
+      prev.map((item) => (item.id === asset.id ? { ...item, approvalStatus: 'pending_founder' } : item))
+    );
+
+    toast.success(`Approval request sent to Founder for ${asset.id}`, {
+      description: `${asset.model} — Added to Founder approval queue.`,
+    });
   }
 
   // Deleting an asset can't be undone from this screen, so the toast carries
@@ -673,41 +695,51 @@ function AssetsView() {
               ),
             },
             {
-              key: 'actions',
-              label: 'Actions',
+              key: 'approval',
+              label: 'Approval',
               sortable: false,
-              width: '90px',
-              render: (a) => (
-                <div className="flex items-center gap-1.5">
+              width: '160px',
+              render: (a) => {
+                const matched = approvals.find(
+                  (app) => app.assetIdRef === a.id || (app.sub && app.sub.includes(a.id)) || (app.title && app.title.includes(a.id))
+                );
+
+                const status = matched ? matched.status : (a.approvalStatus || 'none');
+
+                if (status === 'approved') {
+                  return (
+                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold bg-emerald-500/10 text-emerald-500 border-emerald-500/20 whitespace-nowrap">
+                      <CheckCircle2 size={12} /> Approved
+                    </span>
+                  );
+                }
+
+                if (status === 'rejected' || status === 'not_approved') {
+                  return (
+                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold bg-red-500/10 text-red-500 border-red-500/20 whitespace-nowrap">
+                      <XCircle size={12} /> Not Approved
+                    </span>
+                  );
+                }
+
+                if (status === 'pending_founder' || status === 'pending') {
+                  return (
+                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold bg-amber-500/10 text-amber-500 border-amber-500/20 whitespace-nowrap">
+                      <Clock size={12} /> Pending Approval
+                    </span>
+                  );
+                }
+
+                return (
                   <button
                     type="button"
-                    onClick={() => setAuditAsset(a)}
-                    className="w-7 h-7 rounded-lg bg-muted border border-border hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
-                    aria-label={`View audit history for asset ${a.id}`}
-                    title="Audit history"
+                    onClick={() => handleRequestApproval(a)}
+                    className="bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold px-3 py-1 rounded-lg shadow-sm transition-all cursor-pointer whitespace-nowrap"
                   >
-                    <HistoryIcon size={12} />
+                    Request Approval
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(a)}
-                    className="w-7 h-7 rounded-lg bg-muted border border-border hover:border-muted-foreground/40 text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer transition-colors"
-                    aria-label={`Edit asset ${a.id}`}
-                    title="Edit"
-                  >
-                    <Pencil size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(a.id)}
-                    className="w-7 h-7 rounded-lg bg-destructive/10 border border-destructive/20 hover:bg-destructive/20 text-destructive flex items-center justify-center cursor-pointer transition-colors"
-                    aria-label={`Delete asset ${a.id}`}
-                    title="Delete"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              ),
+                );
+              },
             },
           ]}
         />

@@ -114,21 +114,21 @@ export const ASSET_STATUSES = ['In Use', 'Available', 'Under Repair', 'Retired']
 
 export const assets = [
   {
-    id: 'AST-1001', type: 'Laptop', model: 'Dell Latitude 5440', assignedTo: 'John Doe', department: 'Engineering', purchaseDate: '2024-02-11', warrantyEnd: '2027-02-11', status: 'In Use',
+    id: 'AST-1001', type: 'Laptop', model: 'Dell Latitude 5440', assignedTo: 'John Doe', department: 'Engineering', purchaseDate: '2024-02-11', warrantyEnd: '2027-02-11', status: 'In Use', approvalStatus: 'approved',
     hardDisk: '512GB NVMe SSD',
     componentsList: ['16GB RAM', 'Intel Core i7-1355U', 'Integrated Iris Xe Graphics'],
     componentsLog: [{ date: '2025-03-02', change: 'Upgraded RAM from 8GB to 16GB' }],
     history: [{ date: '2024-02-14', event: 'Assigned to John Doe' }],
   },
   {
-    id: 'AST-1002', type: 'Laptop', model: 'MacBook Pro 14"', assignedTo: 'Priya Nair', department: 'Design', purchaseDate: '2025-06-03', warrantyEnd: '2028-06-03', status: 'In Use',
+    id: 'AST-1002', type: 'Laptop', model: 'MacBook Pro 14"', assignedTo: 'Priya Nair', department: 'Design', purchaseDate: '2025-06-03', warrantyEnd: '2028-06-03', status: 'In Use', approvalStatus: 'pending_founder',
     hardDisk: '1TB NVMe SSD',
     componentsList: ['16GB Unified Memory', 'Apple M3 Pro', '18-core GPU'],
     componentsLog: [],
     history: [{ date: '2025-06-05', event: 'Assigned to Priya Nair' }],
   },
   {
-    id: 'AST-1003', type: 'Laptop', model: 'Lenovo ThinkPad T14', assignedTo: '—', department: 'IT Store', purchaseDate: '2023-09-20', warrantyEnd: '2026-09-20', status: 'Available',
+    id: 'AST-1003', type: 'Laptop', model: 'Lenovo ThinkPad T14', assignedTo: '—', department: 'IT Store', purchaseDate: '2023-09-20', warrantyEnd: '2026-09-20', status: 'Available', approvalStatus: 'not_approved',
     hardDisk: '256GB SSD',
     componentsList: ['8GB RAM', 'Intel Core i5-1235U', 'Integrated UHD Graphics'],
     componentsLog: [],
@@ -138,14 +138,14 @@ export const assets = [
     ],
   },
   {
-    id: 'AST-2001', type: 'Desktop', model: 'HP EliteDesk 800', assignedTo: 'Jane Smith', department: 'Finance', purchaseDate: '2023-04-18', warrantyEnd: '2026-04-18', status: 'In Use',
+    id: 'AST-2001', type: 'Desktop', model: 'HP EliteDesk 800', assignedTo: 'Jane Smith', department: 'Finance', purchaseDate: '2023-04-18', warrantyEnd: '2026-04-18', status: 'In Use', approvalStatus: 'none',
     hardDisk: '512GB SSD',
     componentsList: ['16GB RAM', 'Intel Core i7-13700', 'Intel UHD Graphics 770'],
     componentsLog: [],
     history: [{ date: '2023-04-20', event: 'Assigned to Jane Smith' }],
   },
   {
-    id: 'AST-2002', type: 'Desktop', model: 'Dell OptiPlex 7010', assignedTo: '—', department: 'IT Store', purchaseDate: '2022-11-05', warrantyEnd: '2025-11-05', status: 'Under Repair',
+    id: 'AST-2002', type: 'Desktop', model: 'Dell OptiPlex 7010', assignedTo: '—', department: 'IT Store', purchaseDate: '2022-11-05', warrantyEnd: '2025-11-05', status: 'Under Repair', approvalStatus: 'none',
     hardDisk: '1TB HDD',
     componentsList: ['8GB RAM', 'Intel Core i5-13500', 'Intel UHD Graphics 770'],
     componentsLog: [{ date: '2026-07-28', change: 'PSU flagged as failing during diagnostics' }],
@@ -155,7 +155,7 @@ export const assets = [
     ],
   },
   {
-    id: 'AST-3001', type: 'Server', model: 'Dell PowerEdge R750 (Server 70)', assignedTo: 'Infrastructure', department: 'IT', purchaseDate: '2023-01-15', warrantyEnd: '2028-01-15', status: 'In Use',
+    id: 'AST-3001', type: 'Server', model: 'Dell PowerEdge R750 (Server 70)', assignedTo: 'Infrastructure', department: 'IT', purchaseDate: '2023-01-15', warrantyEnd: '2028-01-15', status: 'In Use', approvalStatus: 'approved',
     hardDisk: '4x 3.84TB NVMe SSD (RAID 10)',
     componentsList: ['256GB RAM', '2x Intel Xeon Gold 6338', 'Dual redundant PSU'],
     componentsLog: [{ date: '2026-02-10', change: 'RAM expanded from 128GB to 256GB' }],
