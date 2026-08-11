@@ -213,28 +213,14 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
               label: 'Employee Status',
               width: '120px',
               render: (t) => {
-                const canEdit = isTicketOwner(t);
-                if (canEdit) {
-                  return (
-                    <select
-                      value={t.employeeStatus || 'Active'}
-                      onChange={(e) => onFieldChange && onFieldChange(t.id, 'employeeStatus', e.target.value)}
-                      aria-label={`Employee Status for ticket ${t.token || t.id}`}
-                      className="w-full bg-primary/10 border border-primary/30 rounded-lg px-1.5 py-1 text-xs text-primary font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-                    >
-                      {['Active', 'Pending', 'Satisfied', 'Closed'].map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  );
-                }
-
                 const statusStr = t.employeeStatus || 'Active';
                 const badgeColor =
                   statusStr === 'Satisfied'
                     ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                     : statusStr === 'Closed'
                     ? 'bg-muted text-muted-foreground border-border'
+                    : statusStr === 'Pending'
+                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                     : 'bg-blue-500/10 text-blue-500 border-blue-500/20';
 
                 return (
