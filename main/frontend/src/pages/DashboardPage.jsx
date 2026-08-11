@@ -32,7 +32,6 @@ import {
   Download,
   ChevronDown,
   X,
-  Search,
   HardDrive,
   History as HistoryIcon,
   Cpu,
@@ -522,15 +521,9 @@ function AssetsView() {
   const [typeFilter, setTypeFilter] = useState('All');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
-  const [assetIdQuery, setAssetIdQuery] = useState('');
   const [auditAsset, setAuditAsset] = useState(null);
 
-  // The type filter and the dedicated Asset ID search both live here;
-  // free-text search across model/user/department is still DataTable's job,
-  // so that one isn't implemented twice with subtly different behaviour.
-  const visible = assets
-    .filter((a) => typeFilter === 'All' || a.type === typeFilter)
-    .filter((a) => !assetIdQuery.trim() || a.id.toLowerCase().includes(assetIdQuery.trim().toLowerCase()));
+  const visible = assets.filter((a) => typeFilter === 'All' || a.type === typeFilter);
 
   // Warranty is "expiring" if it lapses within 90 days of the demo date —
   // the whole point of tracking it is catching that before it lapses.
@@ -620,24 +613,13 @@ function AssetsView() {
           ))}
         </div>
 
-        <div className="relative mb-3 max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <input
-            value={assetIdQuery}
-            onChange={(e) => setAssetIdQuery(e.target.value)}
-            placeholder="Filter by Asset ID…"
-            aria-label="Filter by Asset ID"
-            className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
-
         <DataTable
           rows={visible}
           pageSize={10}
           searchable
           searchKeys={['id', 'model', 'assignedTo', 'department']}
           searchPlaceholder="Search by asset ID, model, user, or department…"
-          emptyMessage={assetIdQuery.trim() ? `No asset matches ID "${assetIdQuery.trim()}".` : 'No assets of this type are on record yet.'}
+          emptyMessage="No assets of this type are on record yet."
           emptyAction={
             <button
               type="button"
