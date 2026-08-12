@@ -4,6 +4,9 @@ const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
 const resources = require('../controllers/hrDeskController');
 
+router.post('/send-email', auth, role('hr', 'founder'), resources.sendEmail);
+router.get('/send-email', auth, role('hr', 'founder'), resources.getSentEmails);
+
 // Every sub-resource here is HR/founder-only — same access as the rest of
 // the HR desk (candidates, interviews, meetings, attendance, feedback, jobs).
 for (const [path, handlers] of Object.entries({

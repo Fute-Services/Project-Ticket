@@ -93,4 +93,8 @@ export const attendanceApi = hrDeskResource('attendance');
 export const feedbackApi = hrDeskResource('feedback');
 export const jobsApi = hrDeskResource('jobs');
 
+// HR Email — real SMTP send via the backend's mailer, Sent folder persists across sessions
+export const sendHrEmail = (data) => api.post('/api/hr-desk/send-email', data);
+export const getSentHrEmails = () => api.get('/api/hr-desk/send-email');
+
 export default api;

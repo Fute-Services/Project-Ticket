@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Inbox, Send, FileEdit, LayoutTemplate } from 'lucide-react';
+import { toast } from 'sonner';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, EmptyState } from '../../components/ui';
 import { emails as SEED } from '../../data/hrMockData';
+import { sendHrEmail, getSentHrEmails } from '../../utils/api';
 
 const FOLDERS = [
   { id: 'inbox', label: 'Inbox', icon: Inbox },
@@ -17,6 +19,15 @@ export default function Email() {
   const [selected, setSelected] = useState(SEED.inbox[0]?.id || null);
   const [replyText, setReplyText] = useState('');
 
+  // Sent mail is real (backend/utils/mailer.js over SMTP) — inbox/drafts/
+  // templates stay simulated below since actually receiving mail would need
+  // separate IMAP/webhook infrastructure this app doesn't have.
+  useEffect(() => {
+    getSentHrEmails()
+      .then(({ data }) => setEmails((prev) => ({ ...prev, sent: data })))
+      .catch((e) => console.error('Failed to load sent emails:', e.message));
+  }, []);
+
   const list = emails[folder] || [];
   const activeEmail = folder === 'inbox' ? emails.inbox.find((e) => e.id === selected) : null;
   const activeDraft = folder === 'drafts' ? emails.drafts.find((d) => d.id === selected) : null;
@@ -29,13 +40,20 @@ export default function Email() {
 
   function sendReply() {
     if (!replyText.trim() || !activeEmail) return;
-    const message = { from: 'You (HR)', to: activeEmail.from, body: replyText.trim(), time: 'Just now' };
+    const body = replyText.trim();
+    const subject = `Re: ${activeEmail.subject}`;
+    const message = { from: 'You (HR)', to: activeEmail.from, body, time: 'Just now' };
     setEmails((prev) => ({
       ...prev,
       inbox: prev.inbox.map((e) => (e.id === activeEmail.id ? { ...e, unread: false, thread: [...e.thread, message] } : e)),
-      sent: [{ id: `ES-${Date.now()}`, to: activeEmail.from, subject: `Re: ${activeEmail.subject}`, preview: replyText.trim(), time: 'Just now' }, ...prev.sent],
     }));
     setReplyText('');
+    sendHrEmail({ to: activeEmail.from, subject, body })
+      .then(({ data }) => {
+        setEmails((prev) => ({ ...prev, sent: [data, ...prev.sent] }));
+        toast.success('Email sent', { description: `To ${activeEmail.from}` });
+      })
+      .catch((e) => toast.error('Failed to send email', { description: e.response?.data?.error || e.message }));
   }
 
   function useTemplate(template) {
@@ -54,12 +72,15 @@ export default function Email() {
 
   function sendDraft() {
     if (!activeDraft?.to.trim() || !activeDraft?.subject.trim()) return;
-    setEmails((prev) => ({
-      ...prev,
-      drafts: prev.drafts.filter((d) => d.id !== activeDraft.id),
-      sent: [{ id: `ES-${Date.now()}`, to: activeDraft.to, subject: activeDraft.subject, preview: activeDraft.body?.slice(0, 80) || '', time: 'Just now' }, ...prev.sent],
-    }));
+    const { to, subject, body } = activeDraft;
+    setEmails((prev) => ({ ...prev, drafts: prev.drafts.filter((d) => d.id !== activeDraft.id) }));
     setSelected(null);
+    sendHrEmail({ to, subject, body: body || '' })
+      .then(({ data }) => {
+        setEmails((prev) => ({ ...prev, sent: [data, ...prev.sent] }));
+        toast.success('Email sent', { description: `To ${to}` });
+      })
+      .catch((e) => toast.error('Failed to send email', { description: e.response?.data?.error || e.message }));
   }
 
   function discardDraft() {

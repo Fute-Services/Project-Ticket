@@ -1,4 +1,37 @@
 const { db } = require('../config/firebase');
+const { sendMail } = require('../utils/mailer');
+
+const sentCollection = db.collection('sent_emails');
+
+// POST /api/hr-desk/send-email — { to, subject, body } — actually sends via
+// the same SMTP transport complaint notifications use, then keeps a record
+// so the Sent folder reflects real history across sessions/devices.
+async function sendEmail(req, res) {
+  const { to, subject, body } = req.body;
+  if (!to || !subject || !body) return res.status(400).json({ error: 'to, subject and body are required' });
+
+  const html = `<div style="font-family:sans-serif;white-space:pre-wrap">${body}</div>`;
+  await sendMail(to, subject, html);
+
+  const docData = {
+    to,
+    subject,
+    preview: body.slice(0, 80),
+    body,
+    sentBy: req.user.full_name,
+    time: new Date().toISOString(),
+  };
+  const docRef = await sentCollection.add(docData);
+  res.status(201).json({ id: docRef.id, ...docData });
+}
+
+// GET /api/hr-desk/send-email — Sent folder history
+async function getSentEmails(req, res) {
+  const snap = await sentCollection.get();
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  rows.sort((a, b) => new Date(b.time) - new Date(a.time));
+  res.json(rows);
+}
 
 // Six HR sub-resources (Candidates, Interviews, Meetings, Attendance,
 // Feedback, Job postings) share the same shape of CRUD — list/create/
@@ -47,6 +80,8 @@ function makeCrud(collectionName, requiredFields) {
 }
 
 module.exports = {
+  sendEmail,
+  getSentEmails,
   employees: makeCrud('employees', ['name', 'department']),
   candidates: makeCrud('candidates', ['name', 'email']),
   interviews: makeCrud('interviews', ['candidate', 'type', 'date']),
