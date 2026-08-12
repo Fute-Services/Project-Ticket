@@ -10,11 +10,12 @@
 
 // Must match validStatuses in backend/controllers/{hr,it}Controller.js exactly —
 // the PATCH endpoint 400s on anything else.
-export const STATUSES = ['Pending', 'In Progress', 'Completed'];
+export const STATUSES = ['Pending', 'In Progress', 'Waiting Approval', 'Completed'];
 
 const STATUS_TOKENS = {
   Pending: 'var(--warn)',
   'In Progress': 'var(--info)',
+  'Waiting Approval': 'var(--sec)',
   Completed: 'var(--ok)',
 };
 

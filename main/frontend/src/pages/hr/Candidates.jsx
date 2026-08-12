@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search,
   MapPin,
@@ -13,12 +13,13 @@ import {
 } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, Pill, Drawer, Modal, Field, inputClass, EmptyState } from '../../components/ui';
-import { candidates as SEED, CANDIDATE_STAGES, RESUME_SOURCES } from '../../data/hrMockData';
+import { CANDIDATE_STAGES, RESUME_SOURCES } from '../../data/hrMockData';
+import { candidatesApi } from '../../utils/api';
 
 const EMPTY_UPLOAD_FORM = { name: '', email: '', phone: '', appliedFor: '', location: '', experience: '' };
 
 export default function Candidates() {
-  const [candidates, setCandidates] = useState(SEED);
+  const [candidates, setCandidates] = useState([]);
   const [query, setQuery] = useState('');
   const [stageFilter, setStageFilter] = useState('All');
   const [sourceFilter, setSourceFilter] = useState('All');
@@ -42,9 +43,14 @@ export default function Candidates() {
     });
   }, [candidates, query, stageFilter, sourceFilter]);
 
+  useEffect(() => {
+    candidatesApi.list().then(({ data }) => setCandidates(data)).catch((e) => console.error('Failed to load candidates:', e.message));
+  }, []);
+
   function updateStage(id, stage) {
     setCandidates((rows) => rows.map((c) => (c.id === id ? { ...c, stage } : c)));
     setSelected((s) => (s && s.id === id ? { ...s, stage } : s));
+    candidatesApi.update(id, { stage }).catch((e) => console.error('Failed to update candidate stage:', e.message));
   }
 
   function handleFileChosen(e) {
@@ -57,9 +63,7 @@ export default function Candidates() {
 
   function submitUpload(e) {
     e.preventDefault();
-    const id = `C-${1000 + candidates.length + 1}`;
-    const newCandidate = {
-      id,
+    const payload = {
       name: uploadForm.name,
       email: uploadForm.email,
       phone: uploadForm.phone,
@@ -74,12 +78,14 @@ export default function Candidates() {
       stage: 'Applied',
       appliedFor: uploadForm.appliedFor || 'Unspecified role',
       appliedOn: new Date().toISOString().slice(0, 10),
-      resumeFileName: uploadedFile?.name,
+      resumeFileName: uploadedFile?.name || '',
     };
-    setCandidates((rows) => [newCandidate, ...rows]);
+    candidatesApi.create(payload).then(({ data }) => {
+      setCandidates((rows) => [data, ...rows]);
+      setSelected(data);
+    }).catch((e) => console.error('Failed to add candidate:', e.message));
     setUploadedFile(null);
     setUploadForm(EMPTY_UPLOAD_FORM);
-    setSelected(newCandidate);
   }
 
   return (

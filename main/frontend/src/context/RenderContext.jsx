@@ -1,35 +1,69 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+import { getRenders, addRender as addRenderApi, updateRender as updateRenderApi } from '../utils/api';
 
 const RenderContext = createContext(null);
 
-const SEED_RENDERS = [
-  { id: 1, date: '2026-08-09', sequence: '', frameNo: '', personName: 'Kapil Chauhan', endDate: '', status: 'Pending' },
-  { id: 2, date: '2026-08-08', sequence: '', frameNo: '', personName: 'Tilottama Paramanik', endDate: '', status: 'Completed' },
-  { id: 3, date: '2026-08-09', sequence: '', frameNo: '', personName: 'Vipin', endDate: '', status: 'On Hold' },
-  { id: 4, date: '2026-08-10', sequence: '', frameNo: '', personName: 'Himanshu', endDate: '', status: 'Queue' },
-];
+const POLL_MS = 20000;
 
+// Shared between the Production dashboard (writes) and IT's read-only
+// Rendering Status view (reads) — both now read the same backend collection.
 export function RenderProvider({ children }) {
-  const [renders, setRenders] = useState(SEED_RENDERS);
+  const { user } = useAuth();
+  const [renders, setRenders] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  function addRender(job) {
-    setRenders((prev) => [{ id: Date.now(), sequence: '', frameNo: '', status: 'Queue', ...job }, ...prev]);
+  const refresh = useCallback(async () => {
+    if (!user) {
+      setRenders([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await getRenders();
+      setRenders(data);
+    } catch (e) {
+      console.error('Failed to load render jobs:', e.response?.data?.error || e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    refresh();
+    if (!user) return;
+    const id = setInterval(refresh, POLL_MS);
+    return () => clearInterval(id);
+  }, [refresh, user]);
+
+  async function addRender(job) {
+    try {
+      const { data } = await addRenderApi(job);
+      setRenders((prev) => [data, ...prev]);
+    } catch (e) {
+      console.error('Failed to add render job:', e.response?.data?.error || e.message);
+    }
+  }
+
+  async function updateRenderField(id, field, value) {
+    setRenders((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+    try {
+      const { data } = await updateRenderApi(id, { [field]: value });
+      setRenders((prev) => prev.map((r) => (r.id === id ? data : r)));
+    } catch (e) {
+      console.error('Failed to update render job:', e.response?.data?.error || e.message);
+      refresh();
+    }
   }
 
   function toggleStatus(id) {
-    setRenders((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: r.status === 'Completed' ? 'Pending' : 'Completed' } : r))
-    );
-  }
-
-  function updateRenderField(id, field, value) {
-    setRenders((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
-    );
+    const job = renders.find((r) => r.id === id);
+    if (!job) return;
+    updateRenderField(id, 'status', job.status === 'Completed' ? 'Pending' : 'Completed');
   }
 
   return (
-    <RenderContext.Provider value={{ renders, addRender, toggleStatus, updateRenderField }}>
+    <RenderContext.Provider value={{ renders, loading, addRender, toggleStatus, updateRenderField, refresh }}>
       {children}
     </RenderContext.Provider>
   );

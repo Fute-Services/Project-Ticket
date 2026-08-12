@@ -1,39 +1,83 @@
-import { createContext, useContext, useState } from 'react';
-import { tasks as SEED_TASKS, projects as SEED_PROJECTS } from '../data/coordinatorMockData';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+import {
+  getProjects,
+  getTasks,
+  createTask as createTaskApi,
+  updateTaskStatus as updateTaskStatusApi,
+  updateTask as updateTaskApi,
+} from '../utils/api';
 
 const TaskProjectContext = createContext(null);
+
+const POLL_MS = 20000;
 
 // Shared across the Coordinator's Tasks/Projects pages, the Founder's
 // Project Details view, and the Employee dashboard's "My Tasks" view — a
 // task the coordinator assigns shows up immediately on the assigned
-// employee's own list, since all three read/write the same state instead
-// of separate local copies (mirrors TicketContext's pattern).
+// employee's own list, since all three now read the same backend
+// collections instead of separate local copies.
 export function TaskProjectProvider({ children }) {
-  const [tasks, setTasks] = useState(SEED_TASKS);
-  const [projects] = useState(SEED_PROJECTS);
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  function addTask(task) {
-    setTasks((prev) => [
-      {
-        id: `TK-${900 + prev.length + 1}`,
-        status: 'Pending',
-        comments: 0,
-        attachments: 0,
-        figma: '',
-        pr: '',
-        ...task,
-      },
-      ...prev,
-    ]);
+  const refresh = useCallback(async () => {
+    if (!user) {
+      setTasks([]);
+      setProjects([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const [taskRes, projectRes] = await Promise.all([getTasks(), getProjects()]);
+      setTasks(taskRes.data);
+      setProjects(projectRes.data);
+    } catch (e) {
+      console.error('Failed to load tasks/projects:', e.response?.data?.error || e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    refresh();
+    if (!user) return;
+    const id = setInterval(refresh, POLL_MS);
+    return () => clearInterval(id);
+  }, [refresh, user]);
+
+  async function addTask(task) {
+    try {
+      const { data } = await createTaskApi(task);
+      setTasks((prev) => [data, ...prev]);
+    } catch (e) {
+      console.error('Failed to create task:', e.response?.data?.error || e.message);
+    }
   }
 
-  function moveTask(id, status) {
+  async function moveTask(id, status) {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    try {
+      const { data } = await updateTaskStatusApi(id, status);
+      setTasks((prev) => prev.map((t) => (t.id === id ? data : t)));
+    } catch (e) {
+      console.error('Failed to move task:', e.response?.data?.error || e.message);
+      refresh();
+    }
   }
 
   /** Patch any subset of a task's fields — used by the task detail pane. */
-  function updateTask(id, patch) {
+  async function updateTask(id, patch) {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+    try {
+      const { data } = await updateTaskApi(id, patch);
+      setTasks((prev) => prev.map((t) => (t.id === id ? data : t)));
+    } catch (e) {
+      console.error('Failed to update task:', e.response?.data?.error || e.message);
+      refresh();
+    }
   }
 
   /**
@@ -42,14 +86,14 @@ export function TaskProjectProvider({ children }) {
    * something to return to, and Pending is the safe choice.
    */
   function toggleComplete(id) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: t.status === 'Completed' ? 'Pending' : 'Completed' } : t))
-    );
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    moveTask(id, task.status === 'Completed' ? 'Pending' : 'Completed');
   }
 
   return (
     <TaskProjectContext.Provider
-      value={{ tasks, projects, addTask, moveTask, updateTask, toggleComplete }}
+      value={{ tasks, projects, loading, addTask, moveTask, updateTask, toggleComplete, refresh }}
     >
       {children}
     </TaskProjectContext.Provider>

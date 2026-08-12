@@ -1,131 +1,75 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+import { relativeTime } from '../utils/tickets';
+import { getApprovals, submitApprovalRequest, decideApproval } from '../utils/api';
 
 const ApprovalContext = createContext(null);
 
-// `createdAt` is a real timestamp backing "sort by date" in the Approval
-// Center — `timestamp` alone ("2 hours ago") can't be sorted chronologically
-// once it stops updating, since it's a rendered-once string, not a live
-// clock. Offsets below just make the three seed rows agree with what their
-// display strings already say.
-const NOW = Date.now();
+// Approvals refresh on this interval so a ticket another user (IT/HR desk)
+// just sent to "Waiting Approval" shows up here without a manual reload —
+// TicketContext and ApprovalContext are siblings, not nested, so there's no
+// direct call path between them; the backend is the shared source of truth.
+const POLL_MS = 20000;
 
-const SEED = [
-  {
-    id: 1,
-    source: 'IT',
-    title: 'Software Installation',
-    sub: 'Visual Studio Code - 4 developer seats',
-    requestedBy: 'Mayank',
-    timestamp: '2 hours ago',
-    createdAt: NOW - 2 * 60 * 60 * 1000,
-    priority: 'medium',
-    category: 'Software',
-    status: 'pending_founder',
-  },
-  {
-    id: 2,
-    source: 'IT',
-    title: 'System Access Request',
-    sub: 'Production server access for on-call rotation',
-    requestedBy: 'Kalyani',
-    timestamp: '4 hours ago',
-    createdAt: NOW - 4 * 60 * 60 * 1000,
-    priority: 'high',
-    category: 'System Access',
-    status: 'pending_founder',
-  },
-  {
-    id: 3,
-    source: 'IT',
-    title: 'Hardware Procurement',
-    sub: '3x replacement laptops for the design team',
-    requestedBy: 'Debashish Das',
-    timestamp: '1 day ago',
-    createdAt: NOW - 24 * 60 * 60 * 1000,
-    priority: 'low',
-    category: 'Hardware',
-    status: 'approved',
-  },
-  {
-    id: 4,
-    source: 'IT',
-    title: 'VPN Access Request',
-    sub: 'Remote VPN access for new contractor onboarding',
-    requestedBy: 'Prathiti A C',
-    timestamp: '6 hours ago',
-    createdAt: NOW - 6 * 60 * 60 * 1000,
-    priority: 'medium',
-    category: 'System Access',
-    status: 'pending_founder',
-  },
-  {
-    id: 5,
-    source: 'IT',
-    title: 'Cloud Storage Upgrade',
-    sub: 'Upgrade project drive from 2TB to 5TB plan',
-    requestedBy: 'Sofiya K N',
-    timestamp: '3 days ago',
-    createdAt: NOW - 3 * 24 * 60 * 60 * 1000,
-    priority: 'low',
-    category: 'Software',
-    status: 'approved',
-  },
-  {
-    id: 6,
-    source: 'IT',
-    title: 'Firewall Rule Change',
-    sub: 'Open port 8443 for new render farm node',
-    requestedBy: 'Nesamanikandan',
-    timestamp: '2 days ago',
-    createdAt: NOW - 2 * 24 * 60 * 60 * 1000,
-    priority: 'high',
-    category: 'System Access',
-    status: 'rejected',
-  },
-  {
-    id: 7,
-    source: 'IT',
-    title: 'Software License Renewal',
-    sub: 'Adobe Creative Cloud - 10 seats renewal',
-    requestedBy: 'Kapil Chauhan',
-    timestamp: '30 min ago',
-    createdAt: NOW - 30 * 60 * 1000,
-    priority: 'medium',
-    category: 'Software',
-    status: 'pending_founder',
-  },
-];
+function fromBackend(doc) {
+  return { ...doc, timestamp: relativeTime(doc.createdAt) };
+}
 
 // Shared across IT's Approval Center, the Founder's Approval System, and
-// HR's read-only approvals feed — IT proposes (submitApproval), the Founder
-// decides (decide), and once approved it's visible to HR too. All three
-// read/write the same state instead of separate local copies (mirrors
-// LeaveContext's pattern).
+// HR's read-only approvals feed — IT/HR propose (submitApproval), the
+// Founder decides (decide). Tickets whose status is set to "Waiting
+// Approval" also land here automatically (backend/controllers/{hr,it}Controller.js
+// creates the record), so this isn't the only way an approval appears.
 export function ApprovalProvider({ children }) {
-  const [approvals, setApprovals] = useState(SEED);
+  const { user } = useAuth();
+  const [approvals, setApprovals] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  function submitApproval(item) {
-    setApprovals((prev) => [
-      {
-        id: Date.now(),
-        source: 'IT',
-        timestamp: 'Just now',
-        createdAt: Date.now(),
-        priority: 'medium',
-        category: 'General',
-        status: 'pending_founder',
-        ...item,
-      },
-      ...prev,
-    ]);
+  const refresh = useCallback(async () => {
+    if (!user) {
+      setApprovals([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await getApprovals();
+      setApprovals(data.map(fromBackend));
+    } catch (e) {
+      console.error('Failed to load approvals:', e.response?.data?.error || e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    refresh();
+    if (!user) return;
+    const id = setInterval(refresh, POLL_MS);
+    return () => clearInterval(id);
+  }, [refresh, user]);
+
+  async function submitApproval(item) {
+    try {
+      const { data } = await submitApprovalRequest(item);
+      setApprovals((prev) => [fromBackend(data), ...prev]);
+    } catch (e) {
+      console.error('Failed to submit approval request:', e.response?.data?.error || e.message);
+    }
   }
 
-  function decide(id, status) {
+  async function decide(id, status) {
     setApprovals((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+    try {
+      const { data } = await decideApproval(id, status);
+      setApprovals((prev) => prev.map((a) => (a.id === id ? fromBackend(data) : a)));
+    } catch (e) {
+      console.error('Failed to decide approval:', e.response?.data?.error || e.message);
+      refresh();
+    }
   }
 
   return (
-    <ApprovalContext.Provider value={{ approvals, submitApproval, decide }}>
+    <ApprovalContext.Provider value={{ approvals, loading, submitApproval, decide, refresh }}>
       {children}
     </ApprovalContext.Provider>
   );

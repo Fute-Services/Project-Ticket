@@ -5,7 +5,7 @@ require('dotenv').config();
 // Toggle: flip to `true` to require the password again — login() branches
 // on this below, both code paths are kept intact so switching back is a
 // one-line change, not a rewrite.
-const PASSWORD_LOGIN_ENABLED = false;
+const PASSWORD_LOGIN_ENABLED = true;
 
 // The emulator exposes the same Identity Toolkit REST surface locally —
 // any non-empty `key` works against it, unlike the real endpoint which

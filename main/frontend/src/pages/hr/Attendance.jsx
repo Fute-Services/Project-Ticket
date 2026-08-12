@@ -1,16 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, StatCard, EmptyState } from '../../components/ui';
 import DataTable from '../../components/DataTable';
 import { Users2, UserCheck, UserX, Clock3 } from 'lucide-react';
-import { employees, attendanceRecords, ATTENDANCE_STATUSES } from '../../data/hrMockData';
-
-// Derived from the records rather than hardcoded. A fixed date drifts out of
-// the data's range the moment the seed changes, and when it does every row
-// reads "No record", the five stat cards all show 0, and sorting the check-in
-// /check-out/hours columns does nothing because every value is identical.
-const MONTH_DATES = [...new Set(attendanceRecords.map((a) => a.date))].sort();
-const TODAY = MONTH_DATES[MONTH_DATES.length - 1];
+import { ATTENDANCE_STATUSES } from '../../data/hrMockData';
+import { employeesApi, attendanceApi } from '../../utils/api';
 
 const DOT_COLOR = {
   Present: 'bg-primary',
@@ -37,7 +31,24 @@ function formatHours(hours) {
 }
 
 export default function Attendance() {
-  const [selectedEmployee, setSelectedEmployee] = useState(employees[0].id);
+  const [employees, setEmployees] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+
+  useEffect(() => {
+    employeesApi.list().then(({ data }) => {
+      setEmployees(data);
+      setSelectedEmployee((s) => s || data[0]?.id || null);
+    }).catch((e) => console.error('Failed to load employees:', e.message));
+    attendanceApi.list().then(({ data }) => setAttendanceRecords(data)).catch((e) => console.error('Failed to load attendance:', e.message));
+  }, []);
+
+  // Derived from the records rather than hardcoded. A fixed date drifts out of
+  // the data's range the moment the seed changes, and when it does every row
+  // reads "No record", the five stat cards all show 0, and sorting the check-in
+  // /check-out/hours columns does nothing because every value is identical.
+  const MONTH_DATES = useMemo(() => [...new Set(attendanceRecords.map((a) => a.date))].sort(), [attendanceRecords]);
+  const TODAY = MONTH_DATES[MONTH_DATES.length - 1];
 
   // One flat row per employee, with today's record merged in. Flattening the
   // join here (rather than pairing two arrays by index at render time) is what
@@ -56,7 +67,7 @@ export default function Attendance() {
           status: record?.status || null,
         };
       }),
-    []
+    [employees, attendanceRecords, TODAY]
   );
 
   const counts = useMemo(() => {

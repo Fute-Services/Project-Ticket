@@ -21,7 +21,7 @@ import IconField from '../components/IconField';
 // authController's PASSWORD_LOGIN_ENABLED on the backend. Both must agree,
 // since the backend already ignores/doesn't require password when its own
 // flag is off.
-const PASSWORD_LOGIN_ENABLED = false;
+const PASSWORD_LOGIN_ENABLED = true;
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });

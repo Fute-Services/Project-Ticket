@@ -94,4 +94,26 @@ async function createUser(req, res) {
   res.status(201).json({ id: userRecord.uid, ...profile });
 }
 
-module.exports = { getAllComplaints, listUsers, updateUserPermissions, createUser };
+const ROLE_PERMISSIONS_DOC = db.collection('settings').doc('role_permissions');
+
+// GET /api/founder/role-permissions — every logged-in user reads this to
+// gate their own nav (PermissionsContext.canAccess), not just Super Admin.
+async function getRolePermissions(req, res) {
+  const doc = await ROLE_PERMISSIONS_DOC.get();
+  res.json(doc.exists ? doc.data() : {});
+}
+
+// PUT /api/founder/role-permissions — Super Admin only. Frontend sends the
+// full { [role]: [pageId, ...] } map each time (togglePermission/
+// setAllForRole both recompute the whole object), so this replaces wholesale
+// rather than merging.
+async function updateRolePermissions(req, res) {
+  const { permissions } = req.body;
+  if (!permissions || typeof permissions !== 'object') {
+    return res.status(400).json({ error: 'permissions object is required' });
+  }
+  await ROLE_PERMISSIONS_DOC.set(permissions);
+  res.json({ permissions });
+}
+
+module.exports = { getAllComplaints, listUsers, updateUserPermissions, createUser, getRolePermissions, updateRolePermissions };

@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import api from '../utils/api';
 
 // One entry per real nav item across the app — kept in sync by hand with
 // IT_NAV_ITEMS/EMPLOYEE_NAV_ITEMS (ItDeskLayout.jsx) and the NAV_ITEMS
@@ -58,8 +59,6 @@ export const PAGE_REGISTRY = {
 // view a founder browses — so they aren't in the registry until they do.
 export const TOGGLABLE_ROLES = Object.keys(PAGE_REGISTRY);
 
-const STORAGE_KEY = 'fute_permissions';
-
 function seedPermissions() {
   const seed = {};
   for (const role of TOGGLABLE_ROLES) {
@@ -68,60 +67,63 @@ function seedPermissions() {
   return seed;
 }
 
-// Permissions have to survive a reload and be visible across tabs — a
-// founder toggling a page off in one tab is meaningless if an IT user's
-// tab never finds out — so unlike ApprovalContext/TicketContext (in-memory
-// demo data, fine to reset), this persists the same way AuthContext does
-// (readSession/login → localStorage).
-function readStoredPermissions() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    const restored = {};
-    for (const role of TOGGLABLE_ROLES) {
-      restored[role] = new Set(Array.isArray(parsed[role]) ? parsed[role] : PAGE_REGISTRY[role].map((p) => p.id));
-    }
-    return restored;
-  } catch {
-    return null;
+function fromBackend(raw) {
+  const restored = {};
+  for (const role of TOGGLABLE_ROLES) {
+    restored[role] = new Set(Array.isArray(raw?.[role]) ? raw[role] : PAGE_REGISTRY[role].map((p) => p.id));
   }
+  return restored;
 }
 
-function writeStoredPermissions(permissions) {
+function toBackend(permissions) {
   const serializable = {};
   for (const role of TOGGLABLE_ROLES) {
     serializable[role] = Array.from(permissions[role] || []);
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+  return serializable;
 }
+
+const POLL_MS = 15000;
 
 const PermissionsContext = createContext(null);
 
+// A founder toggling a page off on one device is meaningless if an IT
+// user's session elsewhere never finds out, so this is backend-backed
+// (GET /api/founder/role-permissions, readable by anyone logged in) and
+// polls instead of the old same-browser-only `storage` event trick.
 export function PermissionsProvider({ children }) {
   const { user } = useAuth();
-  const [permissions, setPermissions] = useState(() => readStoredPermissions() || seedPermissions());
+  const [permissions, setPermissions] = useState(seedPermissions);
 
-  // Cross-tab live sync: the `storage` event only fires in *other* tabs
-  // than the one that wrote the change, which is exactly what's needed —
-  // an IT user sitting on a tab gets kicked off a page the instant a
-  // founder revokes it in a different tab, not just on their next reload.
-  useEffect(() => {
-    function handleStorage(e) {
-      if (e.key === STORAGE_KEY) {
-        setPermissions(readStoredPermissions() || seedPermissions());
-      }
+  const refresh = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data } = await api.get('/api/founder/role-permissions');
+      setPermissions(fromBackend(data));
+    } catch (e) {
+      console.error('Failed to load role permissions:', e.response?.data?.error || e.message);
     }
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+  }, [user]);
 
-  function updatePermissions(updater) {
+  useEffect(() => {
+    refresh();
+    if (!user) return;
+    const id = setInterval(refresh, POLL_MS);
+    return () => clearInterval(id);
+  }, [refresh, user]);
+
+  async function updatePermissions(updater) {
+    let nextValue;
     setPermissions((prev) => {
-      const next = updater(prev);
-      writeStoredPermissions(next);
-      return next;
+      nextValue = updater(prev);
+      return nextValue;
     });
+    try {
+      await api.put('/api/founder/role-permissions', { permissions: toBackend(nextValue) });
+    } catch (e) {
+      console.error('Failed to save role permissions:', e.response?.data?.error || e.message);
+      refresh();
+    }
   }
 
   // Super Admin always has full access — never gated, so Super Admin can

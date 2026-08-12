@@ -3,6 +3,7 @@ import { useTickets } from '../context/TicketContext';
 import { useApprovals } from '../context/ApprovalContext';
 import { useAuth } from '../context/AuthContext';
 import { useRenders, frameCount } from '../context/RenderContext';
+import { useAssets } from '../context/AssetContext';
 import { toast } from 'sonner';
 import ItDeskLayout from '../components/ItDeskLayout';
 import ItDatePicker from '../components/ItDatePicker';
@@ -14,7 +15,6 @@ import { BarChartCard, LineChartCard } from '../components/charts';
 import { Card, SectionHeader, StatCard, Drawer, Modal, Field, inputClass } from '../components/ui';
 import { DateField } from '../components/ui/date-field';
 import {
-  assets as SEED_ASSETS,
   ASSET_TYPES,
   slaWeekly,
   resolutionByCategory,
@@ -785,7 +785,7 @@ const ASSET_STATUS_COLOR = {
 
 function AssetsView() {
   const { approvals, submitApproval } = useApprovals();
-  const [assets, setAssets] = useState(SEED_ASSETS);
+  const { assets, addOrUpdateAsset, patchAsset, removeAsset, restoreAsset } = useAssets();
   const [typeFilter, setTypeFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -825,7 +825,7 @@ function AssetsView() {
 
   function handleSubmit(asset) {
     const isEdit = !!editingAsset;
-    setAssets((prev) => (isEdit ? prev.map((a) => (a.id === editingAsset.id ? asset : a)) : [asset, ...prev]));
+    addOrUpdateAsset(asset, isEdit);
     toast.success(isEdit ? `Saved ${asset.id}` : `Added ${asset.id}`, { description: asset.model });
   }
 
@@ -840,9 +840,7 @@ function AssetsView() {
       status: 'pending_founder',
     });
 
-    setAssets((prev) =>
-      prev.map((item) => (item.id === asset.id ? { ...item, approvalStatus: 'pending_founder' } : item))
-    );
+    patchAsset(asset.id, { approvalStatus: 'pending_founder' });
 
     toast.success(`Approval request sent to Founder for ${asset.id}`, {
       description: `${asset.model} added to Founder approval queue.`,
@@ -851,14 +849,13 @@ function AssetsView() {
 
   // Deleting an asset can't be undone from this screen, so the toast carries
   // an Undo rather than just reporting the loss after the fact.
-  function handleDelete(id) {
-    const removed = assets.find((a) => a.id === id);
-    setAssets((prev) => prev.filter((a) => a.id !== id));
+  async function handleDelete(id) {
+    const removed = await removeAsset(id);
     toast.success(`Deleted ${id}`, {
       description: removed?.model,
       action: {
         label: 'Undo',
-        onClick: () => setAssets((prev) => (prev.some((a) => a.id === id) ? prev : [removed, ...prev])),
+        onClick: () => restoreAsset(removed),
       },
     });
   }

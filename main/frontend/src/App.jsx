@@ -6,6 +6,7 @@ import { ApprovalProvider } from './context/ApprovalContext';
 import { PermissionsProvider } from './context/PermissionsContext';
 import { TaskProjectProvider } from './context/TaskProjectContext';
 import { RenderProvider } from './context/RenderContext';
+import { AssetProvider } from './context/AssetContext';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
@@ -62,6 +63,7 @@ export default function App() {
       <ApprovalProvider>
       <TaskProjectProvider>
       <RenderProvider>
+      <AssetProvider>
       <BrowserRouter>
         <Routes>
           {/* Sign-in is the front door. Signup is reached from the panel's own
@@ -136,6 +138,7 @@ export default function App() {
         </Routes>
         <Toaster position="bottom-right" richColors closeButton />
       </BrowserRouter>
+      </AssetProvider>
       </RenderProvider>
       </TaskProjectProvider>
       </ApprovalProvider>

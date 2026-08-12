@@ -1,17 +1,24 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, List, Plus, Video, MapPin } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, Pill, Modal, Field, inputClass, EmptyState } from '../../components/ui';
-import { interviews as SEED, INTERVIEW_TYPES, INTERVIEW_STATUSES, candidates } from '../../data/hrMockData';
+import { INTERVIEW_TYPES, INTERVIEW_STATUSES } from '../../data/hrMockData';
+import { interviewsApi, candidatesApi } from '../../utils/api';
 
 const EMPTY_FORM = { candidate: '', type: 'HR', interviewer: '', date: '', time: '', link: '', location: '', notes: '' };
 
 export default function Interviews() {
-  const [interviews, setInterviews] = useState(SEED);
+  const [interviews, setInterviews] = useState([]);
+  const [candidates, setCandidates] = useState([]);
   const [view, setView] = useState('list');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showSchedule, setShowSchedule] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+
+  useEffect(() => {
+    interviewsApi.list().then(({ data }) => setInterviews(data)).catch((e) => console.error('Failed to load interviews:', e.message));
+    candidatesApi.list().then(({ data }) => setCandidates(data)).catch((e) => console.error('Failed to load candidates:', e.message));
+  }, []);
 
   const filtered = useMemo(
     () => (statusFilter === 'All' ? interviews : interviews.filter((i) => i.status === statusFilter)),
@@ -29,12 +36,14 @@ export default function Interviews() {
 
   function changeStatus(id, status) {
     setInterviews((rows) => rows.map((i) => (i.id === id ? { ...i, status } : i)));
+    interviewsApi.update(id, { status }).catch((e) => console.error('Failed to update interview status:', e.message));
   }
 
   function submitSchedule(e) {
     e.preventDefault();
-    const id = `IV-${500 + interviews.length + 1}`;
-    setInterviews((rows) => [{ id, status: 'Scheduled', ...form }, ...rows]);
+    interviewsApi.create({ status: 'Scheduled', ...form }).then(({ data }) => {
+      setInterviews((rows) => [data, ...rows]);
+    }).catch((err) => console.error('Failed to schedule interview:', err.message));
     setForm(EMPTY_FORM);
     setShowSchedule(false);
   }

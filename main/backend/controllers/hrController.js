@@ -30,7 +30,7 @@ function sortByRecent(docs) {
 
 // POST /api/hr/complaints — submit new HR complaint
 async function createComplaint(req, res) {
-  const { name, department, description, complaint_date, priority } = req.body;
+  const { name, department, description, complaint_date, priority, employeeId } = req.body;
   if (!name || !department || !description || !complaint_date || !priority) {
     return res.status(400).json({ error: 'All fields are required' });
   }
@@ -49,6 +49,10 @@ async function createComplaint(req, res) {
     duration,
     submitted_at,
     priority,
+    employeeId: employeeId || '',
+    employeeStatus: '',
+    solver: '',
+    remarks: '',
     status: 'Pending',
     updated_at: submitted_at,
   };
@@ -94,17 +98,37 @@ async function searchByToken(req, res) {
   res.json({ id: doc.id, ...doc.data() });
 }
 
+const VALID_STATUSES = ['Pending', 'In Progress', 'Waiting Approval', 'Completed'];
+
 // PATCH /api/hr/complaints/:id/status — HR staff / founder updates status
 async function updateStatus(req, res) {
   const { id } = req.params;
   const { status } = req.body;
-  const validStatuses = ['Pending', 'In Progress', 'Completed'];
-  if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+  if (!VALID_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
   const docRef = collection.doc(id);
+  const before = await docRef.get();
+  if (!before.exists) return res.status(404).json({ error: 'Complaint not found' });
+  const previousStatus = before.data().status;
+
   const updated_at = new Date().toISOString();
   await docRef.update({ status, updated_at });
   const data = { id, ...(await docRef.get()).data() };
+
+  if (status === 'Waiting Approval') {
+    await db.collection('approvals').add({
+      source: 'HR',
+      title: `HR Request — ${data.name}`,
+      sub: data.description,
+      requestedBy: data.name,
+      priority: data.priority,
+      category: 'HR',
+      status: 'pending_founder',
+      complaintRef: { collection: 'hr_complaints', id },
+      previousStatus,
+      createdAt: new Date().toISOString(),
+    });
+  }
 
   // Notify the employee who submitted
   try {
@@ -124,4 +148,26 @@ async function updateStatus(req, res) {
   res.json(data);
 }
 
-module.exports = { createComplaint, getAllComplaints, getMyComplaints, searchByToken, updateStatus };
+// PATCH /api/hr/complaints/:id/fields — editable columns outside `status`.
+const EDITABLE_FIELDS = ['employeeStatus', 'solver', 'remarks', 'employeeId'];
+
+async function updateFields(req, res) {
+  const { id } = req.params;
+  const updates = {};
+  for (const key of EDITABLE_FIELDS) {
+    if (req.body[key] !== undefined) updates[key] = req.body[key];
+  }
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: `No editable fields provided (allowed: ${EDITABLE_FIELDS.join(', ')})` });
+  }
+
+  const docRef = collection.doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) return res.status(404).json({ error: 'Complaint not found' });
+
+  updates.updated_at = new Date().toISOString();
+  await docRef.update(updates);
+  res.json({ id, ...(await docRef.get()).data() });
+}
+
+module.exports = { createComplaint, getAllComplaints, getMyComplaints, searchByToken, updateStatus, updateFields };
