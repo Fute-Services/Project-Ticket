@@ -1049,47 +1049,71 @@ function AssetsView() {
         />
       </Card>
 
-      {/* Asset Audit Sidebar */}
-      <Drawer open={!!auditAsset} onClose={() => setAuditAsset(null)} title={auditAsset ? `Audit: ${auditAsset.id}` : 'Asset Audit'}>
+      {/* Asset Audit / Details Sidebar */}
+      <Drawer open={!!auditAsset} onClose={() => setAuditAsset(null)} title={auditAsset ? `Asset Details: ${auditAsset.id}` : 'Asset Details'}>
         {auditAsset && (
           <div className="flex flex-col gap-6">
             <div>
-              <div className="text-sm font-semibold text-foreground">{auditAsset.model}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{auditAsset.assignedTo} · {auditAsset.department}</div>
+              <div className="text-base font-bold text-foreground">{auditAsset.model}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{auditAsset.id} · {auditAsset.type}</div>
             </div>
 
-            <div>
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Cpu size={12} /> Component Inventory
-              </h4>
-              <div className="flex items-center gap-2 text-xs text-foreground mb-2">
-                <HardDrive size={12} className="text-muted-foreground shrink-0" />
-                <span>{auditAsset.hardDisk || 'No hard disk on record'}</span>
+            <div className="bg-muted/50 border border-border rounded-xl p-4 flex flex-col gap-3">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Asset Specifications & Details</h4>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Asset ID</span>
+                  <span className="font-semibold text-primary">{auditAsset.id}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Type</span>
+                  <span className="font-semibold text-foreground">{auditAsset.type}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Model</span>
+                  <span className="font-semibold text-foreground">{auditAsset.model}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Serial Number</span>
+                  <span className="font-mono text-foreground">{auditAsset.serialNo || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Status</span>
+                  <span className={`inline-block mt-0.5 text-xs px-2 py-0.5 rounded-full border font-semibold whitespace-nowrap ${ASSET_STATUS_COLOR[auditAsset.status]}`}>
+                    {auditAsset.status}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Approval Status</span>
+                  <span className="capitalize font-semibold text-foreground">
+                    {auditAsset.approvalStatus ? auditAsset.approvalStatus.replace('_', ' ') : 'None'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Assigned To</span>
+                  <span className="font-semibold text-foreground">{auditAsset.assignedTo || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Department</span>
+                  <span className="font-semibold text-foreground">{auditAsset.department || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Purchase Date</span>
+                  <span className="font-semibold text-foreground">{auditAsset.purchaseDate || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[11px]">Warranty Until</span>
+                  <span className="font-semibold text-foreground">{auditAsset.warrantyEnd || '—'}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground block text-[11px]">Hard Disk</span>
+                  <span className="font-semibold text-foreground">{auditAsset.hardDisk || '—'}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground block text-[11px]">Components Changes</span>
+                  <span className="font-semibold text-foreground whitespace-pre-wrap">{auditAsset.componentsChanges || '—'}</span>
+                </div>
               </div>
-              {auditAsset.componentsList?.length > 0 ? (
-                <ul className="flex flex-col gap-1">
-                  {auditAsset.componentsList.map((c, i) => (
-                    <li key={i} className="text-xs text-muted-foreground pl-4 relative before:content-['·'] before:absolute before:left-0">{c}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-muted-foreground">No components on record.</p>
-              )}
-            </div>
-
-            <div>
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Components Change Log</h4>
-              {auditAsset.componentsLog?.length > 0 ? (
-                <ul className="flex flex-col gap-2">
-                  {auditAsset.componentsLog.map((entry, i) => (
-                    <li key={i} className="text-xs bg-muted border border-border rounded-lg p-2.5">
-                      <span className="text-muted-foreground">{entry.date}:</span> <span className="text-foreground">{entry.change}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-muted-foreground">No component changes logged.</p>
-              )}
             </div>
 
             <div>
