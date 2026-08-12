@@ -90,6 +90,7 @@ async function login(req, res) {
   const userDoc = await db.collection('users').doc(uid).get();
   if (!userDoc.exists) return res.status(400).json({ error: 'User profile not found' });
   const user = userDoc.data();
+  if (user.active === false) return res.status(403).json({ error: 'This account has been deactivated' });
 
   const token = jwt.sign(
     { id: uid, email: user.email, role: user.role, full_name: user.full_name },

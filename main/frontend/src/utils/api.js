@@ -23,6 +23,18 @@ export const createUser = (data) => api.post('/api/founder/users', data);
 export const updateUserPermissions = (uid, permissionOverrides) =>
   api.patch(`/api/founder/users/${uid}/permissions`, { permissionOverrides });
 
+// Super Admin — full user management
+export const updateUser = (uid, data) => api.patch(`/api/founder/users/${uid}`, data);
+export const setUserActive = (uid, active) => api.patch(`/api/founder/users/${uid}/active`, { active });
+export const resetUserPassword = (uid, password) => api.patch(`/api/founder/users/${uid}/reset-password`, { password });
+export const deleteUser = (uid) => api.delete(`/api/founder/users/${uid}`);
+
+// Super Admin — audit log, analytics, system settings
+export const getAuditLogs = (limit) => api.get('/api/founder/audit-logs', { params: { limit } });
+export const getAnalytics = () => api.get('/api/founder/analytics');
+export const getSystemSettings = () => api.get('/api/founder/system-settings');
+export const updateSystemSettings = (settings) => api.put('/api/founder/system-settings', { settings });
+
 // Complaints — the queue each role is allowed to see
 export const getFounderComplaints = () => api.get('/api/founder/complaints');
 export const getHrComplaints = () => api.get('/api/hr/complaints');

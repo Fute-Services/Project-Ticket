@@ -45,6 +45,9 @@ async function authMiddleware(req, res, next) {
   if (!data) {
     return res.status(401).json({ error: 'Account no longer exists' });
   }
+  if (data.active === false) {
+    return res.status(403).json({ error: 'This account has been deactivated' });
+  }
 
   req.user = { id: decoded.id, email: data.email, role: data.role, full_name: data.full_name };
   next();
