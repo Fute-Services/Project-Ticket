@@ -1,31 +1,33 @@
 import { expect } from '@playwright/test';
 
-/** Demo accounts seeded by src/utils/dummyAuth.js, keyed by the quick-login tile. */
+/**
+ * Real Firebase accounts in the `fute-portal` project. Only founder, it, and
+ * employee currently have known credentials (password `Test@1234`) — hr,
+ * coordinator, and production need real accounts created via the founder's
+ * Role Permissions page before those specs will pass.
+ */
 export const ROLES = {
-  founder: { tile: 'Founder Portal', email: 'founder@futeservices.com', home: '/founder/dashboard' },
-  hr: { tile: 'HR Department', email: 'hr.demo@futeservices.com', home: '/hr/overview' },
-  it: { tile: 'IT Service Desk', email: 'system.demo@futeservices.com', home: '/it/dashboard' },
-  coordinator: { tile: 'Coordinator', email: 'coordinator.demo@futeservices.com', home: '/coordinator/overview' },
-  employee: { tile: 'Employee Portal', email: 'employee@futeservices.com', home: '/employee/dashboard' },
-  production: { tile: 'Production Floor', email: 'production.demo@futeservices.com', home: '/department/production' },
+  founder: { email: 'founder.test@futeservices.com', password: 'Test@1234', home: '/founder/dashboard' },
+  hr: { email: 'hr.test@futeservices.com', password: 'Test@1234', home: '/hr/overview' },
+  it: { email: 'system.it.test@futeservices.com', password: 'Test@1234', home: '/it/dashboard' },
+  coordinator: { email: 'coordinator.test@futeservices.com', password: 'Test@1234', home: '/coordinator/overview' },
+  employee: { email: 'test.employee@futeservices.com', password: 'Test@1234', home: '/employee/dashboard' },
+  production: { email: 'production.test@futeservices.com', password: 'Test@1234', home: '/department/production' },
 };
 
-export const PASSWORD = 'demo1234';
+export const PASSWORD = 'Test@1234';
 
-/** Sign in through the quick-demo tile and land on the role's home route. */
+/** Sign in through the real login form and land on the role's home route. */
 export async function loginAs(page, role) {
-  const { tile, home } = ROLES[role];
+  const { email, password, home } = ROLES[role];
   await page.goto('/');
-  await page.getByRole('button', { name: new RegExp(tile, 'i') }).first().click();
+  await page.getByLabel(/email/i).fill(email);
+  await page.getByLabel('PASSWORD', { exact: true }).fill(password);
+  await page.getByRole('button', { name: /sign in/i }).click();
   await expect(page).toHaveURL(new RegExp(home));
 }
 
-/**
- * Collects uncaught exceptions and console errors. The Express backend is
- * optional in this app — when it's down the login call fails and the UI falls
- * back to the local demo accounts by design, so that one network error is not
- * a defect and is filtered out.
- */
+/** Collects uncaught exceptions and console errors. */
 export function collectErrors(page) {
   const errors = [];
   const ignore = /Future Flag|ERR_CONNECTION_REFUSED|Failed to load resource/;
@@ -44,8 +46,5 @@ export async function signOut(page) {
   const burger = page.getByRole('button', { name: /open navigation menu/i });
   if (await burger.isVisible().catch(() => false)) await burger.click();
 
-  if (!(await page.getByRole('button', { name: /sign out/i }).count())) {
-    await page.locator('button').filter({ hasText: /Demo|Founder/ }).first().click();
-  }
   await page.getByRole('button', { name: /sign out/i }).first().click();
 }

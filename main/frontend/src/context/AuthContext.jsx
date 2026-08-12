@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getMe } from '../utils/api';
-import { isDummyToken, getDummyUserByEmail, DUMMY_USERS_STORAGE_KEY } from '../utils/dummyAuth';
 
 const AuthContext = createContext(null);
 
@@ -74,35 +73,10 @@ export function AuthProvider({ children }) {
       store.setItem('fute_user', JSON.stringify(freshUser));
     }
 
-    if (isDummyToken(session.token)) {
-      const fresh = getDummyUserByEmail(session.user.email);
-      if (fresh) persist({ ...session.user, ...fresh });
-      return;
-    }
-
     getMe()
       .then(({ data }) => persist({ ...session.user, ...data }))
       .catch(() => {});
   }, []);
-
-  // Cross-tab live sync for demo accounts: a founder editing a dummy user's
-  // permissionOverrides in one tab writes to the same fute_dummy_users
-  // localStorage entry every tab reads from, so an already-open tab for
-  // that user can pick the change up immediately — same trick
-  // PermissionsContext uses for role-level toggles.
-  useEffect(() => {
-    if (!user || !isDummyToken(token)) return;
-    function handleStorage(e) {
-      if (e.key !== DUMMY_USERS_STORAGE_KEY) return;
-      const fresh = getDummyUserByEmail(user.email);
-      if (!fresh) return;
-      setUser((prev) => ({ ...prev, ...fresh }));
-      const store = localStorage.getItem('fute_user') ? localStorage : sessionStorage;
-      store.setItem('fute_user', JSON.stringify({ ...user, ...fresh }));
-    }
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, [user, token]);
 
   function login(userData, jwt, remember = true) {
     setUser(userData);

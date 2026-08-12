@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import { Shield, Crown, UserRound, RotateCcw, UserPlus, X } from 'lucide-react';
 import { usePermissions, PAGE_REGISTRY, TOGGLABLE_ROLES } from '../context/PermissionsContext';
 import { getUsers, createUser, updateUserPermissions } from '../utils/api';
-import { listDummyUsers, createDummyUser, updateDummyUserPermissions } from '../utils/dummyAuth';
 import { Card, SectionHeader } from './ui';
 import { Switch } from './ui/switch';
 
@@ -50,15 +49,12 @@ export default function RolePermissionsView() {
     setSelectedEmail('');
     setShowNewUserForm(false);
     setNewUserForm(NEW_USER_FORM_EMPTY);
-    // Same fallback shape LoginPage.jsx already uses for the real API: try
-    // the real backend, fall back to the local demo account store when it's
-    // unreachable (no Firebase configured in this environment).
     getUsers(role)
       .then(({ data }) => {
         if (!cancelled) setUsers(data);
       })
       .catch(() => {
-        if (!cancelled) setUsers(listDummyUsers(role));
+        if (!cancelled) toast.error('Could not load users');
       })
       .finally(() => {
         if (!cancelled) setUsersLoading(false);
@@ -72,11 +68,7 @@ export default function RolePermissionsView() {
 
   function updateSelectedUser(nextOverrides) {
     if (!selectedUser) return;
-    const apply = () =>
-      updateUserPermissions(selectedUser.id, nextOverrides).catch(() =>
-        updateDummyUserPermissions(selectedUser.email, nextOverrides)
-      );
-    apply()
+    updateUserPermissions(selectedUser.id, nextOverrides)
       .then(() => {
         setUsers((prev) =>
           prev.map((u) => (u.email === selectedUser.email ? { ...u, permissionOverrides: nextOverrides } : u))
@@ -113,7 +105,6 @@ export default function RolePermissionsView() {
     setCreatingUser(true);
     createUser(payload)
       .then(({ data }) => data)
-      .catch(() => createDummyUser(payload))
       .then((created) => {
         setUsers((prev) => [...prev, created]);
         setSelectedEmail(created.email);

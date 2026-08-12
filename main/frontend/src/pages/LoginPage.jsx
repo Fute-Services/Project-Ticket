@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Crown, Shield, Users, Cpu, FolderKanban, User, TrendingUp, Code2, Megaphone, Palette, Factory } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth, homeFor } from '../context/AuthContext';
 import { loginUser } from '../utils/api';
-import { dummyLogin, DEMO_ACCOUNTS } from '../utils/dummyAuth';
 import AuthLayout from '../components/AuthLayout';
 import IconField from '../components/IconField';
 
@@ -57,15 +56,7 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      let data;
-      try {
-        ({ data } = await loginUser(form));
-      } catch (err) {
-        // No backend reachable (Firebase isn't configured here) — fall back
-        // to the local demo accounts instead of dead-ending the user.
-        if (err.response) throw err;
-        ({ data } = dummyLogin(form));
-      }
+      const { data } = await loginUser(form);
       signInWithSession(data);
     } catch (err) {
       setError(
@@ -78,12 +69,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function handleDemoLogin(account) {
-    setError('');
-    const { data } = dummyLogin(account);
-    signInWithSession(data);
   }
 
   return (
@@ -173,130 +158,6 @@ export default function LoginPage() {
           </span>
         </button>
       </form>
-
-      <div className="mt-8 pt-6 border-t border-border">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center mb-4">
-          Quick Demo Access
-        </p>
-        <div className="grid grid-cols-2 gap-1.5">
-          {DEMO_ACCOUNTS.map((account) => {
-            const roleMeta = {
-              founder: {
-                label: 'Founder Portal',
-                sub: 'Business Leadership',
-                icon: Crown,
-                color: 'hover:border-warning/50 hover:bg-warning/[0.04] hover:text-warning',
-                badgeBg: 'bg-warning/10 text-warning',
-              },
-              superadmin: {
-                label: 'Super Admin',
-                sub: 'Full Platform Access',
-                icon: Shield,
-                color: 'hover:border-destructive/50 hover:bg-destructive/[0.04] hover:text-destructive',
-                badgeBg: 'bg-destructive/10 text-destructive',
-              },
-              hr: {
-                label: 'HR Department',
-                sub: 'HR & Candidates',
-                icon: Users,
-                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
-                badgeBg: 'bg-muted/10 text-muted-foreground',
-              },
-              it: {
-                label: 'IT Service Desk',
-                sub: 'IT Support & Tickets',
-                icon: Cpu,
-                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
-                badgeBg: 'bg-muted/10 text-muted-foreground',
-              },
-              coordinator: {
-                label: 'Coordinator',
-                sub: 'Task & Project Mgmt',
-                icon: FolderKanban,
-                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
-                badgeBg: 'bg-muted/10 text-muted-foreground',
-              },
-              employee: {
-                label: 'Employee Portal',
-                sub: 'Personal Employee Space',
-                icon: User,
-                color: 'hover:border-primary/50 hover:bg-primary/[0.04] hover:text-primary',
-                badgeBg: 'bg-primary/10 text-primary',
-              },
-              // These five have no backend behind them yet — same
-              // illustrative data as the Founder's department views
-              // (data/deptDemoData.js). "Demo data" is called out here too,
-              // same as it is on the dashboard itself.
-              sales: {
-                label: 'Sales Operations',
-                sub: 'Demo data only',
-                icon: TrendingUp,
-                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
-                badgeBg: 'bg-muted/10 text-muted-foreground',
-              },
-              developers: {
-                label: 'Developer Portal',
-                sub: 'Demo data only',
-                icon: Code2,
-                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
-                badgeBg: 'bg-muted/10 text-muted-foreground',
-              },
-              marketing: {
-                label: 'Marketing Suite',
-                sub: 'Demo data only',
-                icon: Megaphone,
-                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
-                badgeBg: 'bg-muted/10 text-muted-foreground',
-              },
-              branding: {
-                label: 'Branding Hub',
-                sub: 'Demo data only',
-                icon: Palette,
-                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
-                badgeBg: 'bg-muted/10 text-muted-foreground',
-              },
-              production: {
-                label: 'Production Floor',
-                sub: 'Demo data only',
-                icon: Factory,
-                color: 'hover:border-muted/50 hover:bg-muted/[0.04] hover:text-muted-foreground',
-                badgeBg: 'bg-muted/10 text-muted-foreground',
-              },
-            };
-
-            const meta = roleMeta[account.role.toLowerCase()] || {
-              label: account.role,
-              sub: 'Demo Access',
-              icon: User,
-              color: 'hover:border-muted hover:text-muted-foreground',
-              badgeBg: 'bg-muted/10 text-muted-foreground',
-            };
-
-            const Icon = meta.icon;
-
-            return (
-              <button
-                key={account.role}
-                type="button"
-                onClick={() => handleDemoLogin(account)}
-                className={`flex items-center gap-1.5 p-1.5 rounded-lg bg-muted border border-border text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group ${meta.color} ${account.role === 'employee' ? 'col-span-2' : ''}`}
-              >
-                <div className={`w-5 h-5 rounded-md ${meta.badgeBg} flex items-center justify-center shrink-0 border border-border transition-colors`}>
-                  <Icon size={11} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] font-semibold text-foreground group-hover:text-inherit transition-colors leading-none mb-0.5 capitalize truncate">
-                    {meta.label}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground leading-none truncate group-hover:text-muted-foreground transition-colors">
-                    {meta.sub}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
     </AuthLayout>
   );
 }

@@ -65,7 +65,9 @@ test.describe('Production Floor — interactive dashboard', () => {
     // every Context back to its seed data and defeat this exact check.
     await signOut(page);
     await expect(page).toHaveURL(/\/$/);
-    await page.getByRole('button', { name: new RegExp(ROLES.it.tile, 'i') }).first().click();
+    await page.getByLabel(/email/i).fill(ROLES.it.email);
+    await page.getByLabel('PASSWORD', { exact: true }).fill(ROLES.it.password);
+    await page.getByRole('button', { name: /sign in/i }).click();
     await expect(page).toHaveURL(new RegExp(ROLES.it.home));
     await page.getByRole('button', { name: /^Tickets Queue/i }).click();
 

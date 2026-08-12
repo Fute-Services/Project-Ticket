@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Building2, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth, homeFor } from '../context/AuthContext';
 import { registerUser } from '../utils/api';
-import { dummyRegister } from '../utils/dummyAuth';
 import AuthLayout from '../components/AuthLayout';
 import IconField from '../components/IconField';
 
@@ -60,15 +59,7 @@ export default function SignupPage() {
       password: form.password,
     };
     try {
-      let data;
-      try {
-        ({ data } = await registerUser(payload));
-      } catch (err) {
-        // No backend reachable (Firebase isn't configured here) — fall back
-        // to a local demo account instead of dead-ending the user.
-        if (err.response) throw err;
-        ({ data } = dummyRegister(payload));
-      }
+      const { data } = await registerUser(payload);
       login(
         {
           id: data.id,
