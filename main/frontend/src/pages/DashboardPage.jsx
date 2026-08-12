@@ -33,10 +33,10 @@ import {
   ChevronDown,
   X,
   Search,
+  Eye,
   HardDrive,
   History as HistoryIcon,
   Cpu,
-  Eye,
   Play,
   Film,
 } from 'lucide-react';
@@ -176,16 +176,16 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
               render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '—'}</span>,
             },
             {
-              key: 'dept',
-              label: 'Department',
+              key: 'role',
+              label: 'Role',
               width: '85px',
-              render: (t) => <span className="text-muted-foreground text-xs truncate block">{t.dept || '—'}</span>,
+              render: (t) => <span className="text-muted-foreground text-xs truncate block">{t.role || 'Employee'}</span>,
             },
             {
               key: 'title',
               label: 'Issue',
               width: '150px',
-              render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.title}>{t.title}</span>,
+              render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{t.description || t.title}</span>,
             },
             {
               key: 'status',
@@ -261,53 +261,101 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
                 />
               ),
             },
+            {
+              key: 'actions',
+              label: 'View',
+              width: '55px',
+              sortable: false,
+              render: (t) => (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDetailsTicket(t);
+                  }}
+                  title="View All Ticket Details"
+                  aria-label={`View details for ticket ${t.token || t.id}`}
+                  className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-colors cursor-pointer flex items-center justify-center"
+                >
+                  <Eye size={15} />
+                </button>
+              ),
+            },
           ]}
         />
       </div>
 
-      {/* Full record — kept out of the grid itself so the queue stays scannable;
-          Employee ID / VPN No / Date / Username are metadata you check when you
-          need them, not something every row needs to show all the time. */}
-      <Drawer open={!!detailsTicket} onClose={() => setDetailsTicket(null)} title={detailsTicket ? `Ticket ${detailsTicket.token}` : 'Ticket'}>
+      {/* Full record — Drawer showing Category, Subcategory, and all details */}
+      <Drawer open={!!detailsTicket} onClose={() => setDetailsTicket(null)} title={detailsTicket ? `Ticket Details — ${detailsTicket.token}` : 'Ticket Details'}>
         {detailsTicket && (
-          <div className="flex flex-col gap-4">
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Issue</div>
-              <div className="text-sm font-semibold text-foreground">{detailsTicket.title}</div>
+          <div className="flex flex-col gap-4 text-xs font-sans">
+            <div className="bg-muted/60 border border-border rounded-xl p-3.5 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-primary font-mono">{detailsTicket.token}</span>
+                <span className="px-2.5 py-0.5 rounded-full border font-semibold bg-primary/10 text-primary border-primary/20">
+                  {detailsTicket.status}
+                </span>
+              </div>
+              <div className="text-sm font-bold text-foreground mt-1">
+                {detailsTicket.description || detailsTicket.title}
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-xs text-muted-foreground">Employee ID</div>
-                <div className="text-xs font-semibold text-foreground">{detailsTicket.employeeId || '—'}</div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Employee ID</div>
+                <div className="font-bold text-primary text-sm">{detailsTicket.employeeId || '—'}</div>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Username</div>
-                <div className="text-xs font-semibold text-foreground">{detailsTicket.username || '—'}</div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Requester Name</div>
+                <div className="font-semibold text-foreground">{detailsTicket.user || '—'}</div>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">VPN No</div>
-                <div className="text-xs font-semibold text-foreground">{detailsTicket.vpnNo || '—'}</div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Role</div>
+                <div className="font-semibold text-foreground">{detailsTicket.role || 'Employee'}</div>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Date</div>
-                <div className="text-xs font-semibold text-foreground">{detailsTicket.date || '—'}</div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Category</div>
+                <div className="font-semibold text-foreground">{detailsTicket.category || 'N/A'}</div>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Department</div>
-                <div className="text-xs font-semibold text-foreground">{detailsTicket.dept || '—'}</div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Subcategory</div>
+                <div className="font-semibold text-foreground">{detailsTicket.subcategory || detailsTicket.sub_category || 'N/A'}</div>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Requester</div>
-                <div className="text-xs font-semibold text-foreground">{detailsTicket.user || '—'}</div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Priority</div>
+                <div className="font-semibold text-foreground">{detailsTicket.priority || 'Medium'}</div>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Status</div>
-                <div className="text-xs font-semibold text-foreground">{detailsTicket.status}</div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Employee Status</div>
+                <div className="font-semibold text-primary">{detailsTicket.employeeStatus || 'Active'}</div>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Token</div>
-                <div className="text-xs font-semibold text-primary">{detailsTicket.token}</div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Resolved By</div>
+                <div className="font-semibold text-foreground">{detailsTicket.solver || 'Team 1'}</div>
               </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">VPN No</div>
+                <div className="font-mono text-foreground">{detailsTicket.vpnNo || '—'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Date</div>
+                <div className="text-foreground">{detailsTicket.date || '—'}</div>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-3">
+              <div className="text-muted-foreground font-semibold mb-0.5">Remarks</div>
+              <div className="text-foreground">{detailsTicket.remarks || 'No remarks yet'}</div>
             </div>
           </div>
         )}

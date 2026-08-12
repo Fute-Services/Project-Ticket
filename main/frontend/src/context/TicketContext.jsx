@@ -47,23 +47,27 @@ const EDITABLE_FIELDS = {
 function fromBackend(doc) {
   const status = BACKEND_TO_UI_STATUS[doc.status] || 'Open';
   const isIt = doc.dept_tag ? doc.dept_tag === 'IT' : Boolean(doc.category);
+  const rawRole = doc.user_role || doc.role || doc.department || 'Employee';
+  const roleDisplay = rawRole.charAt(0).toUpperCase() + rawRole.slice(1);
   return {
     id: doc.id,
     token: doc.token,
-    title: doc.category ? `${doc.category} — ${doc.sub_category}` : (doc.description || 'Request').slice(0, 60),
+    title: doc.description || (doc.category ? `${doc.category} — ${doc.sub_category}` : 'Request'),
     user: doc.name,
+    role: roleDisplay,
     dept: doc.dept_tag || (isIt ? 'IT' : 'HR'),
     category: doc.category || null,
+    subcategory: doc.sub_category || null,
     status,
     statusColor: TICKET_STATUS_COLOR[status],
-    employeeId: doc.employeeId || '',
+    employeeId: doc.employeeId || doc.employee_id || '',
     vpnNo: doc.vpnNo || '',
     date: doc.complaint_date,
     submittedAt: doc.submitted_at || null,
     updatedAt: doc.updated_at || null,
     username: (doc.name || 'you').toLowerCase().replace(/\s+/g, '.'),
-    employeeStatus: doc.employeeStatus || '',
-    solver: doc.solver || '',
+    employeeStatus: doc.employeeStatus || 'Active',
+    solver: doc.solver || 'Team 1',
     remarks: doc.remarks || '',
     description: doc.description,
     priority: doc.priority,
@@ -121,28 +125,33 @@ export function TicketProvider({ children }) {
     const isHr = req.dept === 'HR';
     const name = requesterName || user?.full_name || 'You';
     const description = req.title && req.description ? `${req.title}: ${req.description}` : (req.description || req.title || '');
+    const empId = req.employeeId || user?.employeeId || user?.employee_id || '';
+    const formattedUserRole = user?.department || user?.designation || (user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Employee');
+    const ticketRole = req.role || formattedUserRole;
 
     try {
       if (isHr) {
         const { data } = await createHrComplaint({
           name,
-          department: req.department || user?.department || 'General',
+          role: ticketRole,
+          department: req.department || user?.department || ticketRole,
           description,
           complaint_date: new Date().toISOString().slice(0, 10),
           priority: req.priority || 'Medium',
-          employeeId: req.employeeId,
+          employeeId: empId,
         });
         setTickets((prev) => [fromBackend({ ...data.complaint, dept_tag: 'HR' }), ...prev]);
       } else {
         const { data } = await createItComplaint({
           name,
-          department: req.department || user?.department || 'General',
+          role: ticketRole,
+          department: req.department || user?.department || ticketRole,
           category: req.category || 'Laptop / Desktop / Server',
           sub_category: req.subcategory || req.sub_category || 'Other Hardware/Software Issues',
           description,
           complaint_date: new Date().toISOString().slice(0, 10),
           priority: req.priority || 'Medium',
-          employeeId: req.employeeId,
+          employeeId: empId,
           vpnNo: req.vpnNo,
         });
         setTickets((prev) => [fromBackend({ ...data.complaint, dept_tag: 'IT' }), ...prev]);

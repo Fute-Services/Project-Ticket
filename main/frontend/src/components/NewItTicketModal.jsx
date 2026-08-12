@@ -2,24 +2,24 @@ import { useState, useEffect } from 'react';
 import { X, Plus, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { TICKET_CATEGORIES, TICKET_PRIORITIES } from '../data/itMockData';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
+import { useAuth } from '../context/AuthContext';
 
-export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, defaultDepartment }) {
+export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
+  const { user } = useAuth();
   const [category, setCategory] = useState('Laptop / Desktop / Server');
   const [subcategory, setSubcategory] = useState(TICKET_CATEGORIES['Laptop / Desktop / Server'][0]);
   const [priority, setPriority] = useState('Medium');
   const [description, setDescription] = useState('');
-  const [department, setDepartment] = useState(defaultDepartment || '');
+  const [employeeId, setEmployeeId] = useState(user?.employeeId || user?.employee_id || '');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // The field starts blank until the signed-in user's department arrives
-  // (it's fetched async on login) — backfill it once, without clobbering
-  // anything the person may have already typed over the default.
-  const [departmentTouched, setDepartmentTouched] = useState(false);
   useEffect(() => {
-    if (!departmentTouched && defaultDepartment) setDepartment(defaultDepartment);
-  }, [defaultDepartment, departmentTouched]);
+    if (user?.employeeId || user?.employee_id) {
+      setEmployeeId(user.employeeId || user.employee_id);
+    }
+  }, [user]);
 
   // Escape must not yank the modal away mid-submit — the success panel is the
   // only confirmation the user gets that the ticket was created.
@@ -38,10 +38,20 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, def
   async function handleSubmit(e) {
     e.preventDefault();
     if (!onSubmitSuccess) return;
+    const userRole = user?.department || user?.designation || (user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Employee');
     setError('');
     setSubmitting(true);
     try {
-      await onSubmitSuccess({ category, subcategory, priority, description, department, status: 'Open' });
+      await onSubmitSuccess({
+        category,
+        subcategory,
+        priority,
+        description,
+        role: userRole,
+        department: userRole,
+        employeeId: employeeId || user?.employeeId || user?.employee_id || '',
+        status: 'Open',
+      });
       setSubmitted(true);
       setTimeout(() => {
         setSubmitted(false);
@@ -127,8 +137,19 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, def
               </select>
             </div>
 
-            {/* Priority & Department */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Employee ID, Priority & Department */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Employee ID</label>
+                <input
+                  type="text"
+                  value={user?.employee_id || user?.employeeId || employeeId || ''}
+                  readOnly
+                  disabled
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-primary font-bold focus:outline-none cursor-not-allowed"
+                />
+              </div>
+
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">Priority</label>
                 <select
@@ -143,15 +164,13 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, def
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">Department</label>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Role</label>
                 <input
                   type="text"
-                  value={department}
-                  onChange={(e) => {
-                    setDepartmentTouched(true);
-                    setDepartment(e.target.value);
-                  }}
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={user?.department || user?.designation || (user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Employee')}
+                  readOnly
+                  disabled
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground font-bold focus:outline-none cursor-not-allowed"
                 />
               </div>
             </div>

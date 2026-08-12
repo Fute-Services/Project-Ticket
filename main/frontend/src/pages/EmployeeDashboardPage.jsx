@@ -6,8 +6,8 @@ import ItDeskLayout from '../components/ItDeskLayout';
 import NewItTicketModal from '../components/NewItTicketModal';
 import NewHrTicketModal from '../components/NewHrTicketModal';
 import DataTable from '../components/DataTable';
-import { Card, SectionHeader, StatCard, Badge } from '../components/ui';
-import { Plus, UserPlus, Search, X } from 'lucide-react';
+import { Card, SectionHeader, StatCard, Badge, Drawer } from '../components/ui';
+import { Plus, UserPlus, Search, X, Eye } from 'lucide-react';
 import TaskRow from '../components/tasks/TaskRow';
 import TaskDetailPane from '../components/tasks/TaskDetailPane';
 import { toast } from 'sonner';
@@ -25,6 +25,7 @@ const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 
 function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket }) {
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [detailsTicket, setDetailsTicket] = useState(null);
 
   const visible = useMemo(() => {
     return tickets
@@ -167,16 +168,16 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket }) {
               render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '—'}</span>,
             },
             {
-              key: 'dept',
-              label: 'Department',
+              key: 'role',
+              label: 'Role',
               width: '85px',
-              render: (t) => <span className="text-muted-foreground text-xs truncate block">{t.dept || '—'}</span>,
+              render: (t) => <span className="text-muted-foreground text-xs truncate block">{t.role || 'Employee'}</span>,
             },
             {
               key: 'title',
               label: 'Issue',
               width: '150px',
-              render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.title}>{t.title}</span>,
+              render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{t.description || t.title}</span>,
             },
             {
               key: 'status',
@@ -225,7 +226,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket }) {
                 <div className="truncate max-w-[150px]" title={t.remarks || 'No remarks yet'}>
                   {t.remarks ? (
                     <span className="text-xs text-foreground font-medium bg-muted px-2 py-0.5 rounded border border-border inline-block max-w-full truncate">
-                      💬 {t.remarks}
+                      {t.remarks}
                     </span>
                   ) : (
                     <span className="text-xs text-muted-foreground/50 italic">No remarks</span>
@@ -233,9 +234,108 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket }) {
                 </div>
               ),
             },
+            {
+              key: 'actions',
+              label: 'View',
+              width: '55px',
+              sortable: false,
+              render: (t) => (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDetailsTicket(t);
+                  }}
+                  title="View All Ticket Details"
+                  aria-label={`View details for ticket ${t.token || t.id}`}
+                  className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-colors cursor-pointer flex items-center justify-center"
+                >
+                  <Eye size={15} />
+                </button>
+              ),
+            },
           ]}
         />
       </div>
+
+      <Drawer
+        open={!!detailsTicket}
+        onClose={() => setDetailsTicket(null)}
+        title={detailsTicket ? `Ticket Details — ${detailsTicket.token}` : 'Ticket Details'}
+      >
+        {detailsTicket && (
+          <div className="flex flex-col gap-4 font-sans text-xs">
+            <div className="bg-muted/60 border border-border rounded-xl p-3.5 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-primary font-mono">{detailsTicket.token}</span>
+                <span className={`px-2.5 py-0.5 rounded-full border font-semibold ${TICKET_STATUS_BADGE[detailsTicket.status] || 'bg-muted text-muted-foreground'}`}>
+                  {detailsTicket.status}
+                </span>
+              </div>
+              <div className="text-sm font-bold text-foreground mt-1">
+                {detailsTicket.description || detailsTicket.title}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Employee ID</div>
+                <div className="font-bold text-primary text-sm">{detailsTicket.employeeId || '—'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Requester</div>
+                <div className="font-semibold text-foreground">{detailsTicket.user || '—'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Role</div>
+                <div className="font-semibold text-foreground">{detailsTicket.role || 'Employee'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Category</div>
+                <div className="font-semibold text-foreground">{detailsTicket.category || 'N/A'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Subcategory</div>
+                <div className="font-semibold text-foreground">{detailsTicket.subcategory || detailsTicket.sub_category || 'N/A'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Priority</div>
+                <div className="font-semibold text-foreground">{detailsTicket.priority || 'Medium'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Employee Status</div>
+                <div className="font-semibold text-primary">{detailsTicket.employeeStatus || 'Active'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Resolved By</div>
+                <div className="font-semibold text-foreground">{detailsTicket.solver || 'Team 1'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">VPN No</div>
+                <div className="font-mono text-foreground">{detailsTicket.vpnNo || '—'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Date</div>
+                <div className="text-foreground">{detailsTicket.date || '—'}</div>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-3">
+              <div className="text-muted-foreground font-semibold mb-0.5">Remarks</div>
+              <div className="text-foreground">{detailsTicket.remarks || 'No remarks yet'}</div>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }
@@ -338,11 +438,19 @@ export default function EmployeeDashboardPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isHrTicketModalOpen, setIsHrTicketModalOpen] = useState(false);
+  const [detailsTicket, setDetailsTicket] = useState(null);
 
   // Every employee shares the same underlying ticket list as IT's queue —
   // scope the view to tickets this person raised.
   const myTickets = useMemo(
-    () => tickets.filter((t) => t.user === (user?.full_name || 'You')),
+    () =>
+      tickets.filter(
+        (t) =>
+          t.user === (user?.full_name || 'You') ||
+          (t.employeeId &&
+            (user?.employeeId || user?.employee_id) &&
+            t.employeeId === (user.employeeId || user.employee_id))
+      ),
     [tickets, user]
   );
 
@@ -510,16 +618,16 @@ export default function EmployeeDashboardPage() {
                   render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '—'}</span>,
                 },
                 {
-                  key: 'dept',
-                  label: 'Department',
+                  key: 'role',
+                  label: 'Role',
                   width: '85px',
-                  render: (t) => <span className="text-muted-foreground text-xs truncate block">{t.dept || '—'}</span>,
+                  render: (t) => <span className="text-muted-foreground text-xs truncate block">{t.role || 'Employee'}</span>,
                 },
                 {
                   key: 'title',
                   label: 'Issue',
                   width: '150px',
-                  render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.title}>{t.title}</span>,
+                  render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{t.description || t.title}</span>,
                 },
                 {
                   key: 'status',
@@ -566,12 +674,32 @@ export default function EmployeeDashboardPage() {
                     <div className="truncate max-w-[150px]" title={t.remarks || 'No remarks yet'}>
                       {t.remarks ? (
                         <span className="text-xs text-foreground font-medium bg-muted px-2 py-0.5 rounded border border-border inline-block max-w-full truncate">
-                          💬 {t.remarks}
+                          {t.remarks}
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground/50 italic">No remarks</span>
                       )}
                     </div>
+                  ),
+                },
+                {
+                  key: 'actions',
+                  label: 'View',
+                  width: '55px',
+                  sortable: false,
+                  render: (t) => (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailsTicket(t);
+                      }}
+                      title="View All Ticket Details"
+                      aria-label={`View details for ticket ${t.token || t.id}`}
+                      className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-colors cursor-pointer flex items-center justify-center"
+                    >
+                      <Eye size={15} />
+                    </button>
                   ),
                 },
               ]}
@@ -613,7 +741,6 @@ export default function EmployeeDashboardPage() {
         isOpen={isTicketModalOpen}
         onClose={() => setIsTicketModalOpen(false)}
         onSubmitSuccess={handleNewTicket}
-        defaultDepartment={user?.department}
       />
 
       <NewHrTicketModal
@@ -621,6 +748,85 @@ export default function EmployeeDashboardPage() {
         onClose={() => setIsHrTicketModalOpen(false)}
         onSubmitSuccess={handleNewHrTicket}
       />
+
+      <Drawer
+        open={!!detailsTicket}
+        onClose={() => setDetailsTicket(null)}
+        title={detailsTicket ? `Ticket Details — ${detailsTicket.token}` : 'Ticket Details'}
+      >
+        {detailsTicket && (
+          <div className="flex flex-col gap-4 font-sans text-xs">
+            <div className="bg-muted/60 border border-border rounded-xl p-3.5 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-primary font-mono">{detailsTicket.token}</span>
+                <span className={`px-2.5 py-0.5 rounded-full border font-semibold ${TICKET_STATUS_BADGE[detailsTicket.status] || 'bg-muted text-muted-foreground'}`}>
+                  {detailsTicket.status}
+                </span>
+              </div>
+              <div className="text-sm font-bold text-foreground mt-1">
+                {detailsTicket.description || detailsTicket.title}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Employee ID</div>
+                <div className="font-bold text-primary text-sm">{detailsTicket.employeeId || '—'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Requester</div>
+                <div className="font-semibold text-foreground">{detailsTicket.user || '—'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Role</div>
+                <div className="font-semibold text-foreground">{detailsTicket.role || 'Employee'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Category</div>
+                <div className="font-semibold text-foreground">{detailsTicket.category || 'N/A'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Subcategory</div>
+                <div className="font-semibold text-foreground">{detailsTicket.subcategory || detailsTicket.sub_category || 'N/A'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Priority</div>
+                <div className="font-semibold text-foreground">{detailsTicket.priority || 'Medium'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Employee Status</div>
+                <div className="font-semibold text-primary">{detailsTicket.employeeStatus || 'Active'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Resolved By</div>
+                <div className="font-semibold text-foreground">{detailsTicket.solver || 'Team 1'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">VPN No</div>
+                <div className="font-mono text-foreground">{detailsTicket.vpnNo || '—'}</div>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-3">
+                <div className="text-muted-foreground font-semibold mb-0.5">Date</div>
+                <div className="text-foreground">{detailsTicket.date || '—'}</div>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-xl p-3">
+              <div className="text-muted-foreground font-semibold mb-0.5">Remarks</div>
+              <div className="text-foreground">{detailsTicket.remarks || 'No remarks yet'}</div>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </ItDeskLayout>
   );
 }

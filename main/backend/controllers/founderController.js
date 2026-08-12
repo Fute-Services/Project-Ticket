@@ -5,6 +5,36 @@ const { auth, db } = require('../config/firebase');
 // there's no self-service way to mint either from this screen.
 const ASSIGNABLE_ROLES = ['it', 'hr', 'coordinator', 'employee'];
 
+async function enrichWithUserRole(docs) {
+  try {
+    const usersSnap = await db.collection('users').get();
+    const userMap = {};
+    usersSnap.docs.forEach((d) => {
+      userMap[d.id] = d.data();
+    });
+
+    return docs.map((d) => {
+      const u = userMap[d.user_id] || {};
+      const resolvedRole =
+        d.role ||
+        u.department ||
+        u.designation ||
+        (u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : null) ||
+        d.user_role ||
+        d.department ||
+        'Employee';
+      const formattedRole = resolvedRole.charAt(0).toUpperCase() + resolvedRole.slice(1);
+      return {
+        ...d,
+        role: formattedRole,
+        user_role: formattedRole,
+      };
+    });
+  } catch (e) {
+    return docs;
+  }
+}
+
 // GET /api/founder/complaints — returns all HR + IT complaints combined
 async function getAllComplaints(req, res) {
   const [hrSnap, itSnap] = await Promise.all([
@@ -20,7 +50,8 @@ async function getAllComplaints(req, res) {
     (a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)
   );
 
-  res.json(all);
+  const enriched = await enrichWithUserRole(all);
+  res.json(enriched);
 }
 
 // GET /api/founder/users?role=it — no passwords stored here, Firebase Auth

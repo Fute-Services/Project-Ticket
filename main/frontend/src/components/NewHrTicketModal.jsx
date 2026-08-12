@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, UserPlus, ArrowRight, CheckCircle2, ShieldAlert, Paperclip, FileText, AlertCircle } from 'lucide-react';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
+import { useAuth } from '../context/AuthContext';
 
 export const HR_TICKET_CATEGORIES = {
   'Payroll & Salary': [
@@ -42,6 +43,7 @@ export const HR_PRIORITIES = [
 ];
 
 export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
+  const { user } = useAuth();
   const [category, setCategory] = useState('Payroll & Salary');
   const [subcategory, setSubcategory] = useState(HR_TICKET_CATEGORIES['Payroll & Salary'][0]);
   const [priority, setPriority] = useState('Medium');
@@ -49,9 +51,16 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   const [description, setDescription] = useState('');
   const [attachment, setAttachment] = useState(null);
   const [isConfidential, setIsConfidential] = useState(false);
+  const [employeeId, setEmployeeId] = useState(user?.employeeId || user?.employee_id || '');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (user?.employeeId || user?.employee_id) {
+      setEmployeeId(user.employeeId || user.employee_id);
+    }
+  }, [user]);
 
   useEscapeToClose(isOpen && !submitted && !submitting, onClose);
 
@@ -71,6 +80,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!onSubmitSuccess) return;
+    const userRole = user?.department || user?.designation || (user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Employee');
     setError('');
     setSubmitting(true);
     try {
@@ -80,9 +90,12 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
         subcategory,
         priority,
         description,
+        role: userRole,
+        department: userRole,
         dept: 'HR',
         isConfidential,
         attachment,
+        employeeId: employeeId || user?.employeeId || user?.employee_id || '',
         status: 'Open',
         createdAt: 'Just now',
       });
@@ -144,6 +157,35 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            {/* Employee ID & Role */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Employee ID
+                </label>
+                <input
+                  type="text"
+                  value={user?.employee_id || user?.employeeId || employeeId || ''}
+                  readOnly
+                  disabled
+                  className="w-full h-10 bg-muted border border-border rounded-xl px-3.5 text-xs text-primary font-bold focus:outline-none cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Role
+                </label>
+                <input
+                  type="text"
+                  value={user?.department || user?.designation || (user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Employee')}
+                  readOnly
+                  disabled
+                  className="w-full h-10 bg-muted border border-border rounded-xl px-3.5 text-xs text-foreground font-bold focus:outline-none cursor-not-allowed"
+                />
+              </div>
+            </div>
+
             {/* Category Select */}
             <div>
               <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
@@ -191,11 +233,10 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                     key={p.id}
                     type="button"
                     onClick={() => setPriority(p.id)}
-                    className={`px-2.5 py-2 rounded-xl border text-xs font-bold flex flex-col items-center text-center transition-all cursor-pointer ${
-                      priority === p.id
+                    className={`px-2.5 py-2 rounded-xl border text-xs font-bold flex flex-col items-center text-center transition-all cursor-pointer ${priority === p.id
                         ? 'bg-orange-500 text-white border-orange-600 shadow-md shadow-orange-500/20'
                         : 'bg-muted border-border text-muted-foreground hover:text-foreground'
-                    }`}
+                      }`}
                   >
                     <span>{p.label}</span>
                     <span className="text-[9px] font-normal leading-tight opacity-80 mt-0.5">{p.id}</span>
