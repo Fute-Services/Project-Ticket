@@ -40,31 +40,53 @@ async function listApprovals(req, res) {
 const DECISIONS = ['approved', 'rejected'];
 
 // PATCH /api/approvals/:id/decide — founder only.
+//
+// Runs as a single Firestore transaction so the approval doc and its linked
+// ticket either both update or neither does — previously these were two
+// independent writes, so a failure between them could strand a ticket in
+// "Waiting Approval" forever with no approval record left to act on. The
+// transaction also re-reads the approval's status before writing, so
+// deciding an already-decided approval twice (a retried request, two
+// founder tabs) is rejected instead of silently re-applying the outcome.
 async function decideApproval(req, res) {
   const { id } = req.params;
   const { status } = req.body;
   if (!DECISIONS.includes(status)) return res.status(400).json({ error: 'status must be approved or rejected' });
 
   const docRef = collection.doc(id);
-  const doc = await docRef.get();
-  if (!doc.exists) return res.status(404).json({ error: 'Approval not found' });
-  const approval = doc.data();
-
   const decidedAt = new Date().toISOString();
-  await docRef.update({ status, decidedAt, decidedBy: req.user.full_name });
 
-  // Hand the linked ticket back to its normal workflow — approved moves it
-  // forward, rejected reverts to whatever status it was in before it was
-  // sent for approval.
-  if (approval.complaintRef) {
-    const { collection: refCollection, id: refId } = approval.complaintRef;
-    const nextStatus = status === 'approved' ? 'In Progress' : (approval.previousStatus || 'Pending');
-    await db.collection(refCollection).doc(refId).update({
-      status: nextStatus,
-      updated_at: decidedAt,
-    });
-  }
+  await db.runTransaction(async (tx) => {
+    const doc = await tx.get(docRef);
+    if (!doc.exists) throw Object.assign(new Error('Approval not found'), { status: 404 });
+    const approval = doc.data();
+    if (approval.status !== 'pending_founder') {
+      throw Object.assign(new Error('This approval has already been decided'), { status: 409 });
+    }
 
+    let ticketRef = null;
+    if (approval.complaintRef) {
+      const { collection: refCollection, id: refId } = approval.complaintRef;
+      ticketRef = db.collection(refCollection).doc(refId);
+      // Firestore transactions require all reads before any writes.
+      await tx.get(ticketRef);
+    }
+
+    tx.update(docRef, { status, decidedAt, decidedBy: req.user.full_name });
+
+    // Hand the linked ticket back to its normal workflow — approved moves
+    // it forward, rejected reverts to whatever status it was in before it
+    // was sent for approval.
+    if (ticketRef) {
+      const nextStatus = status === 'approved' ? 'In Progress' : (approval.previousStatus || 'Pending');
+      tx.update(ticketRef, { status: nextStatus, updated_at: decidedAt });
+    }
+  }).catch((err) => {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    throw err;
+  });
+
+  if (res.headersSent) return;
   res.json({ id, ...(await docRef.get()).data() });
 }
 

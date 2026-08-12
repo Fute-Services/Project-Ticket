@@ -48,6 +48,7 @@ export function AssetProvider({ children }) {
       }
     } catch (e) {
       console.error('Failed to save asset:', e.response?.data?.error || e.message);
+      throw e;
     }
   }
 

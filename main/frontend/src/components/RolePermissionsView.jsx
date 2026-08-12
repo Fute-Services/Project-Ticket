@@ -66,23 +66,26 @@ export default function RolePermissionsView() {
 
   const selectedUser = users.find((u) => u.email === selectedEmail) || null;
 
+  // Returns the request's promise so callers can show success/error only
+  // once it actually resolves, instead of assuming success up front — a
+  // failed save used to still show a "changed" toast (immediately followed
+  // by a contradicting error toast) while the switch itself never moved.
   function updateSelectedUser(nextOverrides) {
-    if (!selectedUser) return;
-    updateUserPermissions(selectedUser.id, nextOverrides)
-      .then(() => {
-        setUsers((prev) =>
-          prev.map((u) => (u.email === selectedUser.email ? { ...u, permissionOverrides: nextOverrides } : u))
-        );
-      })
-      .catch(() => toast.error('Could not save that change'));
+    if (!selectedUser) return Promise.resolve();
+    return updateUserPermissions(selectedUser.id, nextOverrides).then(() => {
+      setUsers((prev) =>
+        prev.map((u) => (u.email === selectedUser.email ? { ...u, permissionOverrides: nextOverrides } : u))
+      );
+    });
   }
 
   function handleUserToggle(pageId, label) {
     const current = selectedUser?.permissionOverrides || {};
     const effective = current[pageId] !== undefined ? current[pageId] : canAccess(role, pageId);
     const next = { ...current, [pageId]: !effective };
-    updateSelectedUser(next);
-    toast.success(`${label} ${!effective ? 'enabled' : 'disabled'} for ${selectedUser.full_name || selectedUser.email}`);
+    updateSelectedUser(next)
+      .then(() => toast.success(`${label} ${!effective ? 'enabled' : 'disabled'} for ${selectedUser.full_name || selectedUser.email}`))
+      .catch(() => toast.error('Could not save that change'));
   }
 
   function handleResetOverride(pageId, label) {
@@ -90,8 +93,9 @@ export default function RolePermissionsView() {
     if (current[pageId] === undefined) return;
     const next = { ...current };
     delete next[pageId];
-    updateSelectedUser(next);
-    toast.success(`${label} reset to ${ROLE_LABEL[role] || role} default for ${selectedUser.full_name || selectedUser.email}`);
+    updateSelectedUser(next)
+      .then(() => toast.success(`${label} reset to ${ROLE_LABEL[role] || role} default for ${selectedUser.full_name || selectedUser.email}`))
+      .catch(() => toast.error('Could not save that change'));
   }
 
   // --- Create a new account for this role, right from this page ---

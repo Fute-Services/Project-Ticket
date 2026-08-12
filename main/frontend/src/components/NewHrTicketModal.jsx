@@ -50,8 +50,10 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   const [attachment, setAttachment] = useState(null);
   const [isConfidential, setIsConfidential] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  useEscapeToClose(isOpen && !submitted, onClose);
+  useEscapeToClose(isOpen && !submitted && !submitting, onClose);
 
   if (!isOpen) return null;
 
@@ -66,30 +68,34 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
     }
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setSubmitted(true);
-
-    setTimeout(() => {
-      if (onSubmitSuccess) {
-        onSubmitSuccess({
-          id: `HR-${Math.floor(1000 + Math.random() * 9000)}`,
-          token: `HR-${Math.floor(1000 + Math.random() * 9000)}`,
-          title: title.trim() || `${subcategory} Request`,
-          category,
-          subcategory,
-          priority,
-          description,
-          dept: 'HR',
-          isConfidential,
-          attachment,
-          status: 'Open',
-          createdAt: 'Just now',
-        });
-      }
-      setSubmitted(false);
-      onClose();
-    }, 1200);
+    if (!onSubmitSuccess) return;
+    setError('');
+    setSubmitting(true);
+    try {
+      await onSubmitSuccess({
+        title: title.trim() || `${subcategory} Request`,
+        category,
+        subcategory,
+        priority,
+        description,
+        dept: 'HR',
+        isConfidential,
+        attachment,
+        status: 'Open',
+        createdAt: 'Just now',
+      });
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        onClose();
+      }, 1200);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Could not submit the ticket. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -261,20 +267,28 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
               </label>
             </div>
 
+            {error && (
+              <p role="alert" className="text-xs px-3.5 py-2.5 text-destructive bg-destructive/10 border border-destructive/20 rounded-xl">
+                {error}
+              </p>
+            )}
+
             {/* Submit Button */}
             <div className="pt-2 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-muted border border-border rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                disabled={submitting}
+                className="px-4 py-2 bg-muted border border-border rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground transition-all cursor-pointer disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md shadow-orange-500/20 transition-all cursor-pointer"
+                disabled={submitting}
+                className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md shadow-orange-500/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span>Submit HR Ticket</span>
+                <span>{submitting ? 'Submitting…' : 'Submit HR Ticket'}</span>
                 <ArrowRight size={14} />
               </button>
             </div>

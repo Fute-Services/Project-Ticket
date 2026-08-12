@@ -107,28 +107,42 @@ async function updateStatus(req, res) {
   if (!VALID_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
   const docRef = collection.doc(id);
-  const before = await docRef.get();
-  if (!before.exists) return res.status(404).json({ error: 'Complaint not found' });
-  const previousStatus = before.data().status;
-
   const updated_at = new Date().toISOString();
-  await docRef.update({ status, updated_at });
-  const data = { id, ...(await docRef.get()).data() };
 
-  if (status === 'Waiting Approval') {
-    await db.collection('approvals').add({
-      source: 'HR',
-      title: `HR Request — ${data.name}`,
-      sub: data.description,
-      requestedBy: data.name,
-      priority: data.priority,
-      category: 'HR',
-      status: 'pending_founder',
-      complaintRef: { collection: 'hr_complaints', id },
-      previousStatus,
-      createdAt: new Date().toISOString(),
-    });
-  }
+  // See itController.js's updateStatus for why this is a transaction: the
+  // ticket update and its approval record used to be two independent
+  // writes, so a failure between them could strand the ticket showing
+  // "Waiting Approval" with no approval record for the founder to act on.
+  const approvalRef = db.collection('approvals').doc();
+  await db.runTransaction(async (tx) => {
+    const before = await tx.get(docRef);
+    if (!before.exists) throw Object.assign(new Error('Complaint not found'), { status: 404 });
+    const previousStatus = before.data().status;
+
+    tx.update(docRef, { status, updated_at });
+
+    if (status === 'Waiting Approval') {
+      const data = before.data();
+      tx.set(approvalRef, {
+        source: 'HR',
+        title: `HR Request — ${data.name}`,
+        sub: data.description,
+        requestedBy: data.name,
+        priority: data.priority,
+        category: 'HR',
+        status: 'pending_founder',
+        complaintRef: { collection: 'hr_complaints', id },
+        previousStatus,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }).catch((err) => {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    throw err;
+  });
+  if (res.headersSent) return;
+
+  const data = { id, ...(await docRef.get()).data() };
 
   // Notify the employee who submitted
   try {

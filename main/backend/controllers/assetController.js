@@ -8,6 +8,9 @@ const collection = db.collection('assets');
 async function createAsset(req, res) {
   const { id, type, model } = req.body;
   if (!id || !type || !model) return res.status(400).json({ error: 'id, type and model are required' });
+  if (!/^[\w-]+$/.test(id)) {
+    return res.status(400).json({ error: 'id may only contain letters, numbers, hyphens and underscores' });
+  }
 
   const docRef = collection.doc(id);
   if ((await docRef.get()).exists) return res.status(409).json({ error: `Asset ${id} already exists` });

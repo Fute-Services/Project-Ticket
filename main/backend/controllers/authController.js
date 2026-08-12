@@ -15,14 +15,6 @@ const IDENTITY_TOOLKIT_BASE = usingEmulator
   : 'https://identitytoolkit.googleapis.com/v1';
 const IDENTITY_TOOLKIT_KEY = usingEmulator ? 'emulator-key' : process.env.FIREBASE_API_KEY;
 
-// Detect role from email pattern
-function detectRole(email) {
-  if (/hr\.fute/i.test(email)) return 'hr';
-  if (/system\.fute/i.test(email) || /system\.futeservice/i.test(email)) return 'it';
-  if (/coordinator\.fute/i.test(email)) return 'coordinator';
-  return 'employee'; // founder is set manually in DB
-}
-
 // POST /api/auth/register
 async function register(req, res) {
   const { email, password, full_name, department } = req.body;
@@ -37,7 +29,12 @@ async function register(req, res) {
     return res.status(400).json({ error: err.message });
   }
 
-  const role = detectRole(email);
+  // Self-registration can only ever create a plain employee account —
+  // privileged roles (hr/it/coordinator/founder) are granted exclusively by
+  // an authenticated founder via POST /api/founder/users. Role used to be
+  // guessed from the caller-supplied email string itself, which let anyone
+  // grant themselves hr/it/coordinator by picking a matching email.
+  const role = 'employee';
 
   await db.collection('users').doc(userRecord.uid).set({
     email,

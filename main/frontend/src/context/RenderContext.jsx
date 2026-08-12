@@ -42,6 +42,7 @@ export function RenderProvider({ children }) {
       setRenders((prev) => [data, ...prev]);
     } catch (e) {
       console.error('Failed to add render job:', e.response?.data?.error || e.message);
+      throw e;
     }
   }
 

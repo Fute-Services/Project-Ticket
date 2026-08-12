@@ -54,6 +54,7 @@ export function TaskProjectProvider({ children }) {
       setTasks((prev) => [data, ...prev]);
     } catch (e) {
       console.error('Failed to create task:', e.response?.data?.error || e.message);
+      throw e;
     }
   }
 

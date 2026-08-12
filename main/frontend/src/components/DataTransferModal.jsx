@@ -18,6 +18,8 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
   const [backupName, setBackupName] = useState('');
   const [priority, setPriority] = useState('Medium');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   // Every label in this form used to sit next to its control with no
   // htmlFor/id pairing — visually correct, but announced to screen readers
@@ -36,31 +38,38 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
     priority: `${uid}-priority`,
   };
 
-  useEscapeToClose(isOpen && !submitted, onClose);
+  useEscapeToClose(isOpen && !submitted && !submitting, onClose);
 
   if (!isOpen) return null;
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      if (onSubmitSuccess) {
-        onSubmitSuccess({
-          source: sourceServer,
-          destination: destServer,
-          folder: folderName,
-          path: folderPath,
-          purpose,
-          requesterName,
-          requesterNumber,
-          backupName,
-          priority,
-          status: 'Waiting Approval',
-        });
-      }
-      setSubmitted(false);
-      onClose();
-    }, 1200);
+    if (!onSubmitSuccess) return;
+    setError('');
+    setSubmitting(true);
+    try {
+      await onSubmitSuccess({
+        source: sourceServer,
+        destination: destServer,
+        folder: folderName,
+        path: folderPath,
+        purpose,
+        requesterName,
+        requesterNumber,
+        backupName,
+        priority,
+        status: 'Waiting Approval',
+      });
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        onClose();
+      }, 1200);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Could not submit the request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -253,20 +262,28 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
               </div>
             </div>
 
+            {error && (
+              <p role="alert" className="text-xs px-3.5 py-2.5 text-destructive bg-destructive/10 border border-destructive/20 rounded-xl">
+                {error}
+              </p>
+            )}
+
             {/* Actions */}
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-border mt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl bg-muted hover:bg-accent text-xs font-semibold text-muted-foreground transition-colors"
+                disabled={submitting}
+                className="px-4 py-2.5 rounded-xl bg-muted hover:bg-accent text-xs font-semibold text-muted-foreground transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-xs font-bold text-primary-foreground flex items-center gap-2 shadow transition-all cursor-pointer"
+                disabled={submitting}
+                className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-xs font-bold text-primary-foreground flex items-center gap-2 shadow transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span>Submit for Approval</span>
+                <span>{submitting ? 'Submitting…' : 'Submit for Approval'}</span>
                 <ArrowRight size={14} />
               </button>
             </div>

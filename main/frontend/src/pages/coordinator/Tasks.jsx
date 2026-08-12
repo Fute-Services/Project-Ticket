@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, MessageSquare, Paperclip, Figma, Github } from 'lucide-react';
 import CoordinatorLayout from '../../components/coordinator/CoordinatorLayout';
 import { Card, SectionHeader, Badge, Pill, Modal, Field, inputClass } from '../../components/ui';
@@ -6,14 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import TaskRow from '../../components/tasks/TaskRow';
 import TaskDetailPane from '../../components/tasks/TaskDetailPane';
 import { TASK_STATUSES, TASK_PRIORITIES } from '../../data/coordinatorMockData';
-import { employees } from '../../data/hrMockData';
+import { employeesApi } from '../../utils/api';
 import { useTaskProject } from '../../context/TaskProjectContext';
 import { toast } from 'sonner';
 
-const EMPTY_FORM = (projects) => ({
+const EMPTY_FORM = (projects, employees) => ({
   title: '',
   projectId: projects[0]?.id || '',
-  assignee: employees[0].name,
+  assignee: employees[0]?.name || '',
   priority: 'Medium',
   dueDate: '',
   duration: '',
@@ -30,9 +30,27 @@ function toHref(link) {
 export default function Tasks() {
   const { tasks, projects, addTask, moveTask, updateTask, toggleComplete } = useTaskProject();
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState(() => EMPTY_FORM(projects));
+  const [employees, setEmployees] = useState([]);
+  const [form, setForm] = useState(() => EMPTY_FORM(projects, []));
   const [projectFilter, setProjectFilter] = useState('All');
   const [openTaskId, setOpenTaskId] = useState(null);
+
+  // Real roster, not a hardcoded mock list — a task assigned to a name that
+  // doesn't match any real signed-in user's full_name never shows up in
+  // that person's "My Tasks" (EmployeeDashboardPage matches by exact name).
+  useEffect(() => {
+    employeesApi
+      .list()
+      .then(({ data }) => setEmployees(data))
+      .catch((e) => console.error('Failed to load employees:', e.response?.data?.error || e.message));
+  }, []);
+
+  // The form's default assignee only has a real name to fall back to once
+  // the roster has loaded — backfill it the same way the default project
+  // does once `projects` arrives.
+  useEffect(() => {
+    if (employees.length) setForm((f) => (f.assignee ? f : { ...f, assignee: employees[0].name }));
+  }, [employees]);
 
   const visible = projectFilter === 'All' ? tasks : tasks.filter((t) => t.projectId === projectFilter);
   const projectOf = (t) => projects.find((p) => p.id === t.projectId);
@@ -48,12 +66,21 @@ export default function Tasks() {
     [visible]
   );
 
-  function submit(e) {
+  const [assigning, setAssigning] = useState(false);
+
+  async function submit(e) {
     e.preventDefault();
-    addTask(form);
-    setForm(EMPTY_FORM(projects));
-    setShowModal(false);
-    toast.success('Task assigned', { description: `${form.title} → ${form.assignee}` });
+    setAssigning(true);
+    try {
+      await addTask(form);
+      setForm(EMPTY_FORM(projects, employees));
+      setShowModal(false);
+      toast.success('Task assigned', { description: `${form.title} → ${form.assignee}` });
+    } catch (err) {
+      toast.error('Could not assign task', { description: err.response?.data?.error || err.message });
+    } finally {
+      setAssigning(false);
+    }
   }
 
   // The completion toggle is the easiest thing to hit by accident in a dense
@@ -250,10 +277,20 @@ export default function Tasks() {
             </select>
           </Field>
           <Field label="Assignee">
-            <select value={form.assignee} onChange={(e) => setForm((f) => ({ ...f, assignee: e.target.value }))} className={inputClass}>
-              {employees.map((e) => (
-                <option key={e.id} value={e.name}>{e.name}</option>
-              ))}
+            <select
+              required
+              value={form.assignee}
+              onChange={(e) => setForm((f) => ({ ...f, assignee: e.target.value }))}
+              className={inputClass}
+              disabled={employees.length === 0}
+            >
+              {employees.length === 0 ? (
+                <option value="">Loading employees…</option>
+              ) : (
+                employees.map((e) => (
+                  <option key={e.id} value={e.name}>{e.name}</option>
+                ))
+              )}
             </select>
           </Field>
           <div className="grid grid-cols-2 gap-3">
@@ -292,8 +329,12 @@ export default function Tasks() {
               placeholder="github.com/fute/repo/pull/123"
             />
           </Field>
-          <button type="submit" className="mt-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer">
-            Assign
+          <button
+            type="submit"
+            disabled={assigning}
+            className="mt-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {assigning ? 'Assigning…' : 'Assign'}
           </button>
         </form>
       </Modal>

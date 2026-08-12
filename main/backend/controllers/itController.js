@@ -111,31 +111,43 @@ async function updateStatus(req, res) {
   if (!VALID_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
   const docRef = collection.doc(id);
-  const before = await docRef.get();
-  if (!before.exists) return res.status(404).json({ error: 'Complaint not found' });
-  const previousStatus = before.data().status;
-
   const updated_at = new Date().toISOString();
-  await docRef.update({ status, updated_at });
-  const data = { id, ...(await docRef.get()).data() };
 
-  // Waiting Approval hands the ticket off to the founder — create the
-  // approval record here rather than making the frontend do a second call,
-  // so the two states can never go out of sync.
-  if (status === 'Waiting Approval') {
-    await db.collection('approvals').add({
-      source: 'IT',
-      title: `${data.category} — ${data.sub_category}`,
-      sub: data.description,
-      requestedBy: data.name,
-      priority: data.priority,
-      category: data.category,
-      status: 'pending_founder',
-      complaintRef: { collection: 'it_complaints', id },
-      previousStatus,
-      createdAt: new Date().toISOString(),
-    });
-  }
+  // Waiting Approval hands the ticket off to the founder — the ticket
+  // update and its approval record are written in one transaction, so a
+  // failure between the two writes can no longer leave the ticket stuck
+  // showing "Waiting Approval" with no approval record for the founder to
+  // ever act on (the two used to be independent, sequential writes).
+  const approvalRef = db.collection('approvals').doc();
+  await db.runTransaction(async (tx) => {
+    const before = await tx.get(docRef);
+    if (!before.exists) throw Object.assign(new Error('Complaint not found'), { status: 404 });
+    const previousStatus = before.data().status;
+
+    tx.update(docRef, { status, updated_at });
+
+    if (status === 'Waiting Approval') {
+      const data = before.data();
+      tx.set(approvalRef, {
+        source: 'IT',
+        title: `${data.category} — ${data.sub_category}`,
+        sub: data.description,
+        requestedBy: data.name,
+        priority: data.priority,
+        category: data.category,
+        status: 'pending_founder',
+        complaintRef: { collection: 'it_complaints', id },
+        previousStatus,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }).catch((err) => {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    throw err;
+  });
+  if (res.headersSent) return;
+
+  const data = { id, ...(await docRef.get()).data() };
 
   try {
     const submitterDoc = await db.collection('users').doc(data.user_id).get();
