@@ -790,6 +790,7 @@ function AssetsView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
   const [auditAsset, setAuditAsset] = useState(null);
+  const [deleteAsset, setDeleteAsset] = useState(null);
 
   const visible = useMemo(() => {
     return assets
@@ -846,10 +847,12 @@ function AssetsView() {
     });
   }
 
-  // Deleting an asset can't be undone from this screen, so the toast carries
-  // an Undo rather than just reporting the loss after the fact.
+  // A confirm step first (this is a real delete, not just hiding a row),
+  // then the toast still carries an Undo — belt and suspenders for
+  // something that can't be recovered from this screen otherwise.
   async function handleDelete(id) {
     const removed = await removeAsset(id);
+    setDeleteAsset(null);
     toast.success(`Deleted ${id}`, {
       description: removed?.model,
       action: {
@@ -1021,7 +1024,7 @@ function AssetsView() {
               key: 'actions',
               label: 'Actions',
               sortable: false,
-              width: '100px',
+              width: '130px',
               render: (a) => (
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
                   <button
@@ -1040,6 +1043,14 @@ function AssetsView() {
                     title="Audit / History"
                   >
                     <Eye size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteAsset(a)}
+                    className="bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 p-1 rounded-lg transition-colors cursor-pointer"
+                    title="Delete asset"
+                  >
+                    <Trash2 size={13} />
                   </button>
                 </div>
               ),
@@ -1140,6 +1151,38 @@ function AssetsView() {
         initialAsset={editingAsset}
         nextId={`AST-${1000 + assets.length + 1}`}
       />
+
+      <Modal
+        open={!!deleteAsset}
+        onClose={() => setDeleteAsset(null)}
+        title="Delete asset?"
+        description={deleteAsset ? `${deleteAsset.id} — ${deleteAsset.model} will be removed from inventory.` : undefined}
+      >
+        {deleteAsset && (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              Delete <span className="font-semibold text-foreground">{deleteAsset.id} — {deleteAsset.model}</span>?
+              This can be undone right after, but not once you navigate away.
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteAsset(null)}
+                className="px-4 py-2 rounded-lg bg-muted hover:bg-accent text-xs font-semibold text-muted-foreground transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(deleteAsset.id)}
+                className="px-4 py-2 rounded-lg bg-destructive hover:bg-destructive/90 text-xs font-semibold text-destructive-foreground transition-colors cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
