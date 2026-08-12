@@ -59,6 +59,8 @@ function fromBackend(doc) {
     employeeId: doc.employeeId || '',
     vpnNo: doc.vpnNo || '',
     date: doc.complaint_date,
+    submittedAt: doc.submitted_at || null,
+    updatedAt: doc.updated_at || null,
     username: (doc.name || 'you').toLowerCase().replace(/\s+/g, '.'),
     employeeStatus: doc.employeeStatus || '',
     solver: doc.solver || '',
