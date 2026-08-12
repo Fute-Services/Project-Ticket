@@ -2,11 +2,32 @@ const jwt = require('jsonwebtoken');
 const { db } = require('../config/firebase');
 require('dotenv').config();
 
+// Re-checking every request against Firestore (no caching at all) blew
+// through the project's Firestore read quota within minutes under normal
+// traffic ("8 RESOURCE_EXHAUSTED: Quota exceeded" on every endpoint,
+// including login) — a much heavier cost than the stale-token risk it was
+// meant to close. This short-lived per-process cache keeps that same
+// protection (a deleted/demoted account loses access within CACHE_MS,
+// not up to a full day) while cutting the read volume by roughly a
+// cache-hit-rate's worth for any user making more than one request a
+// minute.
+const CACHE_MS = 60_000;
+const profileCache = new Map(); // uid -> { data, expiresAt }
+
+async function getProfile(uid) {
+  const cached = profileCache.get(uid);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+  const snap = await db.collection('users').doc(uid).get();
+  const data = snap.exists ? snap.data() : null;
+  profileCache.set(uid, { data, expiresAt: Date.now() + CACHE_MS });
+  return data;
+}
+
 // Verifies the JWT token sent in Authorization header, then re-checks the
-// account against Firestore on every request. A token's `role` claim is a
-// snapshot from whenever it was issued (tokens live up to a day, see
-// authController.js) — without this check, an account deleted or demoted
-// after login keeps its old access until the token naturally expires.
+// account against Firestore (via the cache above) so a role change or a
+// deleted account takes effect within a minute instead of waiting out the
+// token's full lifetime.
 async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -20,15 +41,11 @@ async function authMiddleware(req, res, next) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 
-  const profile = await db.collection('users').doc(decoded.id).get();
-  if (!profile.exists) {
+  const data = await getProfile(decoded.id);
+  if (!data) {
     return res.status(401).json({ error: 'Account no longer exists' });
   }
 
-  // Always trust Firestore's current role/full_name over the token's, so a
-  // role change (or the account being disabled) takes effect on this user's
-  // very next request instead of waiting out the token's lifetime.
-  const data = profile.data();
   req.user = { id: decoded.id, email: data.email, role: data.role, full_name: data.full_name };
   next();
 }
