@@ -1,15 +1,21 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search, Mail, Phone, Calendar, Landmark } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, Pill, Drawer, EmptyState } from '../../components/ui';
-import { employees, bankDetails } from '../../data/hrMockData';
-
-const DEPARTMENTS = ['All', ...new Set(employees.map((e) => e.department))];
+import { bankDetails } from '../../data/hrMockData';
+import { employeesApi } from '../../utils/api';
 
 export default function Directory() {
+  const [employees, setEmployees] = useState([]);
   const [query, setQuery] = useState('');
   const [dept, setDept] = useState('All');
   const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    employeesApi.list().then(({ data }) => setEmployees(data)).catch((e) => console.error('Failed to load employees:', e.message));
+  }, []);
+
+  const DEPARTMENTS = useMemo(() => ['All', ...new Set(employees.map((e) => e.department))], [employees]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

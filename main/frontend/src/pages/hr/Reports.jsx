@@ -1,71 +1,69 @@
+import { useEffect, useState } from 'react';
 import { FileText, FileSpreadsheet, File, Download } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader } from '../../components/ui';
-import {
-  employees,
-  attendanceRecords,
-  leaveRequests,
-  candidates,
-  interviews,
-  departmentPerformance,
-} from '../../data/hrMockData';
+import { departmentPerformance } from '../../data/hrMockData';
+import { useLeave } from '../../context/LeaveContext';
+import { employeesApi, attendanceApi, candidatesApi, interviewsApi } from '../../utils/api';
 
-const REPORTS = [
-  {
-    id: 'hiring',
-    title: 'Hiring Report',
-    desc: 'Applications, stages, and time-to-hire across roles.',
-    headers: ['Candidate', 'Applied For', 'Stage', 'Source', 'Applied On'],
-    rows: () => candidates.map((c) => [c.name, c.appliedFor, c.stage, c.source, c.appliedOn]),
-  },
-  {
-    id: 'attendance',
-    title: 'Attendance Report',
-    desc: 'Daily and monthly attendance breakdown per employee.',
-    headers: ['Employee', 'Date', 'Status', 'Check In', 'Check Out'],
-    rows: () =>
-      attendanceRecords.map((r) => {
-        const e = employees.find((emp) => emp.id === r.employeeId);
-        return [e?.name || r.employeeId, r.date, r.status, r.checkIn, r.checkOut];
-      }),
-  },
-  {
-    id: 'leave',
-    title: 'Leave Report',
-    desc: 'Leave taken, balances, and approval turnaround.',
-    headers: ['Employee', 'Type', 'From', 'To', 'Days', 'Status'],
-    rows: () => leaveRequests.map((l) => [l.employee, l.type, l.from, l.to, l.days, l.status]),
-  },
-  {
-    id: 'interview',
-    title: 'Interview Report',
-    desc: 'Interview volume, outcomes, and interviewer load.',
-    headers: ['Candidate', 'Type', 'Interviewer', 'Date', 'Time', 'Status'],
-    rows: () => interviews.map((i) => [i.candidate, i.type, i.interviewer, i.date, i.time, i.status]),
-  },
-  {
-    id: 'recruitment',
-    title: 'Recruitment Report',
-    desc: 'Source effectiveness and pipeline conversion.',
-    headers: ['Source', 'Candidates', 'Joined'],
-    rows: () => {
-      const bySource = {};
-      candidates.forEach((c) => {
-        bySource[c.source] = bySource[c.source] || { total: 0, joined: 0 };
-        bySource[c.source].total += 1;
-        if (c.stage === 'Joined') bySource[c.source].joined += 1;
-      });
-      return Object.entries(bySource).map(([source, s]) => [source, s.total, s.joined]);
+function buildReports({ employees, attendanceRecords, leaveRequests, candidates, interviews }) {
+  return [
+    {
+      id: 'hiring',
+      title: 'Hiring Report',
+      desc: 'Applications, stages, and time-to-hire across roles.',
+      headers: ['Candidate', 'Applied For', 'Stage', 'Source', 'Applied On'],
+      rows: () => candidates.map((c) => [c.name, c.appliedFor, c.stage, c.source, c.appliedOn]),
     },
-  },
-  {
-    id: 'performance',
-    title: 'Performance Report',
-    desc: 'Department performance scores over time.',
-    headers: ['Department', 'Score'],
-    rows: () => departmentPerformance.map((d) => [d.department, d.score]),
-  },
-];
+    {
+      id: 'attendance',
+      title: 'Attendance Report',
+      desc: 'Daily and monthly attendance breakdown per employee.',
+      headers: ['Employee', 'Date', 'Status', 'Check In', 'Check Out'],
+      rows: () =>
+        attendanceRecords.map((r) => {
+          const e = employees.find((emp) => emp.id === r.employeeId);
+          return [e?.name || r.employeeId, r.date, r.status, r.checkIn, r.checkOut];
+        }),
+    },
+    {
+      id: 'leave',
+      title: 'Leave Report',
+      desc: 'Leave taken, balances, and approval turnaround.',
+      headers: ['Employee', 'Type', 'From', 'To', 'Days', 'Status'],
+      rows: () => leaveRequests.map((l) => [l.employee, l.type, l.from, l.to, l.days, l.status]),
+    },
+    {
+      id: 'interview',
+      title: 'Interview Report',
+      desc: 'Interview volume, outcomes, and interviewer load.',
+      headers: ['Candidate', 'Type', 'Interviewer', 'Date', 'Time', 'Status'],
+      rows: () => interviews.map((i) => [i.candidate, i.type, i.interviewer, i.date, i.time, i.status]),
+    },
+    {
+      id: 'recruitment',
+      title: 'Recruitment Report',
+      desc: 'Source effectiveness and pipeline conversion.',
+      headers: ['Source', 'Candidates', 'Joined'],
+      rows: () => {
+        const bySource = {};
+        candidates.forEach((c) => {
+          bySource[c.source] = bySource[c.source] || { total: 0, joined: 0 };
+          bySource[c.source].total += 1;
+          if (c.stage === 'Joined') bySource[c.source].joined += 1;
+        });
+        return Object.entries(bySource).map(([source, s]) => [source, s.total, s.joined]);
+      },
+    },
+    {
+      id: 'performance',
+      title: 'Performance Report',
+      desc: 'Department performance scores over time.',
+      headers: ['Department', 'Score'],
+      rows: () => departmentPerformance.map((d) => [d.department, d.score]),
+    },
+  ];
+}
 
 function toCsv(headers, rows) {
   const escape = (v) => `"${String(v).replace(/"/g, '""')}"`;
@@ -108,6 +106,21 @@ function openPrintable(title, headers, rows) {
 }
 
 export default function Reports() {
+  const { leaveRequests } = useLeave();
+  const [employees, setEmployees] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [candidates, setCandidates] = useState([]);
+  const [interviews, setInterviews] = useState([]);
+
+  useEffect(() => {
+    employeesApi.list().then(({ data }) => setEmployees(data)).catch((e) => console.error('Failed to load employees:', e.message));
+    attendanceApi.list().then(({ data }) => setAttendanceRecords(data)).catch((e) => console.error('Failed to load attendance:', e.message));
+    candidatesApi.list().then(({ data }) => setCandidates(data)).catch((e) => console.error('Failed to load candidates:', e.message));
+    interviewsApi.list().then(({ data }) => setInterviews(data)).catch((e) => console.error('Failed to load interviews:', e.message));
+  }, []);
+
+  const REPORTS = buildReports({ employees, attendanceRecords, leaveRequests, candidates, interviews });
+
   function exportReport(report, format) {
     const rows = report.rows();
     if (format === 'pdf') {
