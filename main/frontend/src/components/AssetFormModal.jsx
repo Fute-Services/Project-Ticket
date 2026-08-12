@@ -13,46 +13,33 @@ const EMPTY_FORM = {
   warrantyEnd: '',
   status: ASSET_STATUSES[0],
   hardDisk: '',
+  componentsChanges: '',
   componentsList: [],
   componentsLog: [],
   history: [],
 };
 
-// Components are edited as one component per line — closer to how someone
-// actually thinks about a parts list than a single comma-separated string,
-// and it round-trips cleanly with the array the rest of the app expects.
-function componentsToText(list) {
-  return (list || []).join('\n');
-}
-function textToComponents(text) {
-  return text.split('\n').map((s) => s.trim()).filter(Boolean);
-}
-
 export default function AssetFormModal({ isOpen, onClose, onSubmit, initialAsset, nextId }) {
   const [form, setForm] = useState(EMPTY_FORM);
-  const [componentsText, setComponentsText] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       const base = initialAsset || { ...EMPTY_FORM, id: nextId };
       setForm(base);
-      setComponentsText(componentsToText(base.componentsList));
     }
   }, [isOpen, initialAsset, nextId]);
 
   function submit(e) {
     e.preventDefault();
-    const componentsList = textToComponents(componentsText);
-    const prevComponents = componentsToText(initialAsset?.componentsList).trim();
     const prevStatus = initialAsset?.status;
     const prevHardDisk = initialAsset?.hardDisk;
 
-    const componentsChanged = initialAsset && (componentsText.trim() !== prevComponents || form.hardDisk !== prevHardDisk);
+    const hardDiskChanged = initialAsset && form.hardDisk !== prevHardDisk;
     const statusChanged = initialAsset && form.status !== prevStatus;
     const today = new Date().toISOString().slice(0, 10);
 
-    const componentsLog = componentsChanged
-      ? [{ date: today, change: `Updated components/hard disk for ${form.id}` }, ...(initialAsset.componentsLog || [])]
+    const componentsLog = hardDiskChanged
+      ? [{ date: today, change: `Updated hard disk for ${form.id}` }, ...(initialAsset.componentsLog || [])]
       : initialAsset?.componentsLog || [];
     const history = !initialAsset
       ? [{ date: today, event: 'Asset added to inventory' }]
@@ -60,7 +47,7 @@ export default function AssetFormModal({ isOpen, onClose, onSubmit, initialAsset
       ? [{ date: today, event: `Status changed from ${prevStatus} to ${form.status}` }, ...(initialAsset.history || [])]
       : initialAsset.history || [];
 
-    onSubmit({ ...form, componentsList, componentsLog, history });
+    onSubmit({ ...form, componentsLog, history });
     onClose();
   }
 
@@ -122,13 +109,13 @@ export default function AssetFormModal({ isOpen, onClose, onSubmit, initialAsset
           </Field>
         </div>
 
-        {/* Row 4: Components Inventory */}
-        <Field label="Components Inventory" hint="One component per line — RAM, CPU, GPU, etc.">
+        {/* Row 4: Components Changes */}
+        <Field label="Components Changes" hint="Enter any hardware or component changes made to this asset">
           <textarea
-            rows={3}
-            value={componentsText}
-            onChange={(e) => setComponentsText(e.target.value)}
-            placeholder={'16GB RAM\nIntel Core i7\nIntegrated Graphics'}
+            rows={2}
+            value={form.componentsChanges || ''}
+            onChange={(e) => setForm((f) => ({ ...f, componentsChanges: e.target.value }))}
+            placeholder="e.g. Upgraded RAM to 16GB, replaced battery, swapped GPU..."
             className={`${inputClass} resize-none`}
           />
         </Field>
