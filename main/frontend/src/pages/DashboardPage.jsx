@@ -411,8 +411,11 @@ function ApprovalCenterView() {
       </div>
 
       {/* Form on the left, Awaiting Founder Sign-off list on the right —
-          side by side instead of stacked, so the form can stay compact. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          side by side instead of stacked, so the form can stay compact.
+          Both cards stretch to the row's tallest so the shorter one (usually
+          the list, especially when empty) doesn't leave a half-filled box
+          next to a full one. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <Card>
           <h3 className="font-semibold text-sm text-foreground mb-3">Send for Founder Approval</h3>
           <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -522,10 +525,10 @@ function ApprovalCenterView() {
           </form>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <SectionHeader title="Awaiting Founder Sign-off" subtitle={`${pendingFounder.length} pending`} />
           {pendingFounder.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4">Nothing matches these filters.</p>
+            <p className="flex-1 flex items-center justify-center text-xs text-muted-foreground py-4">Nothing matches these filters.</p>
           ) : (
             <div className="flex flex-col gap-3">
               {pendingFounder.map((app, i) => (
@@ -1555,6 +1558,7 @@ export default function DashboardPage() {
 
   const { approvals, submitApproval } = useApprovals();
   const itPendingFounder = approvals.filter((a) => a.source === 'IT' && a.status === 'pending_founder').length;
+  const { assets } = useAssets();
 
   // Data Requests state
   const [dataRequests, setDataRequests] = useState([
@@ -1627,18 +1631,45 @@ export default function DashboardPage() {
     });
   }
 
-  // Donut chart data definitions
-  const categoryData = [
-    { label: 'Laptop/Desktop Issues', value: 99, percent: 40, color: 'hsl(var(--chart-1))' },
-    { label: 'Network Issues', value: 62, percent: 25, color: 'hsl(var(--chart-2))' },
-    { label: 'Software Requests', value: 37, percent: 15, color: 'hsl(var(--chart-3))' },
-    { label: 'VPN Requests', value: 25, percent: 10, color: 'hsl(var(--chart-4))' },
-    { label: 'Data Requests', value: 25, percent: 10, color: 'hsl(var(--chart-5))' },
-  ];
-
   // Shared with the Employee dashboard — a ticket raised there appears
   // here immediately, and a status change made here reflects there too.
   const { tickets: recentTickets, changeStatus: changeTicketStatus, updateTicketField } = useTickets();
+
+  // Donut chart data — derived from the live IT ticket list rather than
+  // hard-coded, same reasoning as statusData below: it should actually move
+  // as tickets come and go instead of always reading "248 total".
+  const CATEGORY_COLOR = {
+    'Laptop / Desktop / Server': 'hsl(var(--chart-1))',
+    Networking: 'hsl(var(--chart-2))',
+    'Software Requests': 'hsl(var(--chart-3))',
+    VPN: 'hsl(var(--chart-4))',
+  };
+  const categoryData = useMemo(() => {
+    const itTickets = recentTickets.filter((t) => t.dept === 'IT');
+    const counts = {};
+    itTickets.forEach((t) => {
+      const key = t.category || 'Other';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    const total = itTickets.length || 1;
+    return Object.entries(counts).map(([label, value]) => ({
+      label,
+      value,
+      percent: Math.round((value / total) * 100),
+      color: CATEGORY_COLOR[label] || 'hsl(var(--chart-5))',
+    }));
+  }, [recentTickets]);
+  const categoryTotal = recentTickets.filter((t) => t.dept === 'IT').length;
+
+  // Resolved + Closed against everything raised — the closest real proxy to
+  // "SLA compliance" available without a per-ticket due-date/SLA field to
+  // measure against. Shows a dash rather than a misleading 0%/100% when
+  // there's no ticket history yet to compute from.
+  const slaCompliance = useMemo(() => {
+    if (recentTickets.length === 0) return null;
+    const met = recentTickets.filter((t) => t.status === 'Resolved' || t.status === 'Closed').length;
+    return Math.round((met / recentTickets.length) * 100);
+  }, [recentTickets]);
 
   // Derived from the live ticket list rather than hard-coded. The previous
   // fixed figures summed to 174%, which the old hand-rolled donut rendered as
@@ -1692,12 +1723,12 @@ export default function DashboardPage() {
             <StatCard label="Pending Approval" value={itPendingFounder} sub="awaiting founder" />
             <StatCard label="Resolved Tickets" value={recentTickets.filter((t) => t.status === 'Resolved').length} sub="completed" />
             <StatCard label="In Progress" value={recentTickets.filter((t) => t.status === 'In Progress').length} sub="working" />
-            <StatCard label="SLA Compliance" value="96%" sub="last 7 days" />
+            <StatCard label="SLA Compliance" value={slaCompliance === null ? '—' : `${slaCompliance}%`} sub="resolved of raised" />
           </div>
 
           {/* Donut Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
-            <DonutChart title="Tickets by Category" total={248} data={categoryData} />
+            <DonutChart title="Tickets by Category" total={categoryTotal} data={categoryData} />
             <DonutChart title="Tickets by Status" total={recentTickets.length} data={statusData} />
           </div>
 
@@ -1717,31 +1748,18 @@ export default function DashboardPage() {
             />
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-center mb-2.5">
-              <div className="p-2 rounded-xl bg-muted border border-border">
-                <Laptop size={16} className="mx-auto text-muted-foreground mb-0.5" />
-                <div className="text-xs text-muted-foreground">Laptops</div>
-                <div className="text-xs font-bold text-foreground mt-0.5">120</div>
-              </div>
-              <div className="p-2 rounded-xl bg-muted border border-border">
-                <Monitor size={16} className="mx-auto text-muted-foreground mb-0.5" />
-                <div className="text-xs text-muted-foreground">Desktops</div>
-                <div className="text-xs font-bold text-foreground mt-0.5">85</div>
-              </div>
-              <div className="p-2 rounded-xl bg-muted border border-border">
-                <Server size={16} className="mx-auto text-muted-foreground mb-0.5" />
-                <div className="text-xs text-muted-foreground">Servers</div>
-                <div className="text-xs font-bold text-foreground mt-0.5">28</div>
-              </div>
-              <div className="p-2 rounded-xl bg-muted border border-border">
-                <Wifi size={16} className="mx-auto text-muted-foreground mb-0.5" />
-                <div className="text-xs text-muted-foreground">Network</div>
-                <div className="text-xs font-bold text-foreground mt-0.5">18</div>
-              </div>
-              <div className="p-2 rounded-xl bg-muted border border-border">
-                <Printer size={16} className="mx-auto text-muted-foreground mb-0.5" />
-                <div className="text-xs text-muted-foreground">Printers</div>
-                <div className="text-xs font-bold text-foreground mt-0.5">12</div>
-              </div>
+              {ASSET_TYPES.map((type) => {
+                const Icon = ASSET_TYPE_ICON[type];
+                return (
+                  <div key={type} className="p-2 rounded-xl bg-muted border border-border">
+                    <Icon size={16} className="mx-auto text-muted-foreground mb-0.5" />
+                    <div className="text-xs text-muted-foreground">{type}s</div>
+                    <div className="text-xs font-bold text-foreground mt-0.5">
+                      {assets.filter((a) => a.type === type).length}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </Card>
         </div>

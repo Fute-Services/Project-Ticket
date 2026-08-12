@@ -53,6 +53,7 @@ function fromBackend(doc) {
     title: doc.category ? `${doc.category} — ${doc.sub_category}` : (doc.description || 'Request').slice(0, 60),
     user: doc.name,
     dept: doc.dept_tag || (isIt ? 'IT' : 'HR'),
+    category: doc.category || null,
     status,
     statusColor: TICKET_STATUS_COLOR[status],
     employeeId: doc.employeeId || '',

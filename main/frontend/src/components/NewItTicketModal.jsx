@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Plus, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { TICKET_CATEGORIES, TICKET_PRIORITIES } from '../data/itMockData';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
 
-export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
+export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, defaultDepartment }) {
   const [category, setCategory] = useState('Laptop / Desktop / Server');
   const [subcategory, setSubcategory] = useState(TICKET_CATEGORIES['Laptop / Desktop / Server'][0]);
   const [priority, setPriority] = useState('Medium');
   const [description, setDescription] = useState('');
-  const [department, setDepartment] = useState('Engineering');
+  const [department, setDepartment] = useState(defaultDepartment || '');
   const [submitted, setSubmitted] = useState(false);
+
+  // The field starts blank until the signed-in user's department arrives
+  // (it's fetched async on login) — backfill it once, without clobbering
+  // anything the person may have already typed over the default.
+  const [departmentTouched, setDepartmentTouched] = useState(false);
+  useEffect(() => {
+    if (!departmentTouched && defaultDepartment) setDepartment(defaultDepartment);
+  }, [defaultDepartment, departmentTouched]);
 
   // Escape must not yank the modal away mid-submit — the success panel is the
   // only confirmation the user gets that the ticket was created.
@@ -134,7 +142,10 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                 <input
                   type="text"
                   value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
+                  onChange={(e) => {
+                    setDepartmentTouched(true);
+                    setDepartment(e.target.value);
+                  }}
                   className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>

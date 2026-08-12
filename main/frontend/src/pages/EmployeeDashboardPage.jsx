@@ -610,6 +610,7 @@ export default function EmployeeDashboardPage() {
         isOpen={isTicketModalOpen}
         onClose={() => setIsTicketModalOpen(false)}
         onSubmitSuccess={handleNewTicket}
+        defaultDepartment={user?.department}
       />
 
       <NewHrTicketModal
