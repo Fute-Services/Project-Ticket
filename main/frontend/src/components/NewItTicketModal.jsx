@@ -2,14 +2,23 @@ import { useState, useEffect } from 'react';
 import { X, Plus, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { TICKET_CATEGORIES, TICKET_PRIORITIES } from '../data/itMockData';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
+import { useAuth } from '../context/AuthContext';
 
 export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, defaultDepartment }) {
+  const { user } = useAuth();
   const [category, setCategory] = useState('Laptop / Desktop / Server');
   const [subcategory, setSubcategory] = useState(TICKET_CATEGORIES['Laptop / Desktop / Server'][0]);
   const [priority, setPriority] = useState('Medium');
   const [description, setDescription] = useState('');
   const [department, setDepartment] = useState(defaultDepartment || '');
+  const [employeeId, setEmployeeId] = useState(user?.employeeId || user?.employee_id || '');
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (user?.employeeId || user?.employee_id) {
+      setEmployeeId(user.employeeId || user.employee_id);
+    }
+  }, [user]);
 
   // The field starts blank until the signed-in user's department arrives
   // (it's fetched async on login) — backfill it once, without clobbering
@@ -33,6 +42,7 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, def
   function handleSubmit(e) {
     e.preventDefault();
     setSubmitted(true);
+    const userRole = user?.department || user?.designation || (user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Employee');
     setTimeout(() => {
       if (onSubmitSuccess) {
         onSubmitSuccess({
@@ -40,7 +50,9 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, def
           subcategory,
           priority,
           description,
-          department,
+          role: userRole,
+          department: userRole,
+          employeeId: employeeId || user?.employeeId || user?.employee_id || '',
           status: 'Open',
         });
       }
@@ -122,8 +134,19 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, def
               </select>
             </div>
 
-            {/* Priority & Department */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Employee ID, Priority & Department */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Employee ID</label>
+                <input
+                  type="text"
+                  value={user?.employee_id || user?.employeeId || employeeId || ''}
+                  readOnly
+                  disabled
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-primary font-bold focus:outline-none cursor-not-allowed"
+                />
+              </div>
+
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">Priority</label>
                 <select
@@ -138,15 +161,13 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, def
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-muted-foreground block mb-1">Department</label>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Role</label>
                 <input
                   type="text"
-                  value={department}
-                  onChange={(e) => {
-                    setDepartmentTouched(true);
-                    setDepartment(e.target.value);
-                  }}
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={user?.department || user?.designation || (user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Employee')}
+                  readOnly
+                  disabled
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground font-bold focus:outline-none cursor-not-allowed"
                 />
               </div>
             </div>

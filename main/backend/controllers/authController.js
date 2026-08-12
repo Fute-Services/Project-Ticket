@@ -106,6 +106,9 @@ async function login(req, res) {
     role: user.role,
     full_name: user.full_name,
     email: user.email,
+    department: user.department || user.designation || '',
+    designation: user.designation || user.department || '',
+    employeeId: user.employee_id || user.employeeId || '',
     permissionOverrides: user.permissionOverrides || {},
   });
 }
@@ -122,7 +125,9 @@ async function getMe(req, res) {
     email: user.email,
     role: user.role,
     full_name: user.full_name,
-    department: user.department,
+    department: user.department || user.designation || '',
+    designation: user.designation || user.department || '',
+    employeeId: user.employee_id || user.employeeId || '',
     permissionOverrides: user.permissionOverrides || {},
   });
 }

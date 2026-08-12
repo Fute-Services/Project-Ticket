@@ -74,12 +74,26 @@ export function AuthProvider({ children }) {
     }
 
     getMe()
-      .then(({ data }) => persist({ ...session.user, ...data }))
+      .then(({ data }) => {
+        const empId = data.employee_id || data.employeeId || session.user.employee_id || session.user.employeeId || '';
+        persist({
+          ...session.user,
+          ...data,
+          employee_id: empId,
+          employeeId: empId,
+        });
+      })
       .catch(() => {});
   }, []);
 
   function login(userData, jwt, remember = true) {
-    setUser(userData);
+    const empId = userData.employee_id || userData.employeeId || '';
+    const updatedUser = {
+      ...userData,
+      employee_id: empId,
+      employeeId: empId,
+    };
+    setUser(updatedUser);
     setToken(jwt);
 
     // Clear the other store first — otherwise a stale copy from a previous
@@ -88,7 +102,7 @@ export function AuthProvider({ children }) {
     const other = remember ? sessionStorage : localStorage;
     other.removeItem('fute_user');
     other.removeItem('fute_token');
-    store.setItem('fute_user', JSON.stringify(userData));
+    store.setItem('fute_user', JSON.stringify(updatedUser));
     store.setItem('fute_token', jwt);
   }
 

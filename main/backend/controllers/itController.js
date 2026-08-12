@@ -40,11 +40,33 @@ async function createComplaint(req, res) {
   const duration = calcDuration(complaint_date);
   const submitted_at = new Date().toISOString();
 
+  let resolvedEmployeeId = employeeId || '';
+  let resolvedDepartment = department || '';
+  let dbUserRole = '';
+  if (req.user?.id) {
+    try {
+      const userDoc = await db.collection('users').doc(req.user.id).get();
+      if (userDoc.exists) {
+        const uData = userDoc.data();
+        if (!resolvedEmployeeId) resolvedEmployeeId = uData.employee_id || uData.employeeId || '';
+        if (!resolvedDepartment || resolvedDepartment === 'General') resolvedDepartment = uData.department || uData.designation || '';
+        dbUserRole = uData.department || uData.designation || uData.role || '';
+      }
+    } catch (e) {
+      console.error('Failed to lookup user data:', e.message);
+    }
+  }
+
+  const rawRole = role || dbUserRole || req.user?.role || 'employee';
+  const formattedRole = rawRole.charAt(0).toUpperCase() + rawRole.slice(1);
+
   const docData = {
     token,
     user_id: req.user.id,
+    user_role: formattedRole,
+    role: formattedRole,
     name,
-    department,
+    department: resolvedDepartment || department || formattedRole || 'General',
     category,
     sub_category,
     description,
@@ -53,10 +75,10 @@ async function createComplaint(req, res) {
     submitted_at,
     priority,
     approval: approval === true || approval === 'true',
-    employeeId: employeeId || '',
+    employeeId: resolvedEmployeeId,
     vpnNo: vpnNo || '',
-    employeeStatus: '',
-    solver: '',
+    employeeStatus: 'Active',
+    solver: 'Team 1',
     remarks: '',
     status: 'Pending',
     updated_at: submitted_at,
@@ -78,18 +100,50 @@ async function createComplaint(req, res) {
   res.status(201).json({ complaint: data, token });
 }
 
+async function enrichWithUserRole(docs) {
+  try {
+    const usersSnap = await db.collection('users').get();
+    const userMap = {};
+    usersSnap.docs.forEach((d) => {
+      userMap[d.id] = d.data();
+    });
+
+    return docs.map((d) => {
+      const u = userMap[d.user_id] || {};
+      const resolvedRole =
+        d.role ||
+        u.department ||
+        u.designation ||
+        (u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : null) ||
+        d.user_role ||
+        d.department ||
+        'Employee';
+      const formattedRole = resolvedRole.charAt(0).toUpperCase() + resolvedRole.slice(1);
+      return {
+        ...d,
+        role: formattedRole,
+        user_role: formattedRole,
+      };
+    });
+  } catch (e) {
+    return docs;
+  }
+}
+
 // GET /api/it/complaints — IT staff / founder
 async function getAllComplaints(req, res) {
   const snap = await collection.get();
   const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  res.json(sortByRecent(data));
+  const enriched = await enrichWithUserRole(data);
+  res.json(sortByRecent(enriched));
 }
 
 // GET /api/it/complaints/my
 async function getMyComplaints(req, res) {
   const snap = await collection.where('user_id', '==', req.user.id).get();
   const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  res.json(sortByRecent(data));
+  const enriched = await enrichWithUserRole(data);
+  res.json(sortByRecent(enriched));
 }
 
 // GET /api/it/complaints/search?token=
@@ -171,6 +225,13 @@ async function updateFields(req, res) {
   const docRef = collection.doc(id);
   const doc = await docRef.get();
   if (!doc.exists) return res.status(404).json({ error: 'Complaint not found' });
+
+  const docData = doc.data();
+  const isOwner = docData.user_id === req.user?.id;
+  const isStaff = ['it', 'founder', 'superadmin'].includes(req.user?.role);
+  if (!isOwner && !isStaff) {
+    return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+  }
 
   updates.updated_at = new Date().toISOString();
   await docRef.update(updates);

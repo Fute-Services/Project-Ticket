@@ -17,7 +17,7 @@ router.get('/complaints', auth, role('it', 'founder'), getAllComplaints);
 router.get('/complaints/my', auth, getMyComplaints);
 router.get('/complaints/search', auth, searchByToken);
 router.patch('/complaints/:id/status', auth, role('it', 'founder'), updateStatus);
-router.patch('/complaints/:id/fields', auth, role('it', 'founder'), updateFields);
+router.patch('/complaints/:id/fields', auth, updateFields);
 
 router.post('/assets', auth, role('it', 'founder'), createAsset);
 router.get('/assets', auth, role('it', 'founder'), getAllAssets);
