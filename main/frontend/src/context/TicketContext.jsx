@@ -15,8 +15,11 @@ import {
   updateItFields,
   updateHrFields,
 } from '../utils/api';
+import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
 const TicketContext = createContext(null);
+
+const POLL_MS = 20000;
 
 // The UI's 5-state vocabulary (a legacy 'Closed' included) vs. the backend's
 // 4-state enum (backend/controllers/{hr,it}Controller.js VALID_STATUSES) —
@@ -113,10 +116,9 @@ export function TicketProvider({ children }) {
 
   useEffect(() => {
     refresh();
-    if (!user) return;
-    const id = setInterval(refresh, 20000);
-    return () => clearInterval(id);
-  }, [refresh, user]);
+  }, [refresh]);
+
+  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
 
   async function addTicket(req, requesterName) {
     const isHr = req.dept === 'HR';

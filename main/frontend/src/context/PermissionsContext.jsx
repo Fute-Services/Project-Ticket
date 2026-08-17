@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import api from '../utils/api';
+import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
 // One entry per real nav item across the app — kept in sync by hand with
 // IT_NAV_ITEMS/EMPLOYEE_NAV_ITEMS (ItDeskLayout.jsx) and the NAV_ITEMS
@@ -83,7 +84,10 @@ function toBackend(permissions) {
   return serializable;
 }
 
-const POLL_MS = 15000;
+// Read-only nav config that changes rarely (only when a founder toggles a
+// page) — a long interval is fine since refresh() also fires immediately on
+// mount and on regaining tab visibility (useVisibilityAwarePolling).
+const POLL_MS = 5 * 60 * 1000;
 
 const PermissionsContext = createContext(null);
 
@@ -107,10 +111,9 @@ export function PermissionsProvider({ children }) {
 
   useEffect(() => {
     refresh();
-    if (!user) return;
-    const id = setInterval(refresh, POLL_MS);
-    return () => clearInterval(id);
-  }, [refresh, user]);
+  }, [refresh]);
+
+  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
 
   async function updatePermissions(updater) {
     let nextValue;

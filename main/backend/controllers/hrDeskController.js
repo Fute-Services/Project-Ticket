@@ -27,7 +27,7 @@ async function sendEmail(req, res) {
 
 // GET /api/hr-desk/send-email — Sent folder history
 async function getSentEmails(req, res) {
-  const snap = await sentCollection.get();
+  const snap = await sentCollection.limit(200).get();
   const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   rows.sort((a, b) => new Date(b.time) - new Date(a.time));
   res.json(rows);
@@ -41,7 +41,7 @@ function makeCrud(collectionName, requiredFields) {
   const collection = db.collection(collectionName);
 
   async function list(req, res) {
-    const snap = await collection.get();
+    const snap = await collection.limit(200).get();
     res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
   }
 
@@ -64,7 +64,7 @@ function makeCrud(collectionName, requiredFields) {
     const updates = { ...req.body, updated_at: new Date().toISOString() };
     delete updates.id;
     await docRef.update(updates);
-    res.json({ id, ...(await docRef.get()).data() });
+    res.json({ id, ...doc.data(), ...updates });
   }
 
   async function remove(req, res) {

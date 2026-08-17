@@ -35,7 +35,7 @@ async function createAsset(req, res) {
 
 // GET /api/it/assets
 async function getAllAssets(req, res) {
-  const snap = await collection.get();
+  const snap = await collection.limit(200).get();
   res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
@@ -57,7 +57,7 @@ async function updateAsset(req, res) {
   }
   updates.updated_at = new Date().toISOString();
   await docRef.update(updates);
-  res.json({ id, ...(await docRef.get()).data() });
+  res.json({ id, ...doc.data(), ...updates });
 }
 
 // DELETE /api/it/assets/:id

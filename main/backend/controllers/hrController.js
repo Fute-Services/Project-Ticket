@@ -30,7 +30,7 @@ function sortByRecent(docs) {
 
 // POST /api/hr/complaints — submit new HR complaint
 async function createComplaint(req, res) {
-  const { name, department, description, complaint_date, priority, employeeId } = req.body;
+  const { name, role, department, description, complaint_date, priority, employeeId } = req.body;
   if (!name || !department || !description || !complaint_date || !priority) {
     return res.status(400).json({ error: 'All fields are required' });
   }
@@ -94,15 +94,26 @@ async function createComplaint(req, res) {
   res.status(201).json({ complaint: data, token });
 }
 
+// Tickets store `role`/`user_role` at creation time, so most docs need no
+// lookup here at all; only legacy docs missing both fields fall back to a
+// bounded, deduped single-doc read instead of scanning the whole users
+// collection on every list request.
 async function enrichWithUserRole(docs) {
   try {
-    const usersSnap = await db.collection('users').get();
+    const needsLookup = docs.filter((d) => !d.role && !d.user_role);
     const userMap = {};
-    usersSnap.docs.forEach((d) => {
-      userMap[d.id] = d.data();
-    });
+    if (needsLookup.length > 0) {
+      const uniqueUserIds = [...new Set(needsLookup.map((d) => d.user_id).filter(Boolean))];
+      await Promise.all(
+        uniqueUserIds.map(async (uid) => {
+          const doc = await db.collection('users').doc(uid).get();
+          if (doc.exists) userMap[uid] = doc.data();
+        })
+      );
+    }
 
     return docs.map((d) => {
+      if (d.role && d.user_role) return d;
       const u = userMap[d.user_id] || {};
       const resolvedRole =
         d.role ||
@@ -165,7 +176,7 @@ async function updateStatus(req, res) {
 
   const updated_at = new Date().toISOString();
   await docRef.update({ status, updated_at });
-  const data = { id, ...(await docRef.get()).data() };
+  const data = { id, ...before.data(), status, updated_at };
 
   if (status === 'Waiting Approval') {
     await db.collection('approvals').add({
@@ -226,7 +237,7 @@ async function updateFields(req, res) {
 
   updates.updated_at = new Date().toISOString();
   await docRef.update(updates);
-  res.json({ id, ...(await docRef.get()).data() });
+  res.json({ id, ...docData, ...updates });
 }
 
 module.exports = { createComplaint, getAllComplaints, getMyComplaints, searchByToken, updateStatus, updateFields };

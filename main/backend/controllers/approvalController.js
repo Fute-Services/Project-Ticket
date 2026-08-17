@@ -32,7 +32,7 @@ async function createApproval(req, res) {
 // GET /api/approvals — IT/HR desks and the founder all read this feed
 // (founder decides, IT/HR watch their own requests move through it).
 async function listApprovals(req, res) {
-  const snap = await collection.get();
+  const snap = await collection.limit(200).get();
   const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   res.json(sortByRecent(data));
 }
@@ -65,7 +65,7 @@ async function decideApproval(req, res) {
     });
   }
 
-  res.json({ id, ...(await docRef.get()).data() });
+  res.json({ id, ...approval, status, decidedAt, decidedBy: req.user.full_name });
 }
 
 module.exports = { createApproval, listApprovals, decideApproval };

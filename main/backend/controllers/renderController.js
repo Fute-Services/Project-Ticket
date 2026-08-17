@@ -4,7 +4,7 @@ const collection = db.collection('renders');
 
 // GET /api/production/renders — read by Production and IT's read-only view
 async function getAllRenders(req, res) {
-  const snap = await collection.get();
+  const snap = await collection.limit(200).get();
   res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
@@ -45,7 +45,7 @@ async function updateRender(req, res) {
 
   updates.updated_at = new Date().toISOString();
   await docRef.update(updates);
-  res.json({ id, ...(await docRef.get()).data() });
+  res.json({ id, ...doc.data(), ...updates });
 }
 
 module.exports = { getAllRenders, addRender, updateRender };

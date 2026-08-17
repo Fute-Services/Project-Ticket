@@ -5,15 +5,26 @@ const { auth, db } = require('../config/firebase');
 // there's no self-service way to mint either from this screen.
 const ASSIGNABLE_ROLES = ['it', 'hr', 'coordinator', 'employee'];
 
+// Tickets store `role`/`user_role` at creation time, so most docs need no
+// lookup here at all; only legacy docs missing both fields fall back to a
+// bounded, deduped single-doc read instead of scanning the whole users
+// collection on every list request.
 async function enrichWithUserRole(docs) {
   try {
-    const usersSnap = await db.collection('users').get();
+    const needsLookup = docs.filter((d) => !d.role && !d.user_role);
     const userMap = {};
-    usersSnap.docs.forEach((d) => {
-      userMap[d.id] = d.data();
-    });
+    if (needsLookup.length > 0) {
+      const uniqueUserIds = [...new Set(needsLookup.map((d) => d.user_id).filter(Boolean))];
+      await Promise.all(
+        uniqueUserIds.map(async (uid) => {
+          const doc = await db.collection('users').doc(uid).get();
+          if (doc.exists) userMap[uid] = doc.data();
+        })
+      );
+    }
 
     return docs.map((d) => {
+      if (d.role && d.user_role) return d;
       const u = userMap[d.user_id] || {};
       const resolvedRole =
         d.role ||
@@ -38,8 +49,8 @@ async function enrichWithUserRole(docs) {
 // GET /api/founder/complaints — returns all HR + IT complaints combined
 async function getAllComplaints(req, res) {
   const [hrSnap, itSnap] = await Promise.all([
-    db.collection('hr_complaints').get(),
-    db.collection('it_complaints').get(),
+    db.collection('hr_complaints').limit(200).get(),
+    db.collection('it_complaints').limit(200).get(),
   ]);
 
   const hrTagged = hrSnap.docs.map(d => ({ id: d.id, ...d.data(), dept_tag: 'HR' }));
@@ -58,10 +69,10 @@ async function getAllComplaints(req, res) {
 // owns credentials; this collection is just profile + permission data.
 async function listUsers(req, res) {
   const { role } = req.query;
-  const snap = await db.collection('users').get();
+  const query = role ? db.collection('users').where('role', '==', role) : db.collection('users').limit(200);
+  const snap = await query.get();
   const users = snap.docs
     .map((d) => ({ id: d.id, ...d.data() }))
-    .filter((u) => !role || u.role === role)
     .map((u) => ({
       id: u.id,
       email: u.email,

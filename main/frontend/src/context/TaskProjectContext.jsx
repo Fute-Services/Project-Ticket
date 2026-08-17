@@ -7,6 +7,7 @@ import {
   updateTaskStatus as updateTaskStatusApi,
   updateTask as updateTaskApi,
 } from '../utils/api';
+import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
 const TaskProjectContext = createContext(null);
 
@@ -24,7 +25,7 @@ export function TaskProjectProvider({ children }) {
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!user) {
+    if (!user || !['employee', 'coordinator', 'founder'].includes(user.role)) {
       setTasks([]);
       setProjects([]);
       return;
@@ -43,10 +44,9 @@ export function TaskProjectProvider({ children }) {
 
   useEffect(() => {
     refresh();
-    if (!user) return;
-    const id = setInterval(refresh, POLL_MS);
-    return () => clearInterval(id);
-  }, [refresh, user]);
+  }, [refresh]);
+
+  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
 
   async function addTask(task) {
     try {

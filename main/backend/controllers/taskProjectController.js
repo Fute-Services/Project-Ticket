@@ -6,13 +6,13 @@ const projectsCollection = db.collection('projects');
 // GET /api/coordinator/projects — read across Coordinator, Founder, and
 // Employee "My Projects" views, so no role restriction.
 async function getProjects(req, res) {
-  const snap = await projectsCollection.get();
+  const snap = await projectsCollection.limit(200).get();
   res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
 // GET /api/coordinator/tasks — same broad read access as projects.
 async function getTasks(req, res) {
-  const snap = await tasksCollection.get();
+  const snap = await tasksCollection.limit(200).get();
   res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
@@ -54,8 +54,9 @@ async function updateTaskStatus(req, res) {
   const doc = await docRef.get();
   if (!doc.exists) return res.status(404).json({ error: 'Task not found' });
 
-  await docRef.update({ status, updated_at: new Date().toISOString() });
-  res.json({ id, ...(await docRef.get()).data() });
+  const updated_at = new Date().toISOString();
+  await docRef.update({ status, updated_at });
+  res.json({ id, ...doc.data(), status, updated_at });
 }
 
 const EDITABLE_FIELDS = ['title', 'assignee', 'priority', 'dueDate', 'duration', 'comments', 'attachments', 'figma', 'pr'];
@@ -77,7 +78,7 @@ async function updateTask(req, res) {
 
   updates.updated_at = new Date().toISOString();
   await docRef.update(updates);
-  res.json({ id, ...(await docRef.get()).data() });
+  res.json({ id, ...doc.data(), ...updates });
 }
 
 module.exports = { getProjects, getTasks, createTask, updateTaskStatus, updateTask };

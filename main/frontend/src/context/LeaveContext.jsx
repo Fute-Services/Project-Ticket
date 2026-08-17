@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { applyLeave as applyLeaveApi, getAllLeaves, getMyLeaves, decideLeave } from '../utils/api';
+import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
 const LeaveContext = createContext(null);
 
@@ -41,10 +42,9 @@ export function LeaveProvider({ children }) {
 
   useEffect(() => {
     refresh();
-    if (!user) return;
-    const id = setInterval(refresh, POLL_MS);
-    return () => clearInterval(id);
-  }, [refresh, user]);
+  }, [refresh]);
+
+  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
 
   async function decide(id, status) {
     setLeaveRequests((rows) => rows.map((r) => (r.id === id ? { ...r, status } : r)));

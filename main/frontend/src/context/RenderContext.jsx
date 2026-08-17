@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { getRenders, addRender as addRenderApi, updateRender as updateRenderApi } from '../utils/api';
+import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
 const RenderContext = createContext(null);
 
@@ -14,7 +15,7 @@ export function RenderProvider({ children }) {
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!user) {
+    if (!user || !['it', 'production'].includes(user.role)) {
       setRenders([]);
       return;
     }
@@ -31,10 +32,9 @@ export function RenderProvider({ children }) {
 
   useEffect(() => {
     refresh();
-    if (!user) return;
-    const id = setInterval(refresh, POLL_MS);
-    return () => clearInterval(id);
-  }, [refresh, user]);
+  }, [refresh]);
+
+  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
 
   async function addRender(job) {
     try {

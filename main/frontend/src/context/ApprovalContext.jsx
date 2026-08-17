@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useAuth } from './AuthContext';
 import { relativeTime } from '../utils/tickets';
 import { getApprovals, submitApprovalRequest, decideApproval } from '../utils/api';
+import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
 const ApprovalContext = createContext(null);
 
@@ -26,7 +27,7 @@ export function ApprovalProvider({ children }) {
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!user) {
+    if (!user || !['it', 'hr', 'founder'].includes(user.role)) {
       setApprovals([]);
       return;
     }
@@ -43,10 +44,9 @@ export function ApprovalProvider({ children }) {
 
   useEffect(() => {
     refresh();
-    if (!user) return;
-    const id = setInterval(refresh, POLL_MS);
-    return () => clearInterval(id);
-  }, [refresh, user]);
+  }, [refresh]);
+
+  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
 
   async function submitApproval(item) {
     try {

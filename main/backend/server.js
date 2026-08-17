@@ -4,7 +4,10 @@ require('dotenv').config();
 
 const app = express();
 
-app.use(cors());
+// maxAge caches the browser's preflight (OPTIONS) response so it isn't
+// re-sent before every single polled request — without it, each poll tick
+// costs two round trips (OPTIONS + the real call) instead of one.
+app.use(cors({ maxAge: 600 }));
 app.use(express.json());
 
 // Routes

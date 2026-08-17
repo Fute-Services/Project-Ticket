@@ -43,7 +43,7 @@ async function applyLeave(req, res) {
 
 // GET /api/leave — HR staff / founder see every request
 async function getAllLeaves(req, res) {
-  const snap = await collection.get();
+  const snap = await collection.limit(200).get();
   const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   res.json(sortByRecent(data));
 }
@@ -75,8 +75,9 @@ async function decide(req, res) {
   }
 
   const updated_at = new Date().toISOString();
-  await docRef.update({ status, updated_at, decidedBy: req.user.full_name });
-  res.json({ id, ...(await docRef.get()).data() });
+  const decidedBy = req.user.full_name;
+  await docRef.update({ status, updated_at, decidedBy });
+  res.json({ id, ...leave, status, updated_at, decidedBy });
 }
 
 module.exports = { applyLeave, getAllLeaves, getMyLeaves, decide };
