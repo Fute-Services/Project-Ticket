@@ -28,6 +28,10 @@ import CoordinatorProjectDetail from './pages/coordinator/ProjectDetail';
 import FounderLandingPage from './pages/FounderLandingPage';
 import FounderDashboardPage from './pages/FounderDashboardPage';
 import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
+import SuperAdminUsersPage from './pages/SuperAdminUsersPage';
+import SuperAdminAnalyticsPage from './pages/SuperAdminAnalyticsPage';
+import SuperAdminAuditLogPage from './pages/SuperAdminAuditLogPage';
+import SuperAdminSettingsPage from './pages/SuperAdminSettingsPage';
 import DepartmentDashboardPage from './pages/DepartmentDashboardPage';
 
 const DASHBOARD_ROUTES = [{ path: '/it/dashboard', allow: ['it'] }];
@@ -85,6 +89,38 @@ export default function App() {
             element={
               <RequireAuth allow={['superadmin']}>
                 <SuperAdminDashboardPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/superadmin/users"
+            element={
+              <RequireAuth allow={['superadmin']}>
+                <SuperAdminUsersPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/superadmin/analytics"
+            element={
+              <RequireAuth allow={['superadmin']}>
+                <SuperAdminAnalyticsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/superadmin/audit-log"
+            element={
+              <RequireAuth allow={['superadmin']}>
+                <SuperAdminAuditLogPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/superadmin/settings"
+            element={
+              <RequireAuth allow={['superadmin']}>
+                <SuperAdminSettingsPage />
               </RequireAuth>
             }
           />

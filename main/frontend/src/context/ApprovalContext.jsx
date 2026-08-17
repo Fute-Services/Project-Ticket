@@ -54,6 +54,7 @@ export function ApprovalProvider({ children }) {
       setApprovals((prev) => [fromBackend(data), ...prev]);
     } catch (e) {
       console.error('Failed to submit approval request:', e.response?.data?.error || e.message);
+      throw e;
     }
   }
 

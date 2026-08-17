@@ -34,35 +34,51 @@ export default function ProductionDashboardView() {
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [issueTitle, setIssueTitle] = useState('');
   const [issueDetails, setIssueDetails] = useState('');
+  const [addingRender, setAddingRender] = useState(false);
+  const [reporting, setReporting] = useState(false);
 
   const totalFrames = renders.reduce((sum, r) => sum + frameCount(r.frameNo), 0);
   const allocatedSystems = renders.filter((r) => r.status === 'Rendering').reduce((sum, r) => sum + Number(r.allocatedSystems || 0), 0);
 
-  function handleAddRender(e) {
+  async function handleAddRender(e) {
     e.preventDefault();
     if (!form.projectCode.trim() || !form.frameNo.trim() || !form.personName.trim()) {
       toast.error('Project code, frame range, and name are required.');
       return;
     }
-    addRender({ ...form, allocatedSystems: Number(form.allocatedSystems) || 1 });
-    toast.success('Render job added', { description: `${form.projectCode} · ${form.frameNo}` });
-    setForm(EMPTY_FORM());
+    setAddingRender(true);
+    try {
+      await addRender({ ...form, allocatedSystems: Number(form.allocatedSystems) || 1 });
+      toast.success('Render job added', { description: `${form.projectCode} · ${form.frameNo}` });
+      setForm(EMPTY_FORM());
+    } catch (err) {
+      toast.error('Could not add render job', { description: err.response?.data?.error || err.message });
+    } finally {
+      setAddingRender(false);
+    }
   }
 
-  function submitReport(e) {
+  async function submitReport(e) {
     e.preventDefault();
     if (!issueTitle.trim()) {
       toast.error('Describe the issue before sending it to IT.');
       return;
     }
-    addTicket(
-      { description: issueDetails.trim() ? `${issueTitle.trim()} — ${issueDetails.trim()}` : issueTitle.trim(), department: 'Production' },
-      user?.full_name
-    );
-    toast.success('Reported to IT', { description: 'The ticket is in the IT Service Desk queue now.' });
-    setIssueTitle('');
-    setIssueDetails('');
-    setReportModalOpen(false);
+    setReporting(true);
+    try {
+      await addTicket(
+        { description: issueDetails.trim() ? `${issueTitle.trim()} — ${issueDetails.trim()}` : issueTitle.trim(), department: 'Production' },
+        user?.full_name
+      );
+      toast.success('Reported to IT', { description: 'The ticket is in the IT Service Desk queue now.' });
+      setIssueTitle('');
+      setIssueDetails('');
+      setReportModalOpen(false);
+    } catch (err) {
+      toast.error('Could not report to IT', { description: err.response?.data?.error || err.message });
+    } finally {
+      setReporting(false);
+    }
   }
 
   return (
@@ -141,9 +157,10 @@ export default function ProductionDashboardView() {
           </Field>
           <button
             type="submit"
-            className="sm:col-span-2 lg:col-span-3 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+            disabled={addingRender}
+            className="sm:col-span-2 lg:col-span-3 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Add Render Job
+            {addingRender ? 'Adding…' : 'Add Render Job'}
           </button>
         </form>
       </Card>
@@ -201,8 +218,12 @@ export default function ProductionDashboardView() {
               className={`${inputClass} resize-none`}
             />
           </Field>
-          <button type="submit" className="mt-1 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer">
-            Send to IT
+          <button
+            type="submit"
+            disabled={reporting}
+            className="mt-1 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {reporting ? 'Sending…' : 'Send to IT'}
           </button>
         </form>
       </Modal>

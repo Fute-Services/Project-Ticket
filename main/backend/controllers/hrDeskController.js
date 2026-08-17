@@ -11,7 +11,11 @@ async function sendEmail(req, res) {
   if (!to || !subject || !body) return res.status(400).json({ error: 'to, subject and body are required' });
 
   const html = `<div style="font-family:sans-serif;white-space:pre-wrap">${body}</div>`;
-  await sendMail(to, subject, html);
+  try {
+    await sendMail(to, subject, html);
+  } catch (err) {
+    return res.status(502).json({ error: 'Failed to send email' });
+  }
 
   const docData = {
     to,

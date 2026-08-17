@@ -44,7 +44,10 @@ async function createTask(req, res) {
 
 // PATCH /api/coordinator/tasks/:id/status — open to any logged-in user so
 // the assigned employee can toggle their own task complete/incomplete, and
-// the coordinator can drag-move tasks across the board.
+// the coordinator can drag-move tasks across the board — but only *that*
+// task's own assignee (tasks store `assignee` as the employee's full name,
+// see createTask above) or a coordinator/founder, never an arbitrary other
+// employee guessing/enumerating task ids from the open GET /tasks list.
 async function updateTaskStatus(req, res) {
   const { id } = req.params;
   const { status } = req.body;
@@ -53,6 +56,12 @@ async function updateTaskStatus(req, res) {
   const docRef = tasksCollection.doc(id);
   const doc = await docRef.get();
   if (!doc.exists) return res.status(404).json({ error: 'Task not found' });
+
+  const isOwnerOrManager =
+    req.user.role === 'coordinator' ||
+    req.user.role === 'founder' ||
+    doc.data().assignee === req.user.full_name;
+  if (!isOwnerOrManager) return res.status(403).json({ error: 'Access denied' });
 
   const updated_at = new Date().toISOString();
   await docRef.update({ status, updated_at });

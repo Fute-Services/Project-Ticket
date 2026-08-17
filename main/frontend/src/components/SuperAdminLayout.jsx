@@ -1,17 +1,24 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Shield, LogOut, ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Shield, Users, BarChart3, ScrollText, Settings, LogOut, ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
-// Deliberately minimal — Super Admin has exactly one page today (Role
-// Permissions). Same sidebar/header shell shape as HrLayout/CoordinatorLayout
-// for visual consistency, but without their search index or notifications
-// feed since there's no per-role data source to build one from here.
+const NAV_ITEMS = [
+  { label: 'Role Permissions', icon: Shield, path: '/superadmin/dashboard' },
+  { label: 'Users', icon: Users, path: '/superadmin/users' },
+  { label: 'Analytics', icon: BarChart3, path: '/superadmin/analytics' },
+  { label: 'Audit Log', icon: ScrollText, path: '/superadmin/audit-log' },
+  { label: 'Settings', icon: Settings, path: '/superadmin/settings' },
+];
+
 export default function SuperAdminLayout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const activeItem = NAV_ITEMS.find((item) => item.path === location.pathname) || NAV_ITEMS[0];
 
   function handleSignOut() {
     logout();
@@ -33,15 +40,29 @@ export default function SuperAdminLayout({ children }) {
           )}
 
           <nav className="flex flex-col gap-1">
-            <div
-              title={collapsed ? 'Role Permissions' : undefined}
-              className={`mx-1 flex items-center py-1.5 rounded-xl text-[11px] font-mono font-bold tracking-wider uppercase bg-primary text-primary-foreground shadow border border-primary/40 ${
-                collapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'
-              }`}
-            >
-              <Shield size={14} className="shrink-0 text-primary-foreground" />
-              {!collapsed && <span className="truncate">Role Permissions</span>}
-            </div>
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              return (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => navigate(item.path)}
+                  title={collapsed ? item.label : undefined}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`mx-1 flex items-center py-1.5 rounded-xl text-[11px] font-mono font-bold tracking-wider uppercase transition-colors text-left cursor-pointer ${
+                    collapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'
+                  } ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow border border-primary/40'
+                      : 'bg-muted text-muted-foreground border border-border hover:border-muted-foreground/40 hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  <Icon size={14} className={`shrink-0 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
@@ -104,7 +125,7 @@ export default function SuperAdminLayout({ children }) {
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
             <span>Super Admin</span>
             <span>/</span>
-            <span>Role Permissions</span>
+            <span>{activeItem.label}</span>
           </div>
 
           <div className="h-9 flex items-center gap-2 px-2.5 rounded-xl bg-muted backdrop-blur-md border border-border shrink-0">

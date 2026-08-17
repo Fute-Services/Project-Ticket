@@ -38,20 +38,27 @@ export default function Email() {
     setReplyText('');
   }
 
+  // Appends the reply to the thread (and clears the input) only once the
+  // send has actually succeeded — previously this happened first, so a
+  // failed send still left a reply in the thread looking delivered, with
+  // only an easy-to-miss toast as the only sign it never went out.
   function sendReply() {
     if (!replyText.trim() || !activeEmail) return;
     const body = replyText.trim();
     const subject = `Re: ${activeEmail.subject}`;
-    const message = { from: 'You (HR)', to: activeEmail.from, body, time: 'Just now' };
-    setEmails((prev) => ({
-      ...prev,
-      inbox: prev.inbox.map((e) => (e.id === activeEmail.id ? { ...e, unread: false, thread: [...e.thread, message] } : e)),
-    }));
-    setReplyText('');
-    sendHrEmail({ to: activeEmail.from, subject, body })
+    const to = activeEmail.from;
+    const id = activeEmail.id;
+
+    sendHrEmail({ to, subject, body })
       .then(({ data }) => {
-        setEmails((prev) => ({ ...prev, sent: [data, ...prev.sent] }));
-        toast.success('Email sent', { description: `To ${activeEmail.from}` });
+        const message = { from: 'You (HR)', to, body, time: 'Just now' };
+        setEmails((prev) => ({
+          ...prev,
+          inbox: prev.inbox.map((e) => (e.id === id ? { ...e, unread: false, thread: [...e.thread, message] } : e)),
+          sent: [data, ...prev.sent],
+        }));
+        setReplyText('');
+        toast.success('Email sent', { description: `To ${to}` });
       })
       .catch((e) => toast.error('Failed to send email', { description: e.response?.data?.error || e.message }));
   }
@@ -70,14 +77,16 @@ export default function Email() {
     }));
   }
 
+  // Only deletes the draft once it's actually sent — this used to delete
+  // first, so a failed send permanently lost the composed content with no
+  // undo, leaving only a toast as the trace.
   function sendDraft() {
     if (!activeDraft?.to.trim() || !activeDraft?.subject.trim()) return;
-    const { to, subject, body } = activeDraft;
-    setEmails((prev) => ({ ...prev, drafts: prev.drafts.filter((d) => d.id !== activeDraft.id) }));
-    setSelected(null);
+    const { id, to, subject, body } = activeDraft;
     sendHrEmail({ to, subject, body: body || '' })
       .then(({ data }) => {
-        setEmails((prev) => ({ ...prev, sent: [data, ...prev.sent] }));
+        setEmails((prev) => ({ ...prev, drafts: prev.drafts.filter((d) => d.id !== id), sent: [data, ...prev.sent] }));
+        setSelected(null);
         toast.success('Email sent', { description: `To ${to}` });
       })
       .catch((e) => toast.error('Failed to send email', { description: e.response?.data?.error || e.message }));

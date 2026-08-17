@@ -427,7 +427,7 @@ function ApprovalCenterView() {
   const pendingFounder = statusFilter === 'Resolved' ? [] : filtered.filter((a) => a.status === 'pending_founder');
   const decided = statusFilter === 'Pending' ? [] : filtered.filter((a) => a.status !== 'pending_founder');
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     if (!form.title.trim()) {
       toast.error('Give the request a title', {
@@ -435,11 +435,16 @@ function ApprovalCenterView() {
       });
       return;
     }
-    submitApproval({
-      ...form,
-      requestedBy: form.username || form.employeeId || 'IT Support',
-      source: 'IT',
-    });
+    try {
+      await submitApproval({
+        ...form,
+        requestedBy: form.username || form.employeeId || 'IT Support',
+        source: 'IT',
+      });
+    } catch (err) {
+      toast.error('Could not send for approval', { description: err.response?.data?.error || err.message });
+      return;
+    }
     setForm(APPROVAL_FORM_EMPTY);
     toast.success('Sent for founder approval', { description: form.title });
   }
@@ -871,22 +876,27 @@ function AssetsView() {
     setModalOpen(true);
   }
 
-  function handleSubmit(asset) {
+  async function handleSubmit(asset) {
     const isEdit = !!editingAsset;
-    addOrUpdateAsset(asset, isEdit);
+    await addOrUpdateAsset(asset, isEdit);
     toast.success(isEdit ? `Saved ${asset.id}` : `Added ${asset.id}`, { description: asset.model });
   }
 
-  function handleRequestApproval(asset) {
-    submitApproval({
-      assetIdRef: asset.id,
-      title: `Asset Approval: ${asset.model}`,
-      sub: `${asset.id} · ${asset.assignedTo || 'IT Store'} (${asset.department})`,
-      requestedBy: 'IT Desk',
-      category: 'Hardware',
-      priority: 'high',
-      status: 'pending_founder',
-    });
+  async function handleRequestApproval(asset) {
+    try {
+      await submitApproval({
+        assetIdRef: asset.id,
+        title: `Asset Approval: ${asset.model}`,
+        sub: `${asset.id} · ${asset.assignedTo || 'IT Store'} (${asset.department})`,
+        requestedBy: 'IT Desk',
+        category: 'Hardware',
+        priority: 'high',
+        status: 'pending_founder',
+      });
+    } catch (err) {
+      toast.error('Could not send approval request', { description: err.response?.data?.error || err.message });
+      return;
+    }
 
     patchAsset(asset.id, { approvalStatus: 'pending_founder' });
 
@@ -1746,13 +1756,28 @@ export default function DashboardPage() {
     return {};
   }
 
-  function handleNewDataRequest(req) {
+  // Awaited by the modal — when the request needs a named approver, the
+  // linked approval record is a real backend write (submitApproval now
+  // rethrows on failure) and must succeed before this reports success;
+  // otherwise the local request list would show "Waiting Approval" with no
+  // approval ever created for the approver to see.
+  async function handleNewDataRequest(req) {
     const rule = routingFor(req.source).approver || routingFor(req.source).tag
       ? routingFor(req.source)
       : routingFor(req.destination);
     const targetApprover = rule.approver || null;
     const serverTag = rule.tag || null;
     const status = targetApprover ? 'Waiting Approval' : req.status || 'Waiting Approval';
+
+    if (targetApprover) {
+      await submitApproval({
+        title: `Data Transfer Approval: ${req.folder || 'Data Copy'}`,
+        sub: `${req.source} → ${req.destination} · Approver: ${targetApprover}`,
+        requestedBy: req.requesterName || 'IT Desk',
+        priority: req.priority === 'Critical' ? 'high' : (req.priority || 'medium').toLowerCase(),
+        category: 'Data Transfer',
+      });
+    }
 
     setDataRequests((prev) => [
       {
@@ -1770,16 +1795,6 @@ export default function DashboardPage() {
       },
       ...prev,
     ]);
-
-    if (targetApprover) {
-      submitApproval({
-        title: `Data Transfer Approval: ${req.folder || 'Data Copy'}`,
-        sub: `${req.source} → ${req.destination} · Approver: ${targetApprover}`,
-        requestedBy: req.requesterName || 'IT Desk',
-        priority: req.priority === 'Critical' ? 'high' : (req.priority || 'medium').toLowerCase(),
-        category: 'Data Transfer',
-      });
-    }
 
     toast.success('Data transfer requested', {
       description: targetApprover ? `Routed to ${targetApprover} for approval.` : `${req.source} → ${req.destination}`,

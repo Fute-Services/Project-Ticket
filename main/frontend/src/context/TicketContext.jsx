@@ -120,6 +120,9 @@ export function TicketProvider({ children }) {
 
   useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
 
+  // Rethrows on failure (rather than only console.error-ing) so callers can
+  // tell a request actually failed instead of showing a "success" screen
+  // and discarding the user's input regardless of what really happened.
   async function addTicket(req, requesterName) {
     const isHr = req.dept === 'HR';
     const name = requesterName || user?.full_name || 'You';
@@ -157,6 +160,7 @@ export function TicketProvider({ children }) {
       }
     } catch (e) {
       console.error('Failed to create ticket:', e.response?.data?.error || e.message);
+      throw e;
     }
   }
 

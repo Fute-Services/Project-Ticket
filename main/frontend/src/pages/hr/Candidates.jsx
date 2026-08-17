@@ -11,6 +11,7 @@ import {
   Mail,
   Phone,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, Pill, Drawer, Modal, Field, inputClass, EmptyState } from '../../components/ui';
 import { CANDIDATE_STAGES, RESUME_SOURCES } from '../../data/hrMockData';
@@ -27,6 +28,7 @@ export default function Candidates() {
   const fileInputRef = useRef(null);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploadForm, setUploadForm] = useState(EMPTY_UPLOAD_FORM);
+  const [uploadSubmitting, setUploadSubmitting] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -61,7 +63,7 @@ export default function Candidates() {
     setUploadForm({ ...EMPTY_UPLOAD_FORM, name: file.name.replace(/\.(pdf|docx?|txt)$/i, '').replace(/[_-]/g, ' ') });
   }
 
-  function submitUpload(e) {
+  async function submitUpload(e) {
     e.preventDefault();
     const payload = {
       name: uploadForm.name,
@@ -80,12 +82,21 @@ export default function Candidates() {
       appliedOn: new Date().toISOString().slice(0, 10),
       resumeFileName: uploadedFile?.name || '',
     };
-    candidatesApi.create(payload).then(({ data }) => {
+    setUploadSubmitting(true);
+    try {
+      const { data } = await candidatesApi.create(payload);
       setCandidates((rows) => [data, ...rows]);
       setSelected(data);
-    }).catch((e) => console.error('Failed to add candidate:', e.message));
-    setUploadedFile(null);
-    setUploadForm(EMPTY_UPLOAD_FORM);
+      // Only clear/close on success — closing unconditionally used to
+      // discard the typed-in form (and the user's chosen resume) on any
+      // failure, with just a console.error as the only trace.
+      setUploadedFile(null);
+      setUploadForm(EMPTY_UPLOAD_FORM);
+    } catch (err) {
+      toast.error('Could not add candidate', { description: err.response?.data?.error || err.message });
+    } finally {
+      setUploadSubmitting(false);
+    }
   }
 
   return (
@@ -282,8 +293,12 @@ export default function Candidates() {
               <input value={uploadForm.experience} onChange={(e) => setUploadForm((f) => ({ ...f, experience: e.target.value }))} className={inputClass} placeholder="e.g. 3 yrs" />
             </Field>
           </div>
-          <button type="submit" className="mt-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer">
-            Add Candidate
+          <button
+            type="submit"
+            disabled={uploadSubmitting}
+            className="mt-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {uploadSubmitting ? 'Adding…' : 'Add Candidate'}
           </button>
         </form>
       </Modal>

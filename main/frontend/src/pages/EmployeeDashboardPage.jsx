@@ -474,15 +474,18 @@ export default function EmployeeDashboardPage() {
     [myProjects]
   );
 
-  function handleNewTicket(req) {
-    addTicket(req, user?.full_name);
+  // Awaited by the modal, which only shows its success screen once this
+  // resolves — a rejection (addTicket now rethrows on failure) surfaces as
+  // an error in the modal instead of a false "success" plus this toast.
+  async function handleNewTicket(req) {
+    await addTicket(req, user?.full_name);
     toast.success('IT Ticket raised', {
       description: "IT can see it now — you'll find it under My Tickets.",
     });
   }
 
-  function handleNewHrTicket(req) {
-    addTicket(
+  async function handleNewHrTicket(req) {
+    await addTicket(
       {
         ...req,
         dept: 'HR',
@@ -738,7 +741,6 @@ export default function EmployeeDashboardPage() {
         isOpen={isTicketModalOpen}
         onClose={() => setIsTicketModalOpen(false)}
         onSubmitSuccess={handleNewTicket}
-        defaultDepartment={user?.department}
       />
 
       <NewHrTicketModal

@@ -21,16 +21,23 @@ const EMPTY_FORM = {
 
 export default function AssetFormModal({ isOpen, onClose, onSubmit, initialAsset, nextId }) {
   const [form, setForm] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       const base = initialAsset || { ...EMPTY_FORM, id: nextId };
       setForm(base);
+      setError('');
     }
   }, [isOpen, initialAsset, nextId]);
 
-  function submit(e) {
+  // Only closes the modal once the save has actually succeeded — it used
+  // to close unconditionally, so a failed create/edit still looked
+  // successful with the real error only in the console.
+  async function submit(e) {
     e.preventDefault();
+    if (!onSubmit) return;
     const prevStatus = initialAsset?.status;
     const prevHardDisk = initialAsset?.hardDisk;
 
@@ -47,8 +54,16 @@ export default function AssetFormModal({ isOpen, onClose, onSubmit, initialAsset
       ? [{ date: today, event: `Status changed from ${prevStatus} to ${form.status}` }, ...(initialAsset.history || [])]
       : initialAsset.history || [];
 
-    onSubmit({ ...form, componentsLog, history });
-    onClose();
+    setError('');
+    setSubmitting(true);
+    try {
+      await onSubmit({ ...form, componentsLog, history });
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Could not save the asset. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -120,20 +135,28 @@ export default function AssetFormModal({ isOpen, onClose, onSubmit, initialAsset
           />
         </Field>
 
+        {error && (
+          <p role="alert" className="text-xs px-3.5 py-2.5 text-destructive bg-destructive/10 border border-destructive/20 rounded-xl">
+            {error}
+          </p>
+        )}
+
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border mt-1">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted rounded-xl transition-colors cursor-pointer"
+            disabled={submitting}
+            className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted rounded-xl transition-colors cursor-pointer disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold px-5 py-2 rounded-xl transition-colors cursor-pointer shadow-sm"
+            disabled={submitting}
+            className="bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold px-5 py-2 rounded-xl transition-colors cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {initialAsset ? 'Save Changes' : 'Add Asset'}
+            {submitting ? 'Saving…' : initialAsset ? 'Save Changes' : 'Add Asset'}
           </button>
         </div>
       </form>

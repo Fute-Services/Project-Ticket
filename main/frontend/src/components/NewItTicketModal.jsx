@@ -4,15 +4,16 @@ import { TICKET_CATEGORIES, TICKET_PRIORITIES } from '../data/itMockData';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
 import { useAuth } from '../context/AuthContext';
 
-export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, defaultDepartment }) {
+export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   const { user } = useAuth();
   const [category, setCategory] = useState('Laptop / Desktop / Server');
   const [subcategory, setSubcategory] = useState(TICKET_CATEGORIES['Laptop / Desktop / Server'][0]);
   const [priority, setPriority] = useState('Medium');
   const [description, setDescription] = useState('');
-  const [department, setDepartment] = useState(defaultDepartment || '');
   const [employeeId, setEmployeeId] = useState(user?.employeeId || user?.employee_id || '');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (user?.employeeId || user?.employee_id) {
@@ -20,17 +21,9 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, def
     }
   }, [user]);
 
-  // The field starts blank until the signed-in user's department arrives
-  // (it's fetched async on login) — backfill it once, without clobbering
-  // anything the person may have already typed over the default.
-  const [departmentTouched, setDepartmentTouched] = useState(false);
-  useEffect(() => {
-    if (!departmentTouched && defaultDepartment) setDepartment(defaultDepartment);
-  }, [defaultDepartment, departmentTouched]);
-
   // Escape must not yank the modal away mid-submit — the success panel is the
   // only confirmation the user gets that the ticket was created.
-  useEscapeToClose(isOpen && !submitted, onClose);
+  useEscapeToClose(isOpen && !submitted && !submitting, onClose);
 
   if (!isOpen) return null;
 
@@ -39,26 +32,36 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, def
     setSubcategory(TICKET_CATEGORIES[cat][0]);
   }
 
-  function handleSubmit(e) {
+  // Only shows the success screen (and clears/closes) once the ticket has
+  // actually been created — previously this fired unconditionally on a
+  // timer, so a failed/offline submission still told the user it worked.
+  async function handleSubmit(e) {
     e.preventDefault();
-    setSubmitted(true);
+    if (!onSubmitSuccess) return;
     const userRole = user?.department || user?.designation || (user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Employee');
-    setTimeout(() => {
-      if (onSubmitSuccess) {
-        onSubmitSuccess({
-          category,
-          subcategory,
-          priority,
-          description,
-          role: userRole,
-          department: userRole,
-          employeeId: employeeId || user?.employeeId || user?.employee_id || '',
-          status: 'Open',
-        });
-      }
-      setSubmitted(false);
-      onClose();
-    }, 1200);
+    setError('');
+    setSubmitting(true);
+    try {
+      await onSubmitSuccess({
+        category,
+        subcategory,
+        priority,
+        description,
+        role: userRole,
+        department: userRole,
+        employeeId: employeeId || user?.employeeId || user?.employee_id || '',
+        status: 'Open',
+      });
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        onClose();
+      }, 1200);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Could not create the ticket. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -187,20 +190,28 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess, def
               />
             </div>
 
+            {error && (
+              <p role="alert" className="text-xs px-3.5 py-2.5 text-destructive bg-destructive/10 border border-destructive/20 rounded-xl">
+                {error}
+              </p>
+            )}
+
             {/* Actions */}
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-border mt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl bg-muted hover:bg-accent text-xs font-semibold text-muted-foreground transition-colors"
+                disabled={submitting}
+                className="px-4 py-2.5 rounded-xl bg-muted hover:bg-accent text-xs font-semibold text-muted-foreground transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-xs font-bold text-primary-foreground flex items-center gap-2 shadow transition-all cursor-pointer"
+                disabled={submitting}
+                className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-xs font-bold text-primary-foreground flex items-center gap-2 shadow transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span>Create Ticket</span>
+                <span>{submitting ? 'Creating…' : 'Create Ticket'}</span>
                 <ArrowRight size={14} />
               </button>
             </div>
