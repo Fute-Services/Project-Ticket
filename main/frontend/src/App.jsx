@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { LeaveProvider } from './context/LeaveContext';
@@ -8,31 +9,37 @@ import { TaskProjectProvider } from './context/TaskProjectContext';
 import { RenderProvider } from './context/RenderContext';
 import { AssetProvider } from './context/AssetContext';
 import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import DashboardPage from './pages/DashboardPage';
-import EmployeeDashboardPage from './pages/EmployeeDashboardPage';
-import RequireAuth from './components/RequireAuth';
+import RequireAuth, { AppSkeleton } from './components/RequireAuth';
 import { Toaster } from './components/ui/sonner';
-import HrOverview from './pages/hr/Overview';
-import HrCandidates from './pages/hr/Candidates';
-import HrInterviews from './pages/hr/Interviews';
-import HrAttendance from './pages/hr/Attendance';
-import HrEmail from './pages/hr/Email';
-import HrDirectory from './pages/hr/Directory';
-import HrReports from './pages/hr/Reports';
-import CoordinatorOverview from './pages/coordinator/Overview';
-import CoordinatorTasks from './pages/coordinator/Tasks';
-import CoordinatorProjects from './pages/coordinator/Projects';
-import CoordinatorProjectDetail from './pages/coordinator/ProjectDetail';
 
-import FounderLandingPage from './pages/FounderLandingPage';
-import FounderDashboardPage from './pages/FounderDashboardPage';
-import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
-import SuperAdminUsersPage from './pages/SuperAdminUsersPage';
-import SuperAdminAnalyticsPage from './pages/SuperAdminAnalyticsPage';
-import SuperAdminAuditLogPage from './pages/SuperAdminAuditLogPage';
-import SuperAdminSettingsPage from './pages/SuperAdminSettingsPage';
-import DepartmentDashboardPage from './pages/DepartmentDashboardPage';
+// Lazy-loaded so a visitor only downloads the JS for the role/page they
+// actually reach, instead of one bundle containing every role's pages
+// (HR, Coordinator, SuperAdmin, Founder, Department) up front. LoginPage
+// stays a regular import above since it's the default route and should
+// paint immediately with no extra chunk round-trip.
+const SignupPage = lazy(() => import('./pages/SignupPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const EmployeeDashboardPage = lazy(() => import('./pages/EmployeeDashboardPage'));
+const HrOverview = lazy(() => import('./pages/hr/Overview'));
+const HrCandidates = lazy(() => import('./pages/hr/Candidates'));
+const HrInterviews = lazy(() => import('./pages/hr/Interviews'));
+const HrAttendance = lazy(() => import('./pages/hr/Attendance'));
+const HrEmail = lazy(() => import('./pages/hr/Email'));
+const HrDirectory = lazy(() => import('./pages/hr/Directory'));
+const HrReports = lazy(() => import('./pages/hr/Reports'));
+const CoordinatorOverview = lazy(() => import('./pages/coordinator/Overview'));
+const CoordinatorTasks = lazy(() => import('./pages/coordinator/Tasks'));
+const CoordinatorProjects = lazy(() => import('./pages/coordinator/Projects'));
+const CoordinatorProjectDetail = lazy(() => import('./pages/coordinator/ProjectDetail'));
+
+const FounderLandingPage = lazy(() => import('./pages/FounderLandingPage'));
+const FounderDashboardPage = lazy(() => import('./pages/FounderDashboardPage'));
+const SuperAdminDashboardPage = lazy(() => import('./pages/SuperAdminDashboardPage'));
+const SuperAdminUsersPage = lazy(() => import('./pages/SuperAdminUsersPage'));
+const SuperAdminAnalyticsPage = lazy(() => import('./pages/SuperAdminAnalyticsPage'));
+const SuperAdminAuditLogPage = lazy(() => import('./pages/SuperAdminAuditLogPage'));
+const SuperAdminSettingsPage = lazy(() => import('./pages/SuperAdminSettingsPage'));
+const DepartmentDashboardPage = lazy(() => import('./pages/DepartmentDashboardPage'));
 
 const DASHBOARD_ROUTES = [{ path: '/it/dashboard', allow: ['it'] }];
 
@@ -69,6 +76,7 @@ export default function App() {
       <RenderProvider>
       <AssetProvider>
       <BrowserRouter>
+      <Suspense fallback={<AppSkeleton />}>
         <Routes>
           {/* Sign-in is the front door. Signup is reached from the panel's own
               cross-link, so there's no separate landing page to pass through. */}
@@ -172,6 +180,7 @@ export default function App() {
           ))}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+      </Suspense>
         <Toaster position="bottom-right" richColors closeButton />
       </BrowserRouter>
       </AssetProvider>

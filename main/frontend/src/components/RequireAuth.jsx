@@ -7,7 +7,7 @@ import { Skeleton } from './ui/skeleton';
  * rather than a spinner: it keeps the page from flashing empty and hints at
  * what's about to appear.
  */
-function AppSkeleton() {
+export function AppSkeleton() {
   return (
     <div className="min-h-screen bg-background flex" aria-busy="true" aria-label="Loading">
       <div className="hidden lg:block w-[200px] shrink-0 p-3">
