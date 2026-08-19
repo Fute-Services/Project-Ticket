@@ -27,6 +27,8 @@ const HrAttendance = lazy(() => import('./pages/hr/Attendance'));
 const HrEmail = lazy(() => import('./pages/hr/Email'));
 const HrDirectory = lazy(() => import('./pages/hr/Directory'));
 const HrReports = lazy(() => import('./pages/hr/Reports'));
+const HrTickets = lazy(() => import('./pages/hr/Tickets'));
+const HrApprovals = lazy(() => import('./pages/hr/Approvals'));
 const CoordinatorOverview = lazy(() => import('./pages/coordinator/Overview'));
 const CoordinatorTasks = lazy(() => import('./pages/coordinator/Tasks'));
 const CoordinatorProjects = lazy(() => import('./pages/coordinator/Projects'));
@@ -61,6 +63,8 @@ const HR_ROUTES = [
   { path: '/hr/email', element: <HrEmail /> },
   { path: '/hr/directory', element: <HrDirectory /> },
   { path: '/hr/reports', element: <HrReports /> },
+  { path: '/hr/tickets', element: <HrTickets /> },
+  { path: '/hr/approvals', element: <HrApprovals /> },
 ];
 
 const COORDINATOR_ROUTES = [

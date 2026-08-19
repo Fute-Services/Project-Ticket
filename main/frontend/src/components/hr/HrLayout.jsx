@@ -20,6 +20,8 @@ import {
   ArrowRight,
   ChevronsLeft,
   ChevronsRight,
+  Ticket,
+  CheckSquare,
 } from 'lucide-react';
 import {
   candidates,
@@ -30,6 +32,8 @@ import {
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/hr/overview' },
+  { label: 'Tickets Queue', icon: Ticket, path: '/hr/tickets' },
+  { label: 'Approval Center', icon: CheckSquare, path: '/hr/approvals' },
   { label: 'Directory', icon: Contact, path: '/hr/directory' },
   { label: 'Candidates', icon: UserSearch, path: '/hr/candidates' },
   { label: 'Interviews', icon: CalendarClock, path: '/hr/interviews' },

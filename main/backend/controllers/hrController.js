@@ -191,7 +191,11 @@ async function updateStatus(req, res) {
 
     tx.update(docRef, { status, updated_at });
 
-    if (status === 'Waiting Approval') {
+    // Only create an approval record on the transition INTO "Waiting
+    // Approval" — without the previousStatus check, re-sending the same
+    // status (e.g. a UI double-click before the approvals list has
+    // refreshed) created a fresh duplicate approvals/{id} every time.
+    if (status === 'Waiting Approval' && previousStatus !== 'Waiting Approval') {
       const data = before.data();
       tx.set(approvalRef, {
         source: 'HR',

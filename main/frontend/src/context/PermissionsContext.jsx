@@ -24,6 +24,8 @@ export const PAGE_REGISTRY = {
   ],
   hr: [
     { id: '/hr/overview', label: 'Dashboard' },
+    { id: '/hr/tickets', label: 'Tickets Queue' },
+    { id: '/hr/approvals', label: 'Approval Center' },
     { id: '/hr/directory', label: 'Directory' },
     { id: '/hr/candidates', label: 'Candidates' },
     { id: '/hr/interviews', label: 'Interviews' },
