@@ -87,32 +87,65 @@ export function TicketProvider({ children }) {
   const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
+  // Only the IT/HR "queue" branch below is paginated (Founder's merged view
+  // and Employee's "My Tickets" stay whole-list — small/bounded lists,
+  // pagination isn't worth the complexity there). nextCursor is null for
+  // those roles, so loadMoreTickets is a no-op for them.
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!user) {
       setTickets([]);
+      setNextCursor(null);
       return;
     }
     setLoading(true);
     try {
       let rows;
+      let cursor = null;
       if (user.role === 'founder') {
         rows = (await getFounderComplaints()).data;
       } else if (user.role === 'it') {
-        rows = tagDept((await getItComplaints()).data, 'IT');
+        const { items, nextCursor: nc } = (await getItComplaints()).data;
+        rows = tagDept(items, 'IT');
+        cursor = nc;
       } else if (user.role === 'hr') {
-        rows = tagDept((await getHrComplaints()).data, 'HR');
+        const { items, nextCursor: nc } = (await getHrComplaints()).data;
+        rows = tagDept(items, 'HR');
+        cursor = nc;
       } else {
         const [it, hr] = await Promise.all([getMyItComplaints(), getMyHrComplaints()]);
         rows = mergeByRecent(tagDept(it.data, 'IT'), tagDept(hr.data, 'HR'));
       }
       setTickets(rows.map(fromBackend));
+      setNextCursor(cursor);
     } catch (e) {
       console.error('Failed to load tickets:', e.message);
     } finally {
       setLoading(false);
     }
   }, [user]);
+
+  // Appends the next 20 to the existing list — resets back to page 1 on the
+  // next poll/refresh, same as any other "Load More" list.
+  async function loadMoreTickets() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const isIt = user.role === 'it';
+      const { items, nextCursor: nc } = isIt
+        ? (await getItComplaints(nextCursor)).data
+        : (await getHrComplaints(nextCursor)).data;
+      const tagged = tagDept(items, isIt ? 'IT' : 'HR');
+      setTickets((prev) => [...prev, ...tagged.map(fromBackend)]);
+      setNextCursor(nc);
+    } catch (e) {
+      console.error('Failed to load more tickets:', e.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   useEffect(() => {
     refresh();
@@ -204,7 +237,7 @@ export function TicketProvider({ children }) {
   }
 
   return (
-    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, refresh }}>
+    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, refresh, hasMoreTickets: Boolean(nextCursor), loadMoreTickets, loadingMore }}>
       {children}
     </TicketContext.Provider>
   );

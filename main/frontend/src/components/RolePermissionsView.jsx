@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Shield, Crown, UserRound, RotateCcw, UserPlus, X } from 'lucide-react';
-import { usePermissions, PAGE_REGISTRY, TOGGLABLE_ROLES } from '../context/PermissionsContext';
+import { usePermissions, PAGE_REGISTRY, TOGGLABLE_ROLES, RESOURCE_REGISTRY, ACTION_LABEL } from '../context/PermissionsContext';
 import { getUsers, createUser, updateUserPermissions } from '../utils/api';
 import { Card, SectionHeader } from './ui';
 import { Switch } from './ui/switch';
@@ -22,7 +22,7 @@ const ROLE_LABEL = {
 const CREATABLE_ROLES = ['it', 'hr', 'coordinator', 'employee'];
 
 export default function RolePermissionsView() {
-  const { permissions, canAccess, togglePermission, setAllForRole } = usePermissions();
+  const { permissions, canAccess, togglePermission, setAllForRole, can, toggleAction } = usePermissions();
   const [role, setRole] = useState(TOGGLABLE_ROLES[0]);
 
   const pages = PAGE_REGISTRY[role];
@@ -338,6 +338,35 @@ export default function RolePermissionsView() {
         )}
       </Card>
       </div>
+
+      <Card>
+        <SectionHeader
+          title="Action permissions"
+          subtitle={`Granular create/edit/delete/approve rights for ${ROLE_LABEL[role] || role} — enforced on the backend, not just hidden in the UI`}
+        />
+        <div className="flex flex-col gap-3">
+          {Object.entries(RESOURCE_REGISTRY).map(([resource, { label, actions }]) => (
+            <div key={resource} className="flex flex-wrap items-center gap-x-6 gap-y-2 px-3.5 py-3 rounded-lg hover:bg-accent transition-colors">
+              <span className="text-sm font-medium text-foreground w-32 shrink-0">{label}</span>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                {actions.map((action) => {
+                  const enabled = can(role, resource, action);
+                  return (
+                    <label key={action} className="flex items-center gap-1.5 cursor-pointer">
+                      <Switch
+                        checked={enabled}
+                        onCheckedChange={() => toggleAction(role, resource, action)}
+                        label={`Toggle ${ACTION_LABEL[action] || action} on ${label} for ${role}`}
+                      />
+                      <span className="text-xs text-muted-foreground">{ACTION_LABEL[action] || action}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }

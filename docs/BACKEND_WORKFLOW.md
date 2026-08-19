@@ -41,17 +41,17 @@ Every route except `/api/auth/*` requires a bearer token; every route beyond "an
 ```mermaid
 flowchart TD
     A["POST /api/auth/register\n{ email, password, full_name, department }"] --> B["Firebase Auth: create the user"]
-    B --> C{"detectRole(email)"}
-    C -->|"hr.fute in address"| HR["role = hr"]
-    C -->|"system.fute or system.futeservice"| IT["role = it"]
-    C -->|"coordinator.fute"| CO["role = coordinator"]
-    C -->|"anything else"| EMP["role = employee"]
-    HR & IT & CO & EMP --> D["Write users/{uid} doc\n{ email, full_name, role, department }"]
+    B --> C["role = employee\n(always — self-registration can\nonly ever create a plain employee)"]
+    C --> D["Write users/{uid} doc\n{ email, full_name, role, department }"]
     D --> E["Sign app JWT (7d expiry)\n{ id, email, role, full_name }"]
     E --> F["Return { token, role, full_name, email }"]
 ```
 
-`founder` is never self-registered — it's set by hand directly in the `users` Firestore collection.
+Role used to be guessed from the caller-supplied email string (`hr.fute` → `hr`, etc.), which let anyone
+grant themselves a privileged role by picking a matching email — that's been removed. `hr`/`it`/
+`coordinator`/`founder` are now only ever granted by an authenticated founder via `POST /api/founder/users`
+(or set by hand for the first founder account). Both `/register` and `/login` are now rate-limited
+per-IP (`express-rate-limit`) as well as the per-account lockout described below.
 
 ## 3. Login
 
@@ -68,7 +68,7 @@ flowchart LR
 
 ## 4. Complaint Lifecycle (HR & IT)
 
-The one feature that's fully wired end to end, frontend to Firestore:
+The original feature wired end to end, frontend to Firestore — since §6 below, no longer the only one:
 
 ```mermaid
 stateDiagram-v2
@@ -99,56 +99,59 @@ Who can do what:
 
 ## 5. Leave & Approval Routing
 
-Not a backend endpoint — there's no leave collection or route — but the *routing rule* is a real piece of authorization logic worth documenting where the rest of the access-control rules live.
+Now a real backend endpoint (`routes/leaveRoutes.js`, `controllers/leaveController.js`, `leave_requests`
+collection) — the routing rule below is enforced server-side in `decide()`, not just client-side:
 
 ```mermaid
 flowchart TD
-    A["Employee applies for leave"] --> B{"employee.department is\n'Human Resources' or 'IT'?"}
-    B -->|no| C["Goes to HR's queue\n(currently: no dedicated HR\nleave-approval screen exists yet)"]
-    B -->|yes| D["Goes to the Founder's\nApproval System instead"]
+    A["Employee applies for leave\nPOST /api/leave"] --> B{"requester's profile\ndepartment is 'Admin/Ops'\nor 'IT'?"}
+    B -->|no| C["HR can decide it\nPATCH /api/leave/:id/decide"]
+    B -->|yes| D["Only the Founder can decide it —\nHR gets 403 if they try"]
 ```
 
-The reasoning, straight from the source comment in `LeaveContext.jsx`: HR's job is staff management, not approving its own department's time off — so a leave request from someone *in* HR or IT routes to the Founder rather than back into HR's own queue. Every other department's leave still logically belongs to HR, but as of this writing the Founder's Pending Leaves view is the only screen that can decide *any* leave request, from any department — see §6 below for why (it's the same Context-only limitation as everything else that isn't the HR/IT complaint model).
+Mirrors `isFounderApproval()` in the frontend's `LeaveContext.jsx`, now driven by the requester's real
+profile `department` field instead of a mock lookup.
 
-## 6. What Isn't Wired Up (and why it matters)
+## 6. Current Wiring Status
 
-This is the most important thing to understand about the current backend: **almost nothing in the UI actually calls it.**
+As of 2026-08, this is no longer accurate to describe as "almost nothing calls the backend" — most of
+the app is wired end to end (frontend → Express → Firestore):
 
 ```mermaid
 flowchart LR
-    subgraph Live["Actually hits the backend"]
-        L1["Login"]
-        L2["Register"]
+    subgraph Live["Wired to the real backend"]
+        L1["Login / Register"]
+        L2["HR & IT Tickets"]
+        L3["Approvals"]
+        L4["Leave requests"]
+        L5["IT Assets"]
+        L6["Coordinator Tasks & Projects"]
+        L7["Production Rendering"]
+        L8["HR Directory / Email (send + Sent folder)"]
+        L9["Super Admin panel (users, audit log,\nanalytics, settings, security)"]
     end
-    subgraph Local["Client-only — React Context, resets on reload"]
-        D1["IT tickets you raise as an Employee\n(TicketContext)"]
-        D2["Leave requests\n(LeaveContext)"]
-        D3["Founder approvals\n(ApprovalContext)"]
-        D4["Coordinator tasks & projects\n(TaskProjectContext)"]
-        D5["HR: candidates, interviews,\nattendance, directory, email"]
-    end
-    Live -->|"utils/api.js exports these calls;\nnothing else uses them"| Backend[("Express API")]
-    Local -.->|"no network call at all"| Backend
+    Live --> Backend[("Express API")]
 ```
 
-`main/frontend/src/utils/api.js` already exports functions for the ticket/complaint endpoints (`getHrComplaints`, `getItComplaints`, `updateHrStatus`, etc.) — they're written and ready. No page currently imports and calls most of them; the dashboards read and write their own `useState`/Context copies of seed data instead. Two consequences worth knowing before building on top of this:
-
-1. **Nothing persists across a reload**, and nothing is shared between two people's browsers — a ticket an Employee raises only appears in "IT's queue" because both views read the same in-memory `TicketContext`, not because it reached a server.
-2. The Firestore-backed model only covers the original **HR/IT complaint** shape (§4). There is no backend model yet for tasks, projects, leave requests, or approvals — wiring the frontend to the API would need new collections and endpoints for those, not just new `fetch` calls.
-
-This isn't a bug to "fix" casually — it's the actual state of an app that's further along on the frontend than the backend. Closing the gap is a real project: pick one feature (tickets are the natural first candidate, since the backend model already exists), replace its Context's local mutations with the matching `utils/api.js` calls, and add loading/error states the mock data never needed.
+The remaining gap is the **HR Desk sub-resources** served by `hrDeskController.js`'s generic CRUD
+factory (candidates, interviews, meetings, attendance, feedback, jobs) — the `GET` endpoints are wired
+and read real data, but as of this writing only the Candidates and Interviews pages actually call
+`create`/`update`; Meetings, Attendance, Feedback and Jobs pages still don't have a write path wired up
+from their UI even though the backend endpoints exist and are ready.
 
 ## 7. Local Development Without a Live Backend
 
-Because of §5, most of the app is fully usable with the Express server not even running:
+Now that most features are wired (§6), this fallback is narrower than it used to be — it only helps for
+auth, not for the now-real-backed features (tickets, approvals, leave, assets, tasks, rendering, HR
+directory):
 
 ```mermaid
 flowchart TD
     A["npm run dev (frontend)"] --> B{"Backend reachable\nat VITE_API_BASE_URL?"}
     B -->|no| C["Login/register calls fail\n→ falls back to dummyAuth.js\nseeded demo accounts"]
     B -->|yes, configured| D["Real Firebase-backed\nlogin/register"]
-    C --> E["Every other feature works\nidentically either way —\nit's all Context state"]
-    D --> E
+    C --> E["Wired features (§6) need the\nreal backend running to load\nany data at all"]
+    D --> F["Wired features load real data"]
 ```
 
 This is intentional and documented in the login page's own source comments, not an accident — it's what let the QA pass in the previous phase of this project run entirely against `npm run dev` with no backend process alive at all.

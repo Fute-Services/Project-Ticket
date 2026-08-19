@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { db } = require('../config/firebase');
+const { isSessionRevoked } = require('../utils/sessions');
 require('dotenv').config();
 
 // Re-checking every request against Firestore (no caching at all) blew
@@ -47,6 +48,9 @@ async function authMiddleware(req, res, next) {
   }
   if (data.active === false) {
     return res.status(403).json({ error: 'This account has been deactivated' });
+  }
+  if (await isSessionRevoked(decoded.sid)) {
+    return res.status(401).json({ error: 'This session has been signed out remotely — please log in again' });
   }
 
   req.user = { id: decoded.id, email: data.email, role: data.role, full_name: data.full_name };

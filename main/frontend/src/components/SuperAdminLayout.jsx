@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Users, BarChart3, ScrollText, Settings, LogOut, ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { LayoutDashboard, Shield, Users, Building2, Timer, ShieldAlert, BarChart3, ScrollText, History, Settings, LogOut, ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import GlobalSearchBar from './GlobalSearchBar';
 
 const NAV_ITEMS = [
+  { label: 'Overview', icon: LayoutDashboard, path: '/superadmin/overview' },
   { label: 'Role Permissions', icon: Shield, path: '/superadmin/dashboard' },
   { label: 'Users', icon: Users, path: '/superadmin/users' },
+  { label: 'Departments', icon: Building2, path: '/superadmin/departments' },
+  { label: 'SLA Management', icon: Timer, path: '/superadmin/sla' },
+  { label: 'Security Center', icon: ShieldAlert, path: '/superadmin/security' },
   { label: 'Analytics', icon: BarChart3, path: '/superadmin/analytics' },
+  { label: 'Activity Timeline', icon: History, path: '/superadmin/activity' },
   { label: 'Audit Log', icon: ScrollText, path: '/superadmin/audit-log' },
   { label: 'Settings', icon: Settings, path: '/superadmin/settings' },
 ];
@@ -122,10 +128,14 @@ export default function SuperAdminLayout({ children }) {
 
       <div className="flex-1 flex flex-col min-w-0 h-screen max-h-screen overflow-hidden">
         <header className="h-14 border border-border/60 rounded-xl mx-3 mt-3 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-card/60 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)] sticky top-3 z-20">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium shrink-0">
             <span>Super Admin</span>
             <span>/</span>
             <span>{activeItem.label}</span>
+          </div>
+
+          <div className="flex-1 flex justify-center px-4 min-w-0">
+            <GlobalSearchBar />
           </div>
 
           <div className="h-9 flex items-center gap-2 px-2.5 rounded-xl bg-muted backdrop-blur-md border border-border shrink-0">

@@ -25,22 +25,41 @@ export function ApprovalProvider({ children }) {
   const { user } = useAuth();
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!user || !['it', 'hr', 'founder'].includes(user.role)) {
       setApprovals([]);
+      setNextCursor(null);
       return;
     }
     setLoading(true);
     try {
       const { data } = await getApprovals();
-      setApprovals(data.map(fromBackend));
+      setApprovals(data.items.map(fromBackend));
+      setNextCursor(data.nextCursor);
     } catch (e) {
       console.error('Failed to load approvals:', e.response?.data?.error || e.message);
     } finally {
       setLoading(false);
     }
   }, [user]);
+
+  // Appends the next 20 — resets back to page 1 on the next poll/refresh.
+  async function loadMoreApprovals() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const { data } = await getApprovals(nextCursor);
+      setApprovals((prev) => [...prev, ...data.items.map(fromBackend)]);
+      setNextCursor(data.nextCursor);
+    } catch (e) {
+      console.error('Failed to load more approvals:', e.response?.data?.error || e.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   useEffect(() => {
     refresh();
@@ -70,7 +89,7 @@ export function ApprovalProvider({ children }) {
   }
 
   return (
-    <ApprovalContext.Provider value={{ approvals, loading, submitApproval, decide, refresh }}>
+    <ApprovalContext.Provider value={{ approvals, loading, submitApproval, decide, refresh, hasMoreApprovals: Boolean(nextCursor), loadMoreApprovals, loadingMore }}>
       {children}
     </ApprovalContext.Provider>
   );

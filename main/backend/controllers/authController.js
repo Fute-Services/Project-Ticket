@@ -1,6 +1,14 @@
 const { auth, db, usingEmulator } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
+const { createSession } = require('../utils/sessions');
 require('dotenv').config();
+
+// Accounts lock after this many consecutive failed password attempts, until
+// a Super Admin unlocks them from the Security Center — a fixed in-code
+// threshold rather than a configurable setting, since tuning it isn't a
+// real operational need yet.
+const LOCK_THRESHOLD = 5;
+const FAILED_LOGINS = db.collection('failed_logins');
 
 // Toggle: flip to `true` to require the password again — login() branches
 // on this below, both code paths are kept intact so switching back is a
@@ -57,12 +65,31 @@ async function register(req, res) {
 async function login(req, res) {
   const { email, password } = req.body;
   if (!email) return res.status(400).json({ error: 'email required' });
+  if (PASSWORD_LOGIN_ENABLED && !password) {
+    return res.status(400).json({ error: 'email and password required' });
+  }
 
+  // Resolve the account before touching the password, so a lock can be
+  // checked up front and a failed attempt can still be recorded against the
+  // right user even when the password itself is wrong.
   let uid;
+  try {
+    const userRecord = await auth.getUserByEmail(email);
+    uid = userRecord.uid;
+  } catch {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const userRef = db.collection('users').doc(uid);
+  const preSnap = await userRef.get();
+  if (!preSnap.exists) return res.status(400).json({ error: 'User profile not found' });
+  const preUser = preSnap.data();
+
+  if (preUser.locked) {
+    return res.status(423).json({ error: 'Account locked after too many failed login attempts — ask a Super Admin to unlock it' });
+  }
 
   if (PASSWORD_LOGIN_ENABLED) {
-    if (!password) return res.status(400).json({ error: 'email and password required' });
-
     // Verify password via Firebase Auth REST API (Admin SDK can't verify passwords directly)
     const resp = await fetch(
       `${IDENTITY_TOOLKIT_BASE}/accounts:signInWithPassword?key=${IDENTITY_TOOLKIT_KEY}`,
@@ -72,28 +99,29 @@ async function login(req, res) {
         body: JSON.stringify({ email, password, returnSecureToken: true }),
       }
     );
-    const authData = await resp.json();
-    if (!resp.ok) return res.status(401).json({ error: 'Invalid credentials' });
-    uid = authData.localId;
-  } else {
-    // Password check disabled — email alone identifies the account. Still
-    // routes through Firebase Auth (not just Firestore) so a nonexistent
-    // account 401s the same way it would with the password path.
-    try {
-      const userRecord = await auth.getUserByEmail(email);
-      uid = userRecord.uid;
-    } catch {
-      return res.status(401).json({ error: 'No account found for that email' });
+    if (!resp.ok) {
+      const attempts = (preUser.failedLoginAttempts || 0) + 1;
+      const updates = { failedLoginAttempts: attempts };
+      if (attempts >= LOCK_THRESHOLD) {
+        updates.locked = true;
+        updates.lockedAt = new Date().toISOString();
+      }
+      await userRef.set(updates, { merge: true });
+      await FAILED_LOGINS.add({ uid, email, ip: req.ip || null, at: new Date().toISOString() });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
   }
 
-  const userDoc = await db.collection('users').doc(uid).get();
-  if (!userDoc.exists) return res.status(400).json({ error: 'User profile not found' });
-  const user = userDoc.data();
+  const user = preUser;
   if (user.active === false) return res.status(403).json({ error: 'This account has been deactivated' });
 
+  if (user.failedLoginAttempts) {
+    await userRef.set({ failedLoginAttempts: 0 }, { merge: true });
+  }
+
+  const session = await createSession({ uid, ip: req.ip, userAgent: req.headers['user-agent'] });
   const token = jwt.sign(
-    { id: uid, email: user.email, role: user.role, full_name: user.full_name },
+    { id: uid, email: user.email, role: user.role, full_name: user.full_name, sid: session.id },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -108,6 +136,7 @@ async function login(req, res) {
     designation: user.designation || user.department || '',
     employeeId: user.employee_id || user.employeeId || '',
     permissionOverrides: user.permissionOverrides || {},
+    dashboardLayout: user.dashboardLayout || null,
   });
 }
 
@@ -127,7 +156,27 @@ async function getMe(req, res) {
     designation: user.designation || user.department || '',
     employeeId: user.employee_id || user.employeeId || '',
     permissionOverrides: user.permissionOverrides || {},
+    dashboardLayout: user.dashboardLayout || null,
   });
 }
 
-module.exports = { register, login, getMe };
+// POST /api/auth/verify-password — re-authentication for risk-tiered
+// confirm dialogs (delete user, force-logout, etc.). Verifies against the
+// CALLER's own email (req.user, from the JWT) — never a caller-supplied
+// email — so this can't be used to test another account's password.
+async function verifyPassword(req, res) {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'password required' });
+
+  const resp = await fetch(
+    `${IDENTITY_TOOLKIT_BASE}/accounts:signInWithPassword?key=${IDENTITY_TOOLKIT_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: req.user.email, password, returnSecureToken: true }),
+    }
+  );
+  res.json({ valid: resp.ok });
+}
+
+module.exports = { register, login, getMe, verifyPassword };

@@ -16,6 +16,7 @@ api.interceptors.request.use((config) => {
 export const registerUser = (data) => api.post('/api/auth/register', data);
 export const loginUser = (data) => api.post('/api/auth/login', data);
 export const getMe = () => api.get('/api/auth/me');
+export const verifyPassword = (password) => api.post('/api/auth/verify-password', { password });
 
 // Founder — role permissions' per-user overrides
 export const getUsers = (role) => api.get('/api/founder/users', { params: { role } });
@@ -25,20 +26,56 @@ export const updateUserPermissions = (uid, permissionOverrides) =>
 
 // Super Admin — full user management
 export const updateUser = (uid, data) => api.patch(`/api/founder/users/${uid}`, data);
-export const setUserActive = (uid, active) => api.patch(`/api/founder/users/${uid}/active`, { active });
+export const setUserActive = (uid, active, reason) => api.patch(`/api/founder/users/${uid}/active`, { active, reason });
 export const resetUserPassword = (uid, password) => api.patch(`/api/founder/users/${uid}/reset-password`, { password });
-export const deleteUser = (uid) => api.delete(`/api/founder/users/${uid}`);
+export const deleteUser = (uid, reason) => api.delete(`/api/founder/users/${uid}`, { data: { reason } });
 
 // Super Admin — audit log, analytics, system settings
 export const getAuditLogs = (limit) => api.get('/api/founder/audit-logs', { params: { limit } });
-export const getAnalytics = () => api.get('/api/founder/analytics');
+export const getAnalytics = (params) => api.get('/api/founder/analytics', { params });
+export const exportAnalyticsCsv = (params) => api.get('/api/founder/analytics/export', { params, responseType: 'blob' });
+
+// Super Admin — global search across users/tickets/assets/departments
+export const globalSearch = (q) => api.get('/api/founder/search', { params: { q } });
+export const getActivityTimeline = (limit) => api.get('/api/founder/activity-timeline', { params: { limit } });
+export const getDashboardOverview = () => api.get('/api/founder/dashboard-overview');
+export const updateDashboardLayout = (widgets) => api.patch('/api/founder/dashboard-layout', { widgets });
+
+// Super Admin — SLA policies (per-priority, per-queue) and compliance
+export const getSlaPolicies = () => api.get('/api/founder/sla-policies');
+export const updateSlaPolicies = (policies) => api.put('/api/founder/sla-policies', { policies });
+export const getSlaCompliance = () => api.get('/api/founder/sla-compliance');
+
+// Super Admin — Security Center
+export const getSessions = () => api.get('/api/founder/security/sessions');
+export const revokeSession = (id, reason) => api.patch(`/api/founder/security/sessions/${id}/revoke`, { reason });
+export const forceLogoutUser = (uid, reason) => api.patch(`/api/founder/security/users/${uid}/force-logout`, { reason });
+export const getFailedLogins = (limit) => api.get('/api/founder/security/failed-logins', { params: { limit } });
+export const getLockedAccounts = () => api.get('/api/founder/security/locked-accounts');
+export const unlockAccount = (uid) => api.patch(`/api/founder/security/users/${uid}/unlock`);
+
+// Super Admin — notification rules
+export const getNotificationRules = () => api.get('/api/founder/notification-rules');
+export const updateNotificationRules = (rules) => api.put('/api/founder/notification-rules', { rules });
 export const getSystemSettings = () => api.get('/api/founder/system-settings');
 export const updateSystemSettings = (settings) => api.put('/api/founder/system-settings', { settings });
 
+// Super Admin — departments
+export const getDepartments = () => api.get('/api/founder/departments');
+export const createDepartment = (data) => api.post('/api/founder/departments', data);
+export const updateDepartment = (id, data) => api.patch(`/api/founder/departments/${id}`, data);
+export const deleteDepartment = (id, reason) => api.delete(`/api/founder/departments/${id}`, { data: { reason } });
+
+// Super Admin — granular action-level permissions (resource -> allowed actions)
+export const getActionPermissions = () => api.get('/api/founder/action-permissions');
+export const updateActionPermissions = (permissions) => api.put('/api/founder/action-permissions', { permissions });
+
 // Complaints — the queue each role is allowed to see
 export const getFounderComplaints = () => api.get('/api/founder/complaints');
-export const getHrComplaints = () => api.get('/api/hr/complaints');
-export const getItComplaints = () => api.get('/api/it/complaints');
+// "Load More" pagination — pass the previous response's nextCursor to fetch
+// the next page; response is { items, nextCursor }.
+export const getHrComplaints = (after) => api.get('/api/hr/complaints', { params: after ? { after } : {} });
+export const getItComplaints = (after) => api.get('/api/it/complaints', { params: after ? { after } : {} });
 export const getMyHrComplaints = () => api.get('/api/hr/complaints/my');
 export const getMyItComplaints = () => api.get('/api/it/complaints/my');
 
@@ -59,7 +96,7 @@ export const updateHrFields = (id, fields) => api.patch(`/api/hr/complaints/${id
 export const updateItFields = (id, fields) => api.patch(`/api/it/complaints/${id}/fields`, fields);
 
 // Approvals — IT/HR desks submit and read, founder decides
-export const getApprovals = () => api.get('/api/approvals');
+export const getApprovals = (after) => api.get('/api/approvals', { params: after ? { after } : {} });
 export const submitApprovalRequest = (data) => api.post('/api/approvals', data);
 export const decideApproval = (id, status) => api.patch(`/api/approvals/${id}/decide`, { status });
 
@@ -77,7 +114,7 @@ export const deleteAsset = (id) => api.delete(`/api/it/assets/${id}`);
 
 // Tasks/Projects — Coordinator, Founder, and Employee "My Tasks/Projects" all read
 export const getProjects = () => api.get('/api/coordinator/projects');
-export const getTasks = () => api.get('/api/coordinator/tasks');
+export const getTasks = (after) => api.get('/api/coordinator/tasks', { params: after ? { after } : {} });
 export const createTask = (data) => api.post('/api/coordinator/tasks', data);
 export const updateTaskStatus = (id, status) => api.patch(`/api/coordinator/tasks/${id}/status`, { status });
 export const updateTask = (id, patch) => api.patch(`/api/coordinator/tasks/${id}`, patch);

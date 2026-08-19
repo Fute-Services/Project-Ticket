@@ -60,6 +60,19 @@ export const PAGE_REGISTRY = {
 // view a founder browses — so they aren't in the registry until they do.
 export const TOGGLABLE_ROLES = Object.keys(PAGE_REGISTRY);
 
+// Granular action-level matrix — mirrors the resources actually wired to
+// `requirePermission` on the backend (main/backend/middleware/permissionMiddleware.js).
+// Not every resource has every action: e.g. leave/approvals are decided, not deleted.
+export const RESOURCE_REGISTRY = {
+  assets: { label: 'Assets', actions: ['view', 'create', 'edit', 'delete'] },
+  tickets: { label: 'Tickets', actions: ['view', 'create', 'edit', 'assign'] },
+  approvals: { label: 'Approvals', actions: ['view', 'approve'] },
+  leave: { label: 'Leave', actions: ['view', 'approve'] },
+  users: { label: 'Users', actions: ['view', 'create', 'edit', 'delete'] },
+  departments: { label: 'Departments', actions: ['view', 'create', 'edit', 'delete'] },
+};
+export const ACTION_LABEL = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', approve: 'Approve', assign: 'Assign', export: 'Export' };
+
 function seedPermissions() {
   const seed = {};
   for (const role of TOGGLABLE_ROLES) {
@@ -98,12 +111,19 @@ const PermissionsContext = createContext(null);
 export function PermissionsProvider({ children }) {
   const { user } = useAuth();
   const [permissions, setPermissions] = useState(seedPermissions);
+  // { [role]: { [resource]: [action, ...] } } — undefined role/resource means
+  // "not configured yet", which defaults to allowed (see `can` below).
+  const [actionPermissions, setActionPermissions] = useState({});
 
   const refresh = useCallback(async () => {
     if (!user) return;
     try {
-      const { data } = await api.get('/api/founder/role-permissions');
-      setPermissions(fromBackend(data));
+      const [{ data: pages }, { data: actions }] = await Promise.all([
+        api.get('/api/founder/role-permissions'),
+        api.get('/api/founder/action-permissions'),
+      ]);
+      setPermissions(fromBackend(pages));
+      setActionPermissions(actions || {});
     } catch (e) {
       console.error('Failed to load role permissions:', e.response?.data?.error || e.message);
     }
@@ -114,6 +134,31 @@ export function PermissionsProvider({ children }) {
   }, [refresh]);
 
   useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
+
+  // Mirrors the backend's requirePermission default-allow behavior so the UI
+  // never hides a button the API would actually accept.
+  function can(role, resource, action) {
+    if (role === 'superadmin') return true;
+    const allowed = actionPermissions[role]?.[resource];
+    if (!allowed) return true;
+    return allowed.includes(action);
+  }
+
+  async function toggleAction(role, resource, action) {
+    const current = actionPermissions[role]?.[resource] ?? RESOURCE_REGISTRY[resource].actions;
+    const next = current.includes(action) ? current.filter((a) => a !== action) : [...current, action];
+    const nextValue = {
+      ...actionPermissions,
+      [role]: { ...actionPermissions[role], [resource]: next },
+    };
+    setActionPermissions(nextValue);
+    try {
+      await api.put('/api/founder/action-permissions', { permissions: nextValue });
+    } catch (e) {
+      console.error('Failed to save action permissions:', e.response?.data?.error || e.message);
+      refresh();
+    }
+  }
 
   async function updatePermissions(updater) {
     let nextValue;
@@ -161,7 +206,9 @@ export function PermissionsProvider({ children }) {
   }
 
   return (
-    <PermissionsContext.Provider value={{ permissions, canAccess, togglePermission, setAllForRole }}>
+    <PermissionsContext.Provider
+      value={{ permissions, canAccess, togglePermission, setAllForRole, actionPermissions, can, toggleAction }}
+    >
       {children}
     </PermissionsContext.Provider>
   );

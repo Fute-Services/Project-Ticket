@@ -28,7 +28,7 @@ function toHref(link) {
 }
 
 export default function Tasks() {
-  const { tasks, projects, addTask, moveTask, updateTask, toggleComplete } = useTaskProject();
+  const { tasks, projects, addTask, moveTask, updateTask, toggleComplete, hasMoreTasks, loadMoreTasks, loadingMore } = useTaskProject();
   const [showModal, setShowModal] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [form, setForm] = useState(() => EMPTY_FORM(projects, []));
@@ -253,6 +253,19 @@ export default function Tasks() {
         </div>
           </TabsContent>
         </Tabs>
+
+        {hasMoreTasks && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={loadMoreTasks}
+              disabled={loadingMore}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingMore ? 'Loading…' : 'Load More'}
+            </button>
+          </div>
+        )}
       </div>
 
       <TaskDetailPane

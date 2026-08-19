@@ -1,5 +1,7 @@
 const { db } = require('../config/firebase');
 const { sendMail, newComplaintEmail, statusUpdateEmail } = require('../utils/mailer');
+const { loadNotificationRules } = require('../utils/notificationRules');
+const { paginatedQuery } = require('../utils/pagination');
 require('dotenv').config();
 
 const collection = db.collection('it_complaints');
@@ -88,11 +90,14 @@ async function createComplaint(req, res) {
   const data = { id: docRef.id, ...docData };
 
   try {
-    await sendMail(
-      process.env.IT_EMAIL,
-      `New IT Complaint — ${token}`,
-      newComplaintEmail(token, name, department, priority)
-    );
+    const rules = await loadNotificationRules();
+    if (rules.it_new_complaint.enabled) {
+      await sendMail(
+        rules.it_new_complaint.recipientEmail || process.env.IT_EMAIL,
+        `New IT Complaint — ${token}`,
+        newComplaintEmail(token, name, department, priority)
+      );
+    }
   } catch (e) {
     console.error('Mail error:', e.message);
   }
@@ -141,17 +146,17 @@ async function enrichWithUserRole(docs) {
   }
 }
 
-// GET /api/it/complaints — IT staff / founder
+// GET /api/it/complaints?after=<cursor> — IT staff / founder, 20 at a time.
 async function getAllComplaints(req, res) {
-  const snap = await collection.limit(200).get();
-  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const { docs, nextCursor } = await paginatedQuery(collection, 'submitted_at', req.query.after);
+  const data = docs.map(d => ({ id: d.id, ...d.data() }));
   const enriched = await enrichWithUserRole(data);
-  res.json(sortByRecent(enriched));
+  res.json({ items: sortByRecent(enriched), nextCursor });
 }
 
 // GET /api/it/complaints/my
 async function getMyComplaints(req, res) {
-  const snap = await collection.where('user_id', '==', req.user.id).limit(200).get();
+  const snap = await collection.where('user_id', '==', req.user.id).orderBy('submitted_at', 'desc').limit(200).get();
   const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   const enriched = await enrichWithUserRole(data);
   res.json(sortByRecent(enriched));
@@ -215,14 +220,17 @@ async function updateStatus(req, res) {
   const data = { id, ...(await docRef.get()).data() };
 
   try {
-    const submitterDoc = await db.collection('users').doc(data.user_id).get();
-    if (submitterDoc.exists) {
-      const submitter = submitterDoc.data();
-      await sendMail(
-        submitter.email,
-        `Your Complaint ${data.token} has been updated`,
-        statusUpdateEmail(data.token, status, req.user.full_name)
-      );
+    const rules = await loadNotificationRules();
+    if (rules.it_status_update.enabled) {
+      const submitterDoc = await db.collection('users').doc(data.user_id).get();
+      if (submitterDoc.exists) {
+        const submitter = submitterDoc.data();
+        await sendMail(
+          submitter.email,
+          `Your Complaint ${data.token} has been updated`,
+          statusUpdateEmail(data.token, status, req.user.full_name)
+        );
+      }
     }
   } catch (e) {
     console.error('Mail error:', e.message);

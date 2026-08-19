@@ -4,7 +4,7 @@ const collection = db.collection('renders');
 
 // GET /api/production/renders — read by Production and IT's read-only view
 async function getAllRenders(req, res) {
-  const snap = await collection.limit(200).get();
+  const snap = await collection.orderBy('created_at', 'desc').limit(200).get();
   res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 

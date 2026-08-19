@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { BarChart3, Users, Ticket, CheckSquare, CalendarDays } from 'lucide-react';
+import { BarChart3, Users, Ticket, CheckSquare, CalendarDays, Download } from 'lucide-react';
 import SuperAdminLayout from '../components/SuperAdminLayout';
-import { Card, SectionHeader, StatCard, EmptyState } from '../components/ui';
-import { getAnalytics } from '../utils/api';
+import { Card, SectionHeader, StatCard, EmptyState, inputClass } from '../components/ui';
+import { getAnalytics, exportAnalyticsCsv } from '../utils/api';
 
 const ROLE_LABEL = {
   superadmin: 'Super Admin',
@@ -32,23 +32,60 @@ function BreakdownList({ data }) {
 export default function SuperAdminAnalyticsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
-  useEffect(() => {
-    getAnalytics()
+  function load() {
+    setLoading(true);
+    getAnalytics({ from: fromDate || undefined, to: toDate || undefined })
       .then(({ data }) => setData(data))
       .catch(() => toast.error('Could not load analytics'))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(load, [fromDate, toDate]);
+
+  function handleExport() {
+    setExporting(true);
+    exportAnalyticsCsv({ from: fromDate || undefined, to: toDate || undefined })
+      .then(({ data: blob }) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => toast.error('Could not export CSV'))
+      .finally(() => setExporting(false));
+  }
 
   return (
     <SuperAdminLayout>
       <div className="w-full flex flex-col gap-6">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5 flex items-center gap-2">
-            <BarChart3 size={20} className="text-primary" />
-            Analytics
-          </h1>
-          <p className="text-xs text-muted-foreground">Cross-department snapshot, refreshed on load.</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5 flex items-center gap-2">
+              <BarChart3 size={20} className="text-primary" />
+              Analytics
+            </h1>
+            <p className="text-xs text-muted-foreground">Cross-department snapshot. Filter by date range, or export as CSV.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="date" className={inputClass} value={fromDate} onChange={(e) => setFromDate(e.target.value)} title="From date" />
+            <input type="date" className={inputClass} value={toDate} onChange={(e) => setToDate(e.target.value)} title="To date" />
+            <button
+              type="button"
+              disabled={exporting}
+              onClick={handleExport}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap"
+            >
+              <Download size={13} /> {exporting ? 'Exporting…' : 'Export CSV'}
+            </button>
+          </div>
         </div>
 
         {loading ? (

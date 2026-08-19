@@ -19,12 +19,14 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'https://project-ticket-plum.vercel.app',
-  'http://localhost:5173',
 ].filter(Boolean);
+// Vite picks the next free port when 5173 is taken (5174, 5178, ...), so
+// match any localhost port in dev rather than hardcoding one.
+const isLocalhost = (origin) => /^http:\/\/localhost:\d+$/.test(origin);
 app.use(cors({
   origin(origin, callback) {
     // No Origin header (curl, server-to-server, same-origin) — allow.
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin) || isLocalhost(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
   maxAge: 600,
@@ -36,6 +38,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/hr', require('./routes/hrRoutes'));
 app.use('/api/it', require('./routes/itRoutes'));
 app.use('/api/founder', require('./routes/founderRoutes'));
+app.use('/api/founder/security', require('./routes/securityRoutes'));
 app.use('/api/approvals', require('./routes/approvalRoutes'));
 app.use('/api/leave', require('./routes/leaveRoutes'));
 app.use('/api/coordinator', require('./routes/coordinatorRoutes'));
@@ -49,8 +52,14 @@ app.get('/', (req, res) => res.json({ message: 'Fute Portal API running' }));
 app.use((err, req, res, next) => {
   console.error(err);
   if (res.headersSent) return next(err);
-  const status = err.message === 'Not allowed by CORS' ? 403 : 500;
-  res.status(status).json({ error: err.message || 'Internal server error' });
+  const status = err.status || (err.message === 'Not allowed by CORS' ? 403 : 500);
+  // Controllers that intentionally throw Object.assign(new Error(...), {status})
+  // want that message shown to the client. Anything else is an unexpected
+  // error (Firestore/driver internals, TypeErrors, etc.) whose raw message
+  // could leak internal details — send a generic message for those instead,
+  // the real error is already logged above.
+  const message = err.status ? err.message : (status === 403 ? err.message : 'Internal server error');
+  res.status(status).json({ error: message });
 });
 
 const PORT = process.env.PORT || 5000;

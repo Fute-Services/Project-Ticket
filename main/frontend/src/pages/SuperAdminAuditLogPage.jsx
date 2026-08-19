@@ -15,6 +15,15 @@ const ACTION_LABEL = {
   reset_user_password: 'Reset password',
   update_role_permissions: 'Changed role permissions',
   update_system_settings: 'Updated system settings',
+  create_department: 'Created department',
+  update_department: 'Updated department',
+  delete_department: 'Deleted department',
+  update_action_permissions: 'Changed action permissions',
+  update_sla_policies: 'Changed SLA policies',
+  update_notification_rules: 'Changed notification rules',
+  revoke_session: 'Revoked session',
+  force_logout_user: 'Forced logout',
+  unlock_account: 'Unlocked account',
 };
 
 function formatWhen(iso) {

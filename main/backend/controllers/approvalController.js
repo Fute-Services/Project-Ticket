@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { paginatedQuery } = require('../utils/pagination');
 
 const collection = db.collection('approvals');
 
@@ -29,12 +30,13 @@ async function createApproval(req, res) {
   res.status(201).json({ id: docRef.id, ...docData });
 }
 
-// GET /api/approvals — IT/HR desks and the founder all read this feed
-// (founder decides, IT/HR watch their own requests move through it).
+// GET /api/approvals?after=<cursor> — IT/HR desks and the founder all read
+// this feed (founder decides, IT/HR watch their own requests move through
+// it), 20 at a time.
 async function listApprovals(req, res) {
-  const snap = await collection.limit(200).get();
-  const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  res.json(sortByRecent(data));
+  const { docs, nextCursor } = await paginatedQuery(collection, 'createdAt', req.query.after);
+  const data = docs.map((d) => ({ id: d.id, ...d.data() }));
+  res.json({ items: sortByRecent(data), nextCursor });
 }
 
 const DECISIONS = ['approved', 'rejected'];

@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { paginatedQuery } = require('../utils/pagination');
 
 const tasksCollection = db.collection('tasks');
 const projectsCollection = db.collection('projects');
@@ -6,14 +7,20 @@ const projectsCollection = db.collection('projects');
 // GET /api/coordinator/projects — read across Coordinator, Founder, and
 // Employee "My Projects" views, so no role restriction.
 async function getProjects(req, res) {
+  // No writer for this collection exists in the backend (seeded directly in
+  // Firestore), so a `created_at` field isn't guaranteed on every doc —
+  // orderBy() would silently drop any doc missing it, which is worse than
+  // the current arbitrary-200 issue. Left unordered until projects gain a
+  // real create path with a guaranteed timestamp field.
   const snap = await projectsCollection.limit(200).get();
   res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
-// GET /api/coordinator/tasks — same broad read access as projects.
+// GET /api/coordinator/tasks?after=<cursor> — same broad read access as
+// projects, 20 at a time.
 async function getTasks(req, res) {
-  const snap = await tasksCollection.limit(200).get();
-  res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  const { docs, nextCursor } = await paginatedQuery(tasksCollection, 'created_at', req.query.after);
+  res.json({ items: docs.map((d) => ({ id: d.id, ...d.data() })), nextCursor });
 }
 
 // POST /api/coordinator/tasks — coordinator/founder assign a new task.

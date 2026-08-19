@@ -43,7 +43,7 @@ import {
 
 const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
-function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
+function TicketsQueueView({ tickets, onStatusChange, onFieldChange, hasMoreTickets, loadMoreTickets, loadingMoreTickets }) {
   const { user } = useAuth();
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -283,6 +283,18 @@ function TicketsQueueView({ tickets, onStatusChange, onFieldChange }) {
             },
           ]}
         />
+        {hasMoreTickets && (
+          <div className="flex justify-center mt-4">
+            <button
+              type="button"
+              onClick={loadMoreTickets}
+              disabled={loadingMoreTickets}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingMoreTickets ? 'Loading…' : 'Load More'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Full record — Drawer showing Category, Subcategory, and all details */}
@@ -1813,7 +1825,7 @@ export default function DashboardPage() {
 
   // Shared with the Employee dashboard — a ticket raised there appears
   // here immediately, and a status change made here reflects there too.
-  const { tickets: recentTickets, changeStatus: changeTicketStatus, updateTicketField } = useTickets();
+  const { tickets: recentTickets, changeStatus: changeTicketStatus, updateTicketField, hasMoreTickets, loadMoreTickets, loadingMore: loadingMoreTickets } = useTickets();
 
   // Donut chart data — derived from the live IT ticket list rather than
   // hard-coded, same reasoning as statusData below: it should actually move
@@ -1950,6 +1962,9 @@ export default function DashboardPage() {
           tickets={recentTickets}
           onStatusChange={changeTicketStatusWithUndo}
           onFieldChange={updateTicketField}
+          hasMoreTickets={hasMoreTickets}
+          loadMoreTickets={loadMoreTickets}
+          loadingMoreTickets={loadingMoreTickets}
         />
       )}
 

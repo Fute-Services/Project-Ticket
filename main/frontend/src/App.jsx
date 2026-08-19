@@ -34,8 +34,13 @@ const CoordinatorProjectDetail = lazy(() => import('./pages/coordinator/ProjectD
 
 const FounderLandingPage = lazy(() => import('./pages/FounderLandingPage'));
 const FounderDashboardPage = lazy(() => import('./pages/FounderDashboardPage'));
+const SuperAdminOverviewPage = lazy(() => import('./pages/SuperAdminOverviewPage'));
 const SuperAdminDashboardPage = lazy(() => import('./pages/SuperAdminDashboardPage'));
 const SuperAdminUsersPage = lazy(() => import('./pages/SuperAdminUsersPage'));
+const SuperAdminDepartmentsPage = lazy(() => import('./pages/SuperAdminDepartmentsPage'));
+const SuperAdminSLAPage = lazy(() => import('./pages/SuperAdminSLAPage'));
+const SuperAdminSecurityPage = lazy(() => import('./pages/SuperAdminSecurityPage'));
+const SuperAdminActivityPage = lazy(() => import('./pages/SuperAdminActivityPage'));
 const SuperAdminAnalyticsPage = lazy(() => import('./pages/SuperAdminAnalyticsPage'));
 const SuperAdminAuditLogPage = lazy(() => import('./pages/SuperAdminAuditLogPage'));
 const SuperAdminSettingsPage = lazy(() => import('./pages/SuperAdminSettingsPage'));
@@ -93,6 +98,14 @@ export default function App() {
             }
           />
           <Route
+            path="/superadmin/overview"
+            element={
+              <RequireAuth allow={['superadmin']}>
+                <SuperAdminOverviewPage />
+              </RequireAuth>
+            }
+          />
+          <Route
             path="/superadmin/dashboard"
             element={
               <RequireAuth allow={['superadmin']}>
@@ -109,6 +122,22 @@ export default function App() {
             }
           />
           <Route
+            path="/superadmin/departments"
+            element={
+              <RequireAuth allow={['superadmin']}>
+                <SuperAdminDepartmentsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/superadmin/sla"
+            element={
+              <RequireAuth allow={['superadmin']}>
+                <SuperAdminSLAPage />
+              </RequireAuth>
+            }
+          />
+          <Route
             path="/superadmin/analytics"
             element={
               <RequireAuth allow={['superadmin']}>
@@ -117,10 +146,26 @@ export default function App() {
             }
           />
           <Route
+            path="/superadmin/security"
+            element={
+              <RequireAuth allow={['superadmin']}>
+                <SuperAdminSecurityPage />
+              </RequireAuth>
+            }
+          />
+          <Route
             path="/superadmin/audit-log"
             element={
               <RequireAuth allow={['superadmin']}>
                 <SuperAdminAuditLogPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/superadmin/activity"
+            element={
+              <RequireAuth allow={['superadmin']}>
+                <SuperAdminActivityPage />
               </RequireAuth>
             }
           />

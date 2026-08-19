@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { Users, UserRound, KeyRound, Trash2, Power, Pencil, X } from 'lucide-react';
 import SuperAdminLayout from '../components/SuperAdminLayout';
 import { Card, SectionHeader, Badge, EmptyState, Field, inputClass } from '../components/ui';
+import ConfirmDangerousAction from '../components/ConfirmDangerousAction';
 import { useAuth } from '../context/AuthContext';
 import { getUsers, updateUser, setUserActive, resetUserPassword, deleteUser } from '../utils/api';
 
@@ -26,6 +27,8 @@ export default function SuperAdminUsersPage() {
   const [saving, setSaving] = useState(false);
   const [resettingId, setResettingId] = useState(null);
   const [newPassword, setNewPassword] = useState('');
+  const [deactivateTarget, setDeactivateTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   function load() {
     setLoading(true);
@@ -55,13 +58,26 @@ export default function SuperAdminUsersPage() {
   }
 
   function toggleActive(u) {
-    const next = !u.active;
-    setUserActive(u.id, next)
+    // Deactivating is medium-risk (reversible, but locks someone out) — a
+    // typed reason via the confirm dialog; reactivating needs no gate.
+    if (u.active !== false) {
+      setDeactivateTarget(u);
+      return;
+    }
+    setUserActive(u.id, true)
       .then(() => {
-        setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, active: next } : x)));
-        toast.success(`${u.full_name || u.email} ${next ? 'reactivated' : 'deactivated'}`);
+        setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, active: true } : x)));
+        toast.success(`${u.full_name || u.email} reactivated`);
       })
       .catch((err) => toast.error(err.response?.data?.error || 'Could not change account status'));
+  }
+
+  function confirmDeactivate(reason) {
+    const u = deactivateTarget;
+    return setUserActive(u.id, false, reason).then(() => {
+      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, active: false } : x)));
+      toast.success(`${u.full_name || u.email} deactivated`);
+    });
   }
 
   function confirmResetPassword(u) {
@@ -78,14 +94,12 @@ export default function SuperAdminUsersPage() {
       .catch((err) => toast.error(err.response?.data?.error || 'Could not reset password'));
   }
 
-  function confirmDelete(u) {
-    if (!window.confirm(`Permanently delete ${u.full_name || u.email}? This can't be undone.`)) return;
-    deleteUser(u.id)
-      .then(() => {
-        setUsers((prev) => prev.filter((x) => x.id !== u.id));
-        toast.success(`${u.full_name || u.email} deleted`);
-      })
-      .catch((err) => toast.error(err.response?.data?.error || 'Could not delete that account'));
+  function confirmDeleteUser(reason) {
+    const u = deleteTarget;
+    return deleteUser(u.id, reason).then(() => {
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      toast.success(`${u.full_name || u.email} deleted`);
+    });
   }
 
   return (
@@ -138,7 +152,7 @@ export default function SuperAdminUsersPage() {
                           <button type="button" title={u.active === false ? 'Reactivate' : 'Deactivate'} onClick={() => toggleActive(u)} className={`p-1.5 rounded-lg transition-colors cursor-pointer ${u.active === false ? 'text-primary hover:bg-primary/10' : 'text-warning hover:bg-warning/10'}`}>
                             <Power size={13} />
                           </button>
-                          <button type="button" title="Delete" onClick={() => confirmDelete(u)} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors cursor-pointer">
+                          <button type="button" title="Delete" onClick={() => setDeleteTarget(u)} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors cursor-pointer">
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -195,6 +209,23 @@ export default function SuperAdminUsersPage() {
             </div>
           )}
         </Card>
+
+        <ConfirmDangerousAction
+          open={Boolean(deactivateTarget)}
+          onClose={() => setDeactivateTarget(null)}
+          title="Deactivate account"
+          description={deactivateTarget ? `${deactivateTarget.full_name || deactivateTarget.email} will be signed out and unable to log in until reactivated.` : undefined}
+          requirePassword={false}
+          onConfirm={confirmDeactivate}
+        />
+        <ConfirmDangerousAction
+          open={Boolean(deleteTarget)}
+          onClose={() => setDeleteTarget(null)}
+          title="Delete account"
+          description={deleteTarget ? `${deleteTarget.full_name || deleteTarget.email} will be permanently deleted. This can't be undone.` : undefined}
+          requirePassword
+          onConfirm={confirmDeleteUser}
+        />
       </div>
     </SuperAdminLayout>
   );

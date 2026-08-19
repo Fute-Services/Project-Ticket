@@ -23,17 +23,21 @@ export function TaskProjectProvider({ children }) {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!user || !['employee', 'coordinator', 'founder'].includes(user.role)) {
       setTasks([]);
       setProjects([]);
+      setNextCursor(null);
       return;
     }
     setLoading(true);
     try {
       const [taskRes, projectRes] = await Promise.all([getTasks(), getProjects()]);
-      setTasks(taskRes.data);
+      setTasks(taskRes.data.items);
+      setNextCursor(taskRes.data.nextCursor);
       setProjects(projectRes.data);
     } catch (e) {
       console.error('Failed to load tasks/projects:', e.response?.data?.error || e.message);
@@ -41,6 +45,21 @@ export function TaskProjectProvider({ children }) {
       setLoading(false);
     }
   }, [user]);
+
+  // Appends the next 20 tasks — resets back to page 1 on the next poll/refresh.
+  async function loadMoreTasks() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const { data } = await getTasks(nextCursor);
+      setTasks((prev) => [...prev, ...data.items]);
+      setNextCursor(data.nextCursor);
+    } catch (e) {
+      console.error('Failed to load more tasks:', e.response?.data?.error || e.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   useEffect(() => {
     refresh();
@@ -94,7 +113,7 @@ export function TaskProjectProvider({ children }) {
 
   return (
     <TaskProjectContext.Provider
-      value={{ tasks, projects, loading, addTask, moveTask, updateTask, toggleComplete, refresh }}
+      value={{ tasks, projects, loading, addTask, moveTask, updateTask, toggleComplete, refresh, hasMoreTasks: Boolean(nextCursor), loadMoreTasks, loadingMore }}
     >
       {children}
     </TaskProjectContext.Provider>
