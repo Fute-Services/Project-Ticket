@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Cpu } from 'lucide-react';
+import { Ticket, AlertTriangle } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, StatCard, Badge } from '../../components/ui';
 import DonutChart from '../../components/DonutChart';
-import { useApprovals } from '../../context/ApprovalContext';
+import { useTickets } from '../../context/TicketContext';
 import { notifications, CANDIDATE_STAGES } from '../../data/hrMockData';
 import { employeesApi, candidatesApi, interviewsApi, attendanceApi } from '../../utils/api';
 
@@ -34,9 +34,29 @@ function toDonutData(rows, key, statuses, colorMap) {
     .filter((s) => s.value > 0);
 }
 
+const TICKET_STATUS_KEYS = ['Open', 'In Progress', 'Waiting Approval', 'Resolved'];
+const PRIORITY_RANK = { High: 0, Medium: 1, Low: 2 };
+const PRIORITY_STYLE = {
+  High: 'bg-destructive/10 text-destructive border-destructive/20',
+  Medium: 'bg-warning/10 text-warning border-warning/20',
+  Low: 'bg-muted/20 text-muted-foreground border-muted/30',
+};
+
+// Days since `dateStr` (yyyy-mm-dd). Tickets are real, live-created data —
+// unlike the seeded interview/attendance mock data elsewhere on this page,
+// which is anchored to the fixed demo TODAY — so this deliberately uses the
+// real current date. Comparing a real ticket's submission date against the
+// hardcoded TODAY (2026-08-06, in the past) always produced a negative day
+// count, so the "N tickets open 3+ days" alert below could never fire.
+function daysSince(dateStr) {
+  if (!dateStr) return 0;
+  const diff = new Date() - new Date(dateStr);
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
 export default function HrOverview() {
   const navigate = useNavigate();
-  const { approvals } = useApprovals();
+  const { tickets } = useTickets();
   const [employees, setEmployees] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [interviews, setInterviews] = useState([]);
@@ -57,14 +77,21 @@ export default function HrOverview() {
 
   const candidatePipeline = toDonutData(candidates, 'stage', CANDIDATE_STAGES, STAGE_COLOR);
 
-  const departmentCounts = employees.reduce((acc, e) => {
-    acc[e.department] = (acc[e.department] || 0) + 1;
-    return acc;
-  }, {});
-
   const recentCandidates = candidates.slice(0, 5);
   const upcomingInterviews = interviews.filter((i) => i.status === 'Scheduled').slice(0, 5);
-  const itApprovals = approvals.filter((a) => a.source === 'IT' && a.status === 'approved').slice(0, 4);
+
+  const ticketStatusCounts = TICKET_STATUS_KEYS.reduce((acc, s) => {
+    acc[s] = tickets.filter((t) => t.status === s).length;
+    return acc;
+  }, {});
+  const agingTickets = tickets.filter((t) => t.status === 'Open' && daysSince(t.date) >= 3);
+  const urgentTickets = tickets
+    .filter((t) => t.status !== 'Resolved' && t.status !== 'Closed')
+    .sort((a, b) => {
+      const rankDiff = (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1);
+      return rankDiff !== 0 ? rankDiff : daysSince(b.date) - daysSince(a.date);
+    })
+    .slice(0, 4);
 
   return (
     <HrLayout>
@@ -92,24 +119,59 @@ export default function HrOverview() {
           <DonutChart title="Candidate Pipeline" total={candidates.length} data={candidatePipeline} />
 
           <Card className="!p-3.5">
-            <SectionHeader title="IT Approvals" action={<Cpu size={14} className="text-muted-foreground" />} />
+            <SectionHeader
+              title="HR Tickets"
+              action={<Ticket size={14} className="text-muted-foreground" />}
+            />
+
+            {/* Status snapshot */}
+            <div className="flex flex-wrap gap-1.5 mb-2.5">
+              {TICKET_STATUS_KEYS.map((s) => (
+                <span
+                  key={s}
+                  className="text-xs font-semibold px-2 py-1 rounded-lg bg-muted border border-border text-muted-foreground"
+                >
+                  {s}: <span className="text-foreground font-bold">{ticketStatusCounts[s]}</span>
+                </span>
+              ))}
+            </div>
+
+            {/* Aging alert — only shown when something is actually overdue */}
+            {agingTickets.length > 0 && (
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-warning bg-warning/10 border border-warning/20 rounded-lg px-2.5 py-1.5 mb-2.5">
+                <AlertTriangle size={12} />
+                {agingTickets.length} ticket{agingTickets.length === 1 ? '' : 's'} open 3+ days
+              </div>
+            )}
+
             <div className="flex flex-col gap-1.5">
-              {itApprovals.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-3 text-center">No founder-approved IT items yet.</p>
+              {urgentTickets.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-3 text-center">No open tickets — all caught up.</p>
               ) : (
-                itApprovals.map((a) => (
-                  <div key={a.id} className="p-2 rounded-xl bg-muted border border-border flex items-center justify-between">
+                urgentTickets.map((t) => (
+                  <div key={t.id} className="p-2 rounded-xl bg-muted border border-border flex items-center justify-between">
                     <div className="min-w-0 pr-2">
-                      <div className="text-xs font-bold text-foreground truncate">{a.title}</div>
-                      <div className="text-xs text-muted-foreground truncate">{a.sub}</div>
+                      <div className="text-xs font-bold text-foreground truncate">{t.user}</div>
+                      <div className="text-xs text-muted-foreground truncate">{t.title}</div>
                     </div>
-                    <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">
-                      Approved
-                    </span>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded border ${PRIORITY_STYLE[t.priority] || PRIORITY_STYLE.Medium}`}>
+                        {t.priority || 'Medium'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{t.status}</span>
+                    </div>
                   </div>
                 ))
               )}
             </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/hr/tickets')}
+              className="mt-2.5 text-xs text-primary font-semibold hover:underline cursor-pointer self-end block ml-auto"
+            >
+              View Tickets Queue →
+            </button>
           </Card>
         </div>
 
@@ -165,25 +227,6 @@ export default function HrOverview() {
             </div>
           </Card>
         </div>
-
-        {/* Department Breakdown */}
-        <Card className="!p-3.5">
-          <SectionHeader title="Headcount by Department" />
-          <div className="flex flex-col gap-2.5">
-            {Object.entries(departmentCounts).map(([dept, count]) => (
-              <div key={dept} className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground w-36 shrink-0 truncate">{dept}</span>
-                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-primary to-warning rounded-full"
-                    style={{ width: `${(count / employees.length) * 100}%` }}
-                  />
-                </div>
-                <span className="text-xs font-bold text-foreground w-5 text-right shrink-0">{count}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
       </div>
     </HrLayout>
   );

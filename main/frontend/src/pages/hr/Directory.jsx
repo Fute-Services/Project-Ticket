@@ -17,6 +17,22 @@ export default function Directory() {
 
   const DEPARTMENTS = useMemo(() => ['All', ...new Set(employees.map((e) => e.department))], [employees]);
 
+  // Same reduce-and-count logic the old "Headcount by Department" card used
+  // (pages/hr/Overview.jsx) — 'All' isn't a real department value, so it's
+  // looked up separately as the full employee count rather than falling
+  // through the reduce and showing 0/undefined.
+  const departmentCounts = useMemo(
+    () =>
+      employees.reduce((acc, e) => {
+        acc[e.department] = (acc[e.department] || 0) + 1;
+        return acc;
+      }, {}),
+    [employees]
+  );
+  function countFor(dept) {
+    return dept === 'All' ? employees.length : departmentCounts[dept] || 0;
+  }
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return employees.filter((e) => {
@@ -47,7 +63,7 @@ export default function Directory() {
           </div>
           <div className="flex flex-wrap gap-2 mb-5">
             {DEPARTMENTS.map((d) => (
-              <Pill key={d} active={dept === d} onClick={() => setDept(d)}>{d}</Pill>
+              <Pill key={d} active={dept === d} onClick={() => setDept(d)}>{d} ({countFor(d)})</Pill>
             ))}
           </div>
 
