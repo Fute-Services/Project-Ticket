@@ -1,6 +1,6 @@
 const { auth, db } = require('../config/firebase');
 const { logAudit, AUDIT_LOGS } = require('../utils/auditLog');
-const { ACTION_PERMISSIONS_DOC } = require('../middleware/permissionMiddleware');
+const { ACTION_PERMISSIONS_DOC, clearActionPermissionsCache } = require('../middleware/permissionMiddleware');
 const { SESSIONS } = require('../utils/sessions');
 const { NOTIFICATION_RULES_DOC, loadNotificationRules } = require('../utils/notificationRules');
 
@@ -538,6 +538,17 @@ async function getActionPermissions(req, res) {
   res.json(doc.exists ? doc.data() : {});
 }
 
+// GET /api/founder/permissions — combined read of role-permissions +
+// action-permissions for PermissionsContext's single poll tick, so a session
+// doesn't fire two separate requests for what's always fetched together.
+async function getPermissions(req, res) {
+  const [pagesDoc, actionsDoc] = await Promise.all([ROLE_PERMISSIONS_DOC.get(), ACTION_PERMISSIONS_DOC.get()]);
+  res.json({
+    pages: pagesDoc.exists ? pagesDoc.data() : {},
+    actions: actionsDoc.exists ? actionsDoc.data() : {},
+  });
+}
+
 // PUT /api/founder/action-permissions — { permissions: { [role]: { [resource]: [action,...] } } }
 async function updateActionPermissions(req, res) {
   const { permissions } = req.body;
@@ -545,6 +556,7 @@ async function updateActionPermissions(req, res) {
     return res.status(400).json({ error: 'permissions object is required' });
   }
   await ACTION_PERMISSIONS_DOC.set(permissions);
+  clearActionPermissionsCache();
   await logAudit({ actor: req.user, action: 'update_action_permissions', details: { permissions } });
   res.json({ permissions });
 }
@@ -913,6 +925,7 @@ module.exports = {
   deleteDepartment,
   getActionPermissions,
   updateActionPermissions,
+  getPermissions,
   getDashboardOverview,
   getSlaPolicies,
   updateSlaPolicies,

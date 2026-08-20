@@ -10,7 +10,11 @@ const ApprovalContext = createContext(null);
 // just sent to "Waiting Approval" shows up here without a manual reload —
 // TicketContext and ApprovalContext are siblings, not nested, so there's no
 // direct call path between them; the backend is the shared source of truth.
-const POLL_MS = 20000;
+// Own decides/submits already update local state optimistically below, so
+// this only needs to be tight enough for cross-session updates, not instant.
+// Kept relatively tight (vs. Assets/Renders' 5min) since a pending approval
+// sitting unseen has a direct SLA/business cost.
+const POLL_MS = 180000;
 
 function fromBackend(doc) {
   return { ...doc, timestamp: relativeTime(doc.createdAt) };
@@ -27,6 +31,7 @@ export function ApprovalProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const refresh = useCallback(async () => {
     if (!user || !['it', 'hr', 'founder'].includes(user.role)) {
@@ -39,6 +44,7 @@ export function ApprovalProvider({ children }) {
       const { data } = await getApprovals();
       setApprovals(data.items.map(fromBackend));
       setNextCursor(data.nextCursor);
+      setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load approvals:', e.response?.data?.error || e.message);
     } finally {
@@ -65,7 +71,10 @@ export function ApprovalProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
+  // Gated to the same roles as refresh() itself — otherwise an
+  // employee/coordinator session (which always gets an empty list here)
+  // would still poll every interval for nothing.
+  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user) && ['it', 'hr', 'founder'].includes(user.role));
 
   async function submitApproval(item) {
     try {
@@ -89,7 +98,7 @@ export function ApprovalProvider({ children }) {
   }
 
   return (
-    <ApprovalContext.Provider value={{ approvals, loading, submitApproval, decide, refresh, hasMoreApprovals: Boolean(nextCursor), loadMoreApprovals, loadingMore }}>
+    <ApprovalContext.Provider value={{ approvals, loading, submitApproval, decide, refresh, hasMoreApprovals: Boolean(nextCursor), loadMoreApprovals, loadingMore, lastUpdated }}>
       {children}
     </ApprovalContext.Provider>
   );

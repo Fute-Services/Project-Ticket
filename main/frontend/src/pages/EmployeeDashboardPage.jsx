@@ -6,7 +6,7 @@ import ItDeskLayout from '../components/ItDeskLayout';
 import NewItTicketModal from '../components/NewItTicketModal';
 import NewHrTicketModal from '../components/NewHrTicketModal';
 import DataTable from '../components/DataTable';
-import { Card, SectionHeader, StatCard, Badge, Drawer } from '../components/ui';
+import { Card, SectionHeader, StatCard, Badge, Drawer, RefreshBar } from '../components/ui';
 import { Plus, UserPlus, Search, X, Eye } from 'lucide-react';
 import TaskRow from '../components/tasks/TaskRow';
 import TaskDetailPane from '../components/tasks/TaskDetailPane';
@@ -22,7 +22,7 @@ const TICKET_STATUS_BADGE = {
 
 const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
-function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket }) {
+function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onRefresh, lastUpdated, loading }) {
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [detailsTicket, setDetailsTicket] = useState(null);
@@ -56,6 +56,9 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket }) {
         <div>
           <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1.5">My Tickets Queue</h1>
           <p className="text-xs text-muted-foreground">{tickets.length} tickets raised by you</p>
+          <div className="mt-1.5">
+            <RefreshBar lastUpdated={lastUpdated} loading={loading} onRefresh={onRefresh} />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -342,7 +345,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket }) {
 
 const TODAY = '2026-08-06';
 
-function MyTasksView({ tasks, projects, onToggle, onOpen }) {
+function MyTasksView({ tasks, projects, onToggle, onOpen, onRefresh, lastUpdated, loading }) {
   // Asana's My Tasks groups by when something is due, not by status — the
   // question a person opens this page to answer is "what do I do now".
   // Overdue is folded into Today so it can't be scrolled past.
@@ -372,6 +375,9 @@ function MyTasksView({ tasks, projects, onToggle, onOpen }) {
         <p className="text-xs text-muted-foreground">
           {openCount} open · {projects.length} project{projects.length === 1 ? '' : 's'} you're on
         </p>
+        <div className="mt-1.5">
+          <RefreshBar lastUpdated={lastUpdated} loading={loading} onRefresh={onRefresh} />
+        </div>
       </div>
 
       <Card>
@@ -432,8 +438,8 @@ function MyTasksView({ tasks, projects, onToggle, onOpen }) {
 
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
-  const { tickets, addTicket, updateTicketField } = useTickets();
-  const { tasks, projects, toggleComplete } = useTaskProject();
+  const { tickets, addTicket, updateTicketField, refresh: refreshTickets, lastUpdated: ticketsUpdated, loading: ticketsLoading } = useTickets();
+  const { tasks, projects, toggleComplete, refresh: refreshTasks, lastUpdated: tasksUpdated, loading: tasksLoading } = useTaskProject();
   const [openTaskId, setOpenTaskId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
@@ -714,6 +720,9 @@ export default function EmployeeDashboardPage() {
           onFieldChange={updateTicketField}
           onNewTicket={() => setIsTicketModalOpen(true)}
           onNewHrTicket={() => setIsHrTicketModalOpen(true)}
+          onRefresh={refreshTickets}
+          lastUpdated={ticketsUpdated}
+          loading={ticketsLoading}
         />
       )}
 
@@ -723,6 +732,9 @@ export default function EmployeeDashboardPage() {
           projects={myProjects}
           onToggle={completeWithUndo}
           onOpen={(t) => setOpenTaskId(t.id)}
+          onRefresh={refreshTasks}
+          lastUpdated={tasksUpdated}
+          loading={tasksLoading}
         />
       )}
 

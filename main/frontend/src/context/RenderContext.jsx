@@ -5,7 +5,11 @@ import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
 const RenderContext = createContext(null);
 
-const POLL_MS = 20000;
+// Own writes already update local state optimistically (addRender/
+// updateRender below) — this interval only exists to pick up changes made
+// by *other* sessions. Render job status doesn't change minute-to-minute,
+// so this can afford to be looser (5min).
+const POLL_MS = 300000;
 
 // Shared between the Production dashboard (writes) and IT's read-only
 // Rendering Status view (reads) — both now read the same backend collection.
@@ -13,6 +17,8 @@ export function RenderProvider({ children }) {
   const { user } = useAuth();
   const [renders, setRenders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const canSeeRenders = Boolean(user) && ['it', 'production'].includes(user.role);
 
   const refresh = useCallback(async () => {
     if (!user || !['it', 'production'].includes(user.role)) {
@@ -23,6 +29,7 @@ export function RenderProvider({ children }) {
     try {
       const { data } = await getRenders();
       setRenders(data);
+      setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load render jobs:', e.response?.data?.error || e.message);
     } finally {
@@ -34,7 +41,7 @@ export function RenderProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
+  useVisibilityAwarePolling(refresh, POLL_MS, canSeeRenders);
 
   async function addRender(job) {
     try {
@@ -64,7 +71,7 @@ export function RenderProvider({ children }) {
   }
 
   return (
-    <RenderContext.Provider value={{ renders, loading, addRender, toggleStatus, updateRenderField, refresh }}>
+    <RenderContext.Provider value={{ renders, loading, addRender, toggleStatus, updateRenderField, refresh, lastUpdated }}>
       {children}
     </RenderContext.Provider>
   );

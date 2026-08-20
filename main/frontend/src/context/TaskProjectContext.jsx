@@ -11,7 +11,13 @@ import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
 const TaskProjectContext = createContext(null);
 
-const POLL_MS = 20000;
+// Coordinator/Founder see the team-wide task/project board — a shared view
+// multiple people act on, so it's worth polling for changes made by others.
+// Employee only ever sees their own assigned tasks, which already update
+// instantly via optimistic local state on their own actions — no background
+// poll needed there, manual refresh only.
+const SHARED_BOARD_ROLES = ['coordinator', 'founder'];
+const SHARED_POLL_MS = 180000;
 
 // Shared across the Coordinator's Tasks/Projects pages, the Founder's
 // Project Details view, and the Employee dashboard's "My Tasks" view — a
@@ -25,6 +31,8 @@ export function TaskProjectProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const isSharedBoard = Boolean(user) && SHARED_BOARD_ROLES.includes(user.role);
 
   const refresh = useCallback(async () => {
     if (!user || !['employee', 'coordinator', 'founder'].includes(user.role)) {
@@ -39,6 +47,7 @@ export function TaskProjectProvider({ children }) {
       setTasks(taskRes.data.items);
       setNextCursor(taskRes.data.nextCursor);
       setProjects(projectRes.data);
+      setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load tasks/projects:', e.response?.data?.error || e.message);
     } finally {
@@ -65,7 +74,7 @@ export function TaskProjectProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
+  useVisibilityAwarePolling(refresh, SHARED_POLL_MS, isSharedBoard);
 
   async function addTask(task) {
     try {
@@ -113,7 +122,7 @@ export function TaskProjectProvider({ children }) {
 
   return (
     <TaskProjectContext.Provider
-      value={{ tasks, projects, loading, addTask, moveTask, updateTask, toggleComplete, refresh, hasMoreTasks: Boolean(nextCursor), loadMoreTasks, loadingMore }}
+      value={{ tasks, projects, loading, addTask, moveTask, updateTask, toggleComplete, refresh, hasMoreTasks: Boolean(nextCursor), loadMoreTasks, loadingMore, lastUpdated, isSharedBoard }}
     >
       {children}
     </TaskProjectContext.Provider>

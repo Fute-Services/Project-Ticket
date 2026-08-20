@@ -21,6 +21,8 @@ import { Label } from './ui/label';
 import { Input as ShadInput } from './ui/input';
 import { Button } from './ui/button';
 import { tint } from '../styles/seriesColors';
+import { RefreshCw } from 'lucide-react';
+import { relativeTime } from '../utils/tickets';
 
 // Status vocabulary. Each tone carries an explicit light and dark text
 // colour: the 300-weight text these used to rely on is legible on a dark
@@ -139,6 +141,25 @@ export function EmptyState({ text = 'Nothing here yet.', title, action }) {
       <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">{text}</p>
       {action}
     </div>
+  );
+}
+
+// For views that no longer auto-poll (personal "My X" lists — see
+// TicketContext/TaskProjectContext/LeaveContext's SHARED_*_ROLES) — makes
+// the manual-only refresh an explicit, visible action instead of a page
+// that silently never updates itself.
+export function RefreshBar({ lastUpdated, loading, onRefresh }) {
+  return (
+    <button
+      type="button"
+      onClick={onRefresh}
+      disabled={loading}
+      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-60 cursor-pointer"
+      title="This list only updates when you refresh it"
+    >
+      <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+      <span>{loading ? 'Refreshing…' : lastUpdated ? `Updated ${relativeTime(lastUpdated)}` : 'Refresh'}</span>
+    </button>
   );
 }
 

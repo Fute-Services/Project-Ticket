@@ -23,6 +23,7 @@ const {
   deleteDepartment,
   getActionPermissions,
   updateActionPermissions,
+  getPermissions,
   getDashboardOverview,
   getSlaPolicies,
   updateSlaPolicies,
@@ -83,5 +84,11 @@ router.delete('/departments/:id', auth, role('superadmin'), deleteDepartment);
 // by Super Admin only, same convention as role-permissions/system-settings.
 router.get('/action-permissions', auth, getActionPermissions);
 router.put('/action-permissions', auth, role('superadmin'), updateActionPermissions);
+
+// Combined read for PermissionsContext's poll — role-permissions and
+// action-permissions stay separate docs for writes (see updateActionPermissions'
+// comment), but every logged-in session polls both together, so give it one
+// round trip instead of two.
+router.get('/permissions', auth, getPermissions);
 
 module.exports = router;

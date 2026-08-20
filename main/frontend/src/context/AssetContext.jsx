@@ -5,7 +5,11 @@ import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
 const AssetContext = createContext(null);
 
-const POLL_MS = 20000;
+// Own writes already update local state optimistically (create/update/
+// delete below) — this interval only exists to pick up changes made by
+// *other* sessions. Asset inventory changes far less often minute-to-minute
+// than tickets/approvals do, so this can afford to be looser (5min).
+const POLL_MS = 300000;
 
 // IT's Asset Management inventory — previously local state inside
 // AssetsView (DashboardPage.jsx), now a shared context so an asset added
@@ -14,6 +18,8 @@ export function AssetProvider({ children }) {
   const { user } = useAuth();
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const canSeeAssets = Boolean(user) && (user.role === 'it' || user.role === 'founder');
 
   const refresh = useCallback(async () => {
     if (!user || (user.role !== 'it' && user.role !== 'founder')) {
@@ -24,6 +30,7 @@ export function AssetProvider({ children }) {
     try {
       const { data } = await getAssets();
       setAssets(data);
+      setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load assets:', e.response?.data?.error || e.message);
     } finally {
@@ -35,7 +42,7 @@ export function AssetProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
+  useVisibilityAwarePolling(refresh, POLL_MS, canSeeAssets);
 
   async function addOrUpdateAsset(asset, isEdit) {
     try {
@@ -86,7 +93,7 @@ export function AssetProvider({ children }) {
   }
 
   return (
-    <AssetContext.Provider value={{ assets, loading, addOrUpdateAsset, patchAsset, removeAsset, restoreAsset, refresh }}>
+    <AssetContext.Provider value={{ assets, loading, addOrUpdateAsset, patchAsset, removeAsset, restoreAsset, refresh, lastUpdated }}>
       {children}
     </AssetContext.Provider>
   );

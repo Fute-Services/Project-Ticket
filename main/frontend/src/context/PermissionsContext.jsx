@@ -120,12 +120,9 @@ export function PermissionsProvider({ children }) {
   const refresh = useCallback(async () => {
     if (!user) return;
     try {
-      const [{ data: pages }, { data: actions }] = await Promise.all([
-        api.get('/api/founder/role-permissions'),
-        api.get('/api/founder/action-permissions'),
-      ]);
-      setPermissions(fromBackend(pages));
-      setActionPermissions(actions || {});
+      const { data } = await api.get('/api/founder/permissions');
+      setPermissions(fromBackend(data.pages));
+      setActionPermissions(data.actions || {});
     } catch (e) {
       console.error('Failed to load role permissions:', e.response?.data?.error || e.message);
     }

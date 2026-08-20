@@ -19,7 +19,14 @@ import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
 const TicketContext = createContext(null);
 
-const POLL_MS = 20000;
+// IT/HR run this as a shared team queue (multiple people work the same
+// tickets, so a new one showing up promptly matters) — Founder's merged
+// view is the same idea at a glance. Everyone else only ever sees their own
+// tickets, which already update instantly via optimistic local state on
+// their own actions, so a background poll for *other* people's changes
+// isn't buying them anything — those roles get manual refresh only.
+const SHARED_QUEUE_ROLES = ['it', 'hr', 'founder'];
+const SHARED_POLL_MS = 180000;
 
 // The UI's 5-state vocabulary (a legacy 'Closed' included) vs. the backend's
 // 4-state enum (backend/controllers/{hr,it}Controller.js VALID_STATUSES) —
@@ -93,6 +100,8 @@ export function TicketProvider({ children }) {
   // those roles, so loadMoreTickets is a no-op for them.
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const isSharedQueue = Boolean(user) && SHARED_QUEUE_ROLES.includes(user.role);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -120,6 +129,7 @@ export function TicketProvider({ children }) {
       }
       setTickets(rows.map(fromBackend));
       setNextCursor(cursor);
+      setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load tickets:', e.message);
     } finally {
@@ -151,7 +161,11 @@ export function TicketProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
+  // Only the shared-queue roles auto-poll (and re-check on regaining tab
+  // focus) — "My Tickets" roles fetch once on mount/login and otherwise only
+  // refresh when the user asks (manual refresh button) or when their own
+  // action updates local state optimistically.
+  useVisibilityAwarePolling(refresh, SHARED_POLL_MS, isSharedQueue);
 
   // Rethrows on failure (rather than only console.error-ing) so callers can
   // tell a request actually failed instead of showing a "success" screen
@@ -237,7 +251,7 @@ export function TicketProvider({ children }) {
   }
 
   return (
-    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, refresh, hasMoreTickets: Boolean(nextCursor), loadMoreTickets, loadingMore }}>
+    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, refresh, hasMoreTickets: Boolean(nextCursor), loadMoreTickets, loadingMore, lastUpdated, isSharedQueue }}>
       {children}
     </TicketContext.Provider>
   );
