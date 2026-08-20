@@ -42,8 +42,10 @@ export function ApprovalProvider({ children }) {
     setLoading(true);
     try {
       const { data } = await getApprovals();
-      setApprovals(data.items.map(fromBackend));
-      setNextCursor(data.nextCursor);
+      // Defensive: a response caught mid-deploy can come back without the
+      // expected shape — fall back to empty rather than crash the page.
+      setApprovals((data?.items || []).map(fromBackend));
+      setNextCursor(data?.nextCursor || null);
       setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load approvals:', e.response?.data?.error || e.message);
@@ -58,8 +60,8 @@ export function ApprovalProvider({ children }) {
     setLoadingMore(true);
     try {
       const { data } = await getApprovals(nextCursor);
-      setApprovals((prev) => [...prev, ...data.items.map(fromBackend)]);
-      setNextCursor(data.nextCursor);
+      setApprovals((prev) => [...prev, ...(data?.items || []).map(fromBackend)]);
+      setNextCursor(data?.nextCursor || null);
     } catch (e) {
       console.error('Failed to load more approvals:', e.response?.data?.error || e.message);
     } finally {

@@ -44,9 +44,13 @@ export function TaskProjectProvider({ children }) {
     setLoading(true);
     try {
       const [taskRes, projectRes] = await Promise.all([getTasks(), getProjects()]);
-      setTasks(taskRes.data.items);
-      setNextCursor(taskRes.data.nextCursor);
-      setProjects(projectRes.data);
+      // Defensive: a response caught mid-deploy (stale serverless instance,
+      // proxy hiccup) can come back without the expected shape — fall back
+      // to empty rather than let `undefined` propagate into .filter/.map
+      // and crash the whole dashboard.
+      setTasks(taskRes.data?.items || []);
+      setNextCursor(taskRes.data?.nextCursor || null);
+      setProjects(projectRes.data || []);
       setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load tasks/projects:', e.response?.data?.error || e.message);
@@ -61,8 +65,8 @@ export function TaskProjectProvider({ children }) {
     setLoadingMore(true);
     try {
       const { data } = await getTasks(nextCursor);
-      setTasks((prev) => [...prev, ...data.items]);
-      setNextCursor(data.nextCursor);
+      setTasks((prev) => [...prev, ...(data?.items || [])]);
+      setNextCursor(data?.nextCursor || null);
     } catch (e) {
       console.error('Failed to load more tasks:', e.response?.data?.error || e.message);
     } finally {

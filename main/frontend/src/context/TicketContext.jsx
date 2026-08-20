@@ -113,19 +113,22 @@ export function TicketProvider({ children }) {
     try {
       let rows;
       let cursor = null;
+      // Defensive `|| []`/`?.` throughout: a response caught mid-deploy
+      // (stale serverless instance, proxy hiccup) can come back without the
+      // expected shape — fall back to empty rather than crash the page.
       if (user.role === 'founder') {
-        rows = (await getFounderComplaints()).data;
+        rows = (await getFounderComplaints()).data || [];
       } else if (user.role === 'it') {
-        const { items, nextCursor: nc } = (await getItComplaints()).data;
-        rows = tagDept(items, 'IT');
-        cursor = nc;
+        const { items, nextCursor: nc } = (await getItComplaints()).data || {};
+        rows = tagDept(items || [], 'IT');
+        cursor = nc || null;
       } else if (user.role === 'hr') {
-        const { items, nextCursor: nc } = (await getHrComplaints()).data;
-        rows = tagDept(items, 'HR');
-        cursor = nc;
+        const { items, nextCursor: nc } = (await getHrComplaints()).data || {};
+        rows = tagDept(items || [], 'HR');
+        cursor = nc || null;
       } else {
         const [it, hr] = await Promise.all([getMyItComplaints(), getMyHrComplaints()]);
-        rows = mergeByRecent(tagDept(it.data, 'IT'), tagDept(hr.data, 'HR'));
+        rows = mergeByRecent(tagDept(it.data || [], 'IT'), tagDept(hr.data || [], 'HR'));
       }
       setTickets(rows.map(fromBackend));
       setNextCursor(cursor);
@@ -144,10 +147,10 @@ export function TicketProvider({ children }) {
     setLoadingMore(true);
     try {
       const isIt = user.role === 'it';
-      const { items, nextCursor: nc } = isIt
+      const { items, nextCursor: nc } = (isIt
         ? (await getItComplaints(nextCursor)).data
-        : (await getHrComplaints(nextCursor)).data;
-      const tagged = tagDept(items, isIt ? 'IT' : 'HR');
+        : (await getHrComplaints(nextCursor)).data) || {};
+      const tagged = tagDept(items || [], isIt ? 'IT' : 'HR');
       setTickets((prev) => [...prev, ...tagged.map(fromBackend)]);
       setNextCursor(nc);
     } catch (e) {
