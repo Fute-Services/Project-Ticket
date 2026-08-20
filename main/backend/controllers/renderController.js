@@ -2,10 +2,16 @@ const { db } = require('../config/firebase');
 
 const collection = db.collection('renders');
 
-// GET /api/production/renders — read by Production and IT's read-only view
+// GET /api/production/renders — read by Production and IT's read-only view.
+// No `.orderBy('created_at')` on the query itself — Firestore silently
+// drops any document missing the ordered field from the result set
+// entirely. Sorting in JS after the fetch keeps the same bounded read
+// (.limit(200)) without excluding anyone.
 async function getAllRenders(req, res) {
-  const snap = await collection.orderBy('created_at', 'desc').limit(200).get();
-  res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  const snap = await collection.limit(200).get();
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  res.json(rows);
 }
 
 // POST /api/production/renders

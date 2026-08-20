@@ -25,7 +25,7 @@ function calcDuration(complaintDate) {
 }
 
 function sortByRecent(docs) {
-  return docs.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+  return docs.sort((a, b) => new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0));
 }
 
 // POST /api/it/complaints
@@ -154,9 +154,11 @@ async function getAllComplaints(req, res) {
   res.json({ items: sortByRecent(enriched), nextCursor });
 }
 
-// GET /api/it/complaints/my
+// GET /api/it/complaints/my — no `.orderBy('submitted_at')` on the query
+// itself, see sortByRecent() above: Firestore silently drops any document
+// missing the ordered field from the result set entirely.
 async function getMyComplaints(req, res) {
-  const snap = await collection.where('user_id', '==', req.user.id).orderBy('submitted_at', 'desc').limit(200).get();
+  const snap = await collection.where('user_id', '==', req.user.id).limit(200).get();
   const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   const enriched = await enrichWithUserRole(data);
   res.json(sortByRecent(enriched));

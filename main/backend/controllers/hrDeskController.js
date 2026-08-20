@@ -29,11 +29,12 @@ async function sendEmail(req, res) {
   res.status(201).json({ id: docRef.id, ...docData });
 }
 
-// GET /api/hr-desk/send-email — Sent folder history
+// GET /api/hr-desk/send-email — Sent folder history. No `.orderBy('time')`
+// on the query itself — see the comment in makeCrud's list() below for why.
 async function getSentEmails(req, res) {
-  const snap = await sentCollection.orderBy('time', 'desc').limit(200).get();
+  const snap = await sentCollection.limit(200).get();
   const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  rows.sort((a, b) => new Date(b.time) - new Date(a.time));
+  rows.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
   res.json(rows);
 }
 
@@ -45,8 +46,17 @@ function makeCrud(collectionName, requiredFields, editableFields) {
   const collection = db.collection(collectionName);
 
   async function list(req, res) {
-    const snap = await collection.orderBy('created_at', 'desc').limit(200).get();
-    res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    // No `.orderBy('created_at')` here on purpose — Firestore silently
+    // drops any document missing the ordered field from the result set
+    // entirely, which was hiding every legacy/manually-added record (e.g.
+    // employees added before this field was set consistently, or created
+    // directly in the Firestore console). Sorting in JS after the fetch
+    // keeps the same bounded read (.limit(200)) without excluding anyone —
+    // docs with no created_at just sort to the end instead of vanishing.
+    const snap = await collection.limit(200).get();
+    const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    res.json(rows);
   }
 
   async function create(req, res) {

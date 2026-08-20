@@ -11,7 +11,7 @@ function isFounderApproval(department) {
 }
 
 function sortByRecent(docs) {
-  return docs.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+  return docs.sort((a, b) => new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0));
 }
 
 // POST /api/leave — any logged-in employee applies for their own leave
@@ -41,16 +41,19 @@ async function applyLeave(req, res) {
   res.status(201).json({ id: docRef.id, ...docData });
 }
 
-// GET /api/leave — HR staff / founder see every request
+// GET /api/leave — HR staff / founder see every request. No
+// `.orderBy('submitted_at')` on the query itself — Firestore silently drops
+// any document missing the ordered field from the result set entirely;
+// sortByRecent() re-sorts in JS after the fetch instead, so nothing vanishes.
 async function getAllLeaves(req, res) {
-  const snap = await collection.orderBy('submitted_at', 'desc').limit(200).get();
+  const snap = await collection.limit(200).get();
   const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   res.json(sortByRecent(data));
 }
 
 // GET /api/leave/my — an employee's own leave history
 async function getMyLeaves(req, res) {
-  const snap = await collection.where('user_id', '==', req.user.id).orderBy('submitted_at', 'desc').limit(200).get();
+  const snap = await collection.where('user_id', '==', req.user.id).limit(200).get();
   const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   res.json(sortByRecent(data));
 }

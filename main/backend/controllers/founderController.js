@@ -56,11 +56,14 @@ async function enrichWithUserRole(docs) {
   }
 }
 
-// GET /api/founder/complaints — returns all HR + IT complaints combined
+// GET /api/founder/complaints — returns all HR + IT complaints combined.
+// No `.orderBy('submitted_at')` on either query — Firestore silently drops
+// any document missing the ordered field from the result set entirely; the
+// merge below already re-sorts in JS, so nothing needs it query-side.
 async function getAllComplaints(req, res) {
   const [hrSnap, itSnap] = await Promise.all([
-    db.collection('hr_complaints').orderBy('submitted_at', 'desc').limit(200).get(),
-    db.collection('it_complaints').orderBy('submitted_at', 'desc').limit(200).get(),
+    db.collection('hr_complaints').limit(200).get(),
+    db.collection('it_complaints').limit(200).get(),
   ]);
 
   const hrTagged = hrSnap.docs.map(d => ({ id: d.id, ...d.data(), dept_tag: 'HR' }));
@@ -68,7 +71,7 @@ async function getAllComplaints(req, res) {
 
   // Merge and sort by submitted_at descending
   const all = [...hrTagged, ...itTagged].sort(
-    (a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)
+    (a, b) => new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0)
   );
 
   const enriched = await enrichWithUserRole(all);
@@ -798,11 +801,15 @@ async function search(req, res) {
   const q = (req.query.q || '').trim().toLowerCase();
   if (!q) return res.json({ users: [], tickets: [], assets: [], departments: [] });
 
+  // No `.orderBy(...)` on any of these — Firestore silently drops any
+  // document missing the ordered field from the result set entirely, which
+  // would make legacy tickets/assets unsearchable. Order doesn't matter
+  // here anyway since results are filtered by match and truncated below.
   const [usersSnap, hrSnap, itSnap, assetsSnap, deptSnap] = await Promise.all([
     db.collection('users').limit(300).get(),
-    db.collection('hr_complaints').orderBy('submitted_at', 'desc').limit(200).get(),
-    db.collection('it_complaints').orderBy('submitted_at', 'desc').limit(200).get(),
-    db.collection('assets').orderBy('created_at', 'desc').limit(200).get(),
+    db.collection('hr_complaints').limit(200).get(),
+    db.collection('it_complaints').limit(200).get(),
+    db.collection('assets').limit(200).get(),
     DEPARTMENTS.limit(200).get(),
   ]);
 
@@ -843,11 +850,16 @@ async function search(req, res) {
 // a richer history that isn't tracked.
 async function getActivityTimeline(req, res) {
   const limit = Math.min(parseInt(req.query.limit, 10) || 100, 300);
+  // AUDIT_LOGS always has created_at (set by logAudit() on every write), so
+  // that orderBy is safe. The other three are left unordered — Firestore
+  // silently drops any document missing the ordered field from the result
+  // set entirely, and this function already sorts the merged events in JS
+  // below, so nothing needs it query-side.
   const [auditSnap, hrSnap, itSnap, approvalsSnap] = await Promise.all([
     AUDIT_LOGS.orderBy('created_at', 'desc').limit(limit).get(),
-    db.collection('hr_complaints').orderBy('submitted_at', 'desc').limit(200).get(),
-    db.collection('it_complaints').orderBy('submitted_at', 'desc').limit(200).get(),
-    db.collection('approvals').orderBy('createdAt', 'desc').limit(200).get(),
+    db.collection('hr_complaints').limit(200).get(),
+    db.collection('it_complaints').limit(200).get(),
+    db.collection('approvals').limit(200).get(),
   ]);
 
   const events = [];
