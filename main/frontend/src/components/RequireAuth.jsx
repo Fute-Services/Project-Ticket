@@ -1,6 +1,12 @@
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth, homeFor } from '../context/AuthContext';
 import { Skeleton } from './ui/skeleton';
+
+// Lazy so its `framer-motion` import doesn't ride along in the main bundle
+// that every page (including the login screen, before anyone's signed in)
+// has to download — RequireAuth itself is imported eagerly in App.jsx.
+const WelcomeIntro = lazy(() => import('./WelcomeIntro'));
 
 /**
  * Shown while the session is being restored. A dashboard-shaped skeleton
@@ -41,11 +47,35 @@ export function AppSkeleton() {
  */
 export default function RequireAuth({ children, allow }) {
   const { user, loading } = useAuth();
+  // The dashboard this renders (`children`) is always a lazy-loaded route
+  // component, so on its first-ever navigation React suspends here while
+  // the chunk downloads — which discards this render attempt and retries
+  // once it's ready. A lazy useState initializer runs on *every* attempt,
+  // discarded or not, so clearing the flag there consumed it on the
+  // throwaway attempt and the real, committed render always found it
+  // already gone. Reading is idempotent (safe to repeat across attempts);
+  // only the effect below — which React guarantees runs solely after a
+  // real commit — actually clears it, exactly once.
+  const [showIntro, setShowIntro] = useState(() => sessionStorage.getItem('fute_just_logged_in') === '1');
+
+  useEffect(() => {
+    if (showIntro) sessionStorage.removeItem('fute_just_logged_in');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (loading) return <AppSkeleton />;
   if (!user) return <Navigate to="/" replace />;
   if (allow && !allow.includes(user.role)) {
     return <Navigate to={homeFor(user.role)} replace />;
   }
-  return children;
+  return (
+    <>
+      {children}
+      {showIntro && (
+        <Suspense fallback={null}>
+          <WelcomeIntro name={user.full_name} onDone={() => setShowIntro(false)} />
+        </Suspense>
+      )}
+    </>
+  );
 }

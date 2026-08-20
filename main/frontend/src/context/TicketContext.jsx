@@ -14,6 +14,8 @@ import {
   updateHrStatus,
   updateItFields,
   updateHrFields,
+  deleteItComplaint,
+  deleteHrComplaint,
 } from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
@@ -253,8 +255,28 @@ export function TicketProvider({ children }) {
     }
   }
 
+  // Backend only allows the ticket's own requester to delete it (403s for
+  // anyone else, including IT/HR/founder) — this removes the shared
+  // it_complaints/hr_complaints doc outright, so it's gone from every view
+  // that reads it (the requester's own list and the department's queue)
+  // rather than just being hidden locally.
+  async function deleteTicket(id) {
+    const ticket = tickets.find((t) => t.id === id);
+    if (!ticket) return;
+
+    setTickets((prev) => prev.filter((t) => t.id !== id));
+    try {
+      const deleteFn = ticket._collection === 'hr' ? deleteHrComplaint : deleteItComplaint;
+      await deleteFn(id);
+    } catch (e) {
+      console.error('Failed to delete ticket:', e.response?.data?.error || e.message);
+      refresh();
+      throw e;
+    }
+  }
+
   return (
-    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, refresh, hasMoreTickets: Boolean(nextCursor), loadMoreTickets, loadingMore, lastUpdated, isSharedQueue }}>
+    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, deleteTicket, refresh, hasMoreTickets: Boolean(nextCursor), loadMoreTickets, loadingMore, lastUpdated, isSharedQueue }}>
       {children}
     </TicketContext.Provider>
   );

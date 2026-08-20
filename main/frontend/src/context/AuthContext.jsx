@@ -96,6 +96,13 @@ export function AuthProvider({ children }) {
     setUser(updatedUser);
     setToken(jwt);
 
+    // One-shot signal for RequireAuth to show the welcome intro on the very
+    // next protected route it renders, then clear itself — always in
+    // sessionStorage (independent of the remember-me store choice below)
+    // since it should fire once per actual sign-in, not persist across
+    // browser restarts the way a "remember me" session does.
+    sessionStorage.setItem('fute_just_logged_in', '1');
+
     // Clear the other store first — otherwise a stale copy from a previous
     // "remember me" choice can outlive this one.
     const store = remember ? localStorage : sessionStorage;

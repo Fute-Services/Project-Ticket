@@ -95,6 +95,10 @@ export const updateItStatus = (id, status) => api.patch(`/api/it/complaints/${id
 export const updateHrFields = (id, fields) => api.patch(`/api/hr/complaints/${id}/fields`, fields);
 export const updateItFields = (id, fields) => api.patch(`/api/it/complaints/${id}/fields`, fields);
 
+// Delete — only the employee who raised the ticket can delete it
+export const deleteHrComplaint = (id) => api.delete(`/api/hr/complaints/${id}`);
+export const deleteItComplaint = (id) => api.delete(`/api/it/complaints/${id}`);
+
 // Approvals — IT/HR desks submit and read, founder decides
 export const getApprovals = (after) => api.get('/api/approvals', { params: after ? { after } : {} });
 export const submitApprovalRequest = (data) => api.post('/api/approvals', data);

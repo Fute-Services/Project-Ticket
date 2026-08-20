@@ -10,6 +10,7 @@ const {
   searchByToken,
   updateStatus,
   updateFields,
+  deleteComplaint,
 } = require('../controllers/itController');
 const { createAsset, getAllAssets, updateAsset, deleteAsset } = require('../controllers/assetController');
 
@@ -19,6 +20,7 @@ router.get('/complaints/my', auth, getMyComplaints);
 router.get('/complaints/search', auth, searchByToken);
 router.patch('/complaints/:id/status', auth, role('it', 'founder'), updateStatus);
 router.patch('/complaints/:id/fields', auth, updateFields);
+router.delete('/complaints/:id', auth, deleteComplaint);
 
 // Asset writes are also gated by the granular action-permission matrix
 // (Super Admin → Action Permissions), on top of the coarser role check —

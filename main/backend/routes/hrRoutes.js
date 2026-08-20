@@ -9,6 +9,7 @@ const {
   searchByToken,
   updateStatus,
   updateFields,
+  deleteComplaint,
 } = require('../controllers/hrController');
 
 // Any logged-in user can submit an HR complaint
@@ -28,5 +29,8 @@ router.patch('/complaints/:id/status', auth, role('hr', 'founder'), updateStatus
 
 // HR staff, founders, or the submitter employee can update ticket fields
 router.patch('/complaints/:id/fields', auth, updateFields);
+
+// Only the submitter employee can delete their own ticket
+router.delete('/complaints/:id', auth, deleteComplaint);
 
 module.exports = router;

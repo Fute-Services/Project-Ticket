@@ -271,4 +271,24 @@ async function updateFields(req, res) {
   res.json({ id, ...docData, ...updates });
 }
 
-module.exports = { createComplaint, getAllComplaints, getMyComplaints, searchByToken, updateStatus, updateFields };
+// DELETE /api/hr/complaints/:id — only the employee who raised it can
+// delete it (not HR/founder — they resolve/close tickets via status
+// instead, deleting is the requester's own "never mind" action). One
+// Firestore delete on the shared hr_complaints doc, so it disappears from
+// HR's queue and the requester's own list at once — there's no separate
+// copy per view.
+async function deleteComplaint(req, res) {
+  const { id } = req.params;
+  const docRef = collection.doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) return res.status(404).json({ error: 'Complaint not found' });
+
+  if (doc.data().user_id !== req.user?.id) {
+    return res.status(403).json({ error: 'Forbidden: you can only delete your own ticket' });
+  }
+
+  await docRef.delete();
+  res.json({ id, deleted: true });
+}
+
+module.exports = { createComplaint, getAllComplaints, getMyComplaints, searchByToken, updateStatus, updateFields, deleteComplaint };
