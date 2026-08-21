@@ -11,14 +11,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 // onDone() — this is a welcome, not a gate.
 const WELCOME_TEXT = 'Welcome, ';
 const WELCOME_DRAW_S = 2;
-const PAUSE_S = 0.6;
+const PAUSE_S = 0.25;
 const OPEN_DURATION_S = 1;
 const READ_PAUSE_MS = 1000;
 
 // A short name draws fast; a long one gets more time so it doesn't look
 // rushed — clamped so neither extreme feels off.
 function nameDrawDurationFor(nameText) {
-  return Math.min(5, Math.max(1.8, nameText.length * 0.16));
+  return Math.min(3.5, Math.max(1, nameText.length * 0.1));
 }
 
 export default function WelcomeIntro({ name, onDone }) {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth, homeFor } from '../context/AuthContext';
 import { loginUser } from '../utils/api';
 import AuthLayout from '../components/AuthLayout';
@@ -28,6 +28,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [launching, setLaunching] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -145,16 +146,27 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-primary hover:bg-primary text-foreground font-bold py-3 px-5 rounded-full flex items-center justify-between shadow-[0_0_25px_rgba(232,96,36,0.45)] hover:shadow-[0_0_35px_rgba(255,110,46,0.75)] transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer group mt-2 disabled:opacity-50"
+          onClick={() => setLaunching(true)}
+          className="signin-btn mt-2"
         >
-          <span className="text-sm font-bold pl-2">
-            {loading ? 'Signing in…' : 'Sign in'}
-          </span>
+          <span className="signin-btn-text">{loading ? 'Signing in…' : "Let's go!"}</span>
           <span
             aria-hidden="true"
-            className="w-8 h-8 rounded-full bg-primary-foreground text-primary flex items-center justify-center shrink-0 shadow-md group-hover:translate-x-1 transition-transform duration-300"
+            className={`signin-btn-icon${launching ? ' is-launching' : ''}`}
+            onAnimationEnd={() => setLaunching(false)}
           >
-            <ArrowRight size={16} />
+            <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="1.61321" cy="1.61321" r="1.5" fill="black" />
+              <circle cx="5.73583" cy="1.61321" r="1.5" fill="black" />
+              <circle cx="5.73583" cy="5.5566" r="1.5" fill="black" />
+              <circle cx="9.85851" cy="5.5566" r="1.5" fill="black" />
+              <circle cx="9.85851" cy="9.5" r="1.5" fill="black" />
+              <circle cx="13.9811" cy="9.5" r="1.5" fill="black" />
+              <circle cx="5.73583" cy="13.4434" r="1.5" fill="black" />
+              <circle cx="9.85851" cy="13.4434" r="1.5" fill="black" />
+              <circle cx="1.61321" cy="17.3868" r="1.5" fill="black" />
+              <circle cx="5.73583" cy="17.3868" r="1.5" fill="black" />
+            </svg>
           </span>
         </button>
       </form>
