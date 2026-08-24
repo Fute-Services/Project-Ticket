@@ -82,6 +82,33 @@ function downloadCsv(filename, headers, rows) {
   URL.revokeObjectURL(url);
 }
 
+// A real .xls Excel can open, without pulling in a spreadsheet-writing
+// dependency: Excel has long supported opening an HTML table saved with an
+// .xls extension + the ms-excel MIME type (the `xmlns:x` block below just
+// names the sheet). Not a true .xlsx, but it opens as an actual spreadsheet
+// with real columns/rows — unlike the "Excel" button before this, which
+// silently produced the same file as "CSV".
+function downloadExcel(filename, headers, rows) {
+  const escape = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const headerRow = `<tr>${headers.map((h) => `<th>${escape(h)}</th>`).join('')}</tr>`;
+  const bodyRows = rows.map((r) => `<tr>${r.map((c) => `<td>${escape(c)}</td>`).join('')}</tr>`).join('');
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8" />
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Sheet1</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+</head>
+<body><table border="1">${headerRow}${bodyRows}</table></body>
+</html>`;
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function openPrintable(title, headers, rows) {
   const win = window.open('', '_blank');
   if (!win) return;
@@ -125,6 +152,8 @@ export default function Reports() {
     const rows = report.rows();
     if (format === 'pdf') {
       openPrintable(report.title, report.headers, rows);
+    } else if (format === 'excel') {
+      downloadExcel(`${report.id}-report.xls`, report.headers, rows);
     } else {
       downloadCsv(`${report.id}-report.csv`, report.headers, rows);
     }

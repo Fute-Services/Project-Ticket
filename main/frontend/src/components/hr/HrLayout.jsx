@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../context/PermissionsContext';
+import { useTickets } from '../../context/TicketContext';
+import { useLeave, isFounderApproval } from '../../context/LeaveContext';
+import { employeesApi, candidatesApi, interviewsApi } from '../../utils/api';
+import { relativeTime } from '../../utils/tickets';
 import {
   Users2,
   LayoutGrid,
@@ -23,13 +27,6 @@ import {
   Ticket,
   CheckSquare,
 } from 'lucide-react';
-import {
-  candidates,
-  employees,
-  interviews,
-  notifications as allNotifications,
-} from '../../data/hrMockData';
-
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/hr/overview' },
   { label: 'Tickets Queue', icon: Ticket, path: '/hr/tickets' },
@@ -42,11 +39,12 @@ const NAV_ITEMS = [
   { label: 'Reports', icon: BarChart2, path: '/hr/reports' },
 ];
 
-function buildSearchIndex() {
+function buildSearchIndex({ employees, candidates, interviews, tickets }) {
   return [
     ...candidates.map((c) => ({ group: 'Candidates', label: c.name, sub: c.appliedFor, path: '/hr/candidates' })),
     ...employees.map((e) => ({ group: 'Employees', label: e.name, sub: e.designation, path: '/hr/directory' })),
     ...interviews.map((i) => ({ group: 'Interviews', label: `${i.candidate} - ${i.type}`, sub: `${i.date} ${i.time}`, path: '/hr/interviews' })),
+    ...tickets.map((t) => ({ group: 'Tickets', label: t.token || t.title, sub: t.title, path: '/hr/tickets' })),
   ];
 }
 
@@ -63,8 +61,22 @@ export default function HrLayout({ children }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [query, setQuery] = useState('');
   const [dateRangeLabel, setDateRangeLabel] = useState('Today');
+  const [employees, setEmployees] = useState([]);
+  const [candidates, setCandidates] = useState([]);
+  const [interviews, setInterviews] = useState([]);
+  const { tickets } = useTickets();
+  const { leaveRequests } = useLeave();
 
-  const searchIndex = useMemo(buildSearchIndex, []);
+  useEffect(() => {
+    employeesApi.list().then(({ data }) => setEmployees(data)).catch((e) => console.error('Failed to load employees:', e.message));
+    candidatesApi.list().then(({ data }) => setCandidates(data)).catch((e) => console.error('Failed to load candidates:', e.message));
+    interviewsApi.list().then(({ data }) => setInterviews(data)).catch((e) => console.error('Failed to load interviews:', e.message));
+  }, []);
+
+  const searchIndex = useMemo(
+    () => buildSearchIndex({ employees, candidates, interviews, tickets }),
+    [employees, candidates, interviews, tickets]
+  );
   const results = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.trim().toLowerCase();
@@ -82,7 +94,40 @@ export default function HrLayout({ children }) {
     setMobileNavOpen(false);
   }
 
-  const unreadCount = allNotifications.filter((n) => n.unread).length;
+  // Real events instead of seeded mock notifications — anything HR still
+  // needs to act on: tickets nobody's started yet, leave requests still
+  // awaiting a decision. There's no persisted "read" state for either kind
+  // (no backend model for it), so "unread" here just means "still pending" —
+  // it clears itself the moment the ticket/leave request is actually handled.
+  const notifications = useMemo(() => {
+    const ticketNotifs = tickets
+      .filter((t) => t.status === 'Open')
+      .map((t) => ({
+        id: `ticket-${t.id}`,
+        text: `New ticket from ${t.user || 'someone'}: ${t.title}`,
+        time: relativeTime(t.submittedAt),
+        at: t.submittedAt,
+        unread: true,
+        path: '/hr/tickets',
+      }));
+    const leaveNotifs = leaveRequests
+      // Admin/Ops and IT leave routes to the Founder to decide, not HR (see
+      // isFounderApproval) — surfacing it here would look actionable when
+      // HR actually can't do anything with it.
+      .filter((l) => l.status === 'Pending' && !isFounderApproval(l.department))
+      .map((l) => ({
+        id: `leave-${l.id}`,
+        text: `Leave request from ${l.employee || 'someone'} awaiting approval`,
+        time: relativeTime(l.submitted_at),
+        at: l.submitted_at,
+        unread: true,
+        path: '/hr/approvals',
+      }));
+    return [...ticketNotifs, ...leaveNotifs]
+      .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
+      .slice(0, 20);
+  }, [tickets, leaveRequests]);
+  const unreadCount = notifications.length;
 
   const { canAccess } = usePermissions();
   const navItems = NAV_ITEMS.filter((item) => canAccess('hr', item.path));
@@ -272,17 +317,29 @@ export default function HrLayout({ children }) {
                 <div className="absolute top-full right-0 mt-2 w-[300px] bg-muted border border-border rounded-lg shadow-xl overflow-hidden z-30">
                   <div className="px-4 py-2.5 border-b border-border text-xs font-bold text-foreground">Notifications</div>
                   <div className="max-h-[300px] overflow-y-auto">
-                    {allNotifications.map((n) => (
-                      <div key={n.id} className="px-4 py-2.5 border-b border-border last:border-0 hover:bg-accent">
-                        <div className="flex items-start gap-2">
-                          {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />}
-                          <div className={n.unread ? '' : 'pl-3.5'}>
-                            <div className="text-[11px] text-foreground">{n.text}</div>
-                            <div className="text-[10px] text-muted-foreground mt-0.5">{n.time}</div>
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-[11px] text-muted-foreground">All caught up — nothing pending.</div>
+                    ) : (
+                      notifications.map((n) => (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => {
+                            goTo(n.path);
+                            setShowNotifs(false);
+                          }}
+                          className="w-full text-left px-4 py-2.5 border-b border-border last:border-0 hover:bg-accent cursor-pointer"
+                        >
+                          <div className="flex items-start gap-2">
+                            {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />}
+                            <div className={n.unread ? '' : 'pl-3.5'}>
+                              <div className="text-[11px] text-foreground">{n.text}</div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5">{n.time}</div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
               )}

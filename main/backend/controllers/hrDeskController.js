@@ -102,7 +102,7 @@ module.exports = {
   sendEmail,
   getSentEmails,
   employees: makeCrud('employees', ['name', 'department'],
-    ['name', 'department', 'designation', 'status', 'email', 'phone', 'manager']),
+    ['name', 'department', 'designation', 'status', 'email', 'phone', 'manager', 'joiningDate']),
   candidates: makeCrud('candidates', ['name', 'email'],
     ['name', 'email', 'phone', 'location', 'skills', 'experience', 'education', 'expectedSalary',
       'currentCompany', 'portfolio', 'source', 'stage', 'appliedFor', 'appliedOn', 'resumeFileName']),
