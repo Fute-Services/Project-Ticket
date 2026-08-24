@@ -116,7 +116,7 @@ export default function Directory() {
       if (!q) return true;
       return e.name.toLowerCase().includes(q) || e.designation.toLowerCase().includes(q);
     });
-  }, [query, dept]);
+  }, [employees, query, dept]);
 
   const bank = selected ? bankDetails[selected.id] : null;
 
