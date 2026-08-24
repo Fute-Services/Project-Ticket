@@ -1,7 +1,23 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
+
+// The 60s cache in computeAnalytics/getDashboardOverview absorbs repeated
+// identical requests, but a caller varying the from/to query params bypasses
+// that cache — this backstops the underlying multi-collection scan itself.
+const expensiveReadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down' },
+});
+// Split from a single 951-line founderController.js into one file per real
+// concern (user mgmt, analytics, SLA, notifications, departments,
+// permissions, system settings, dashboard/search) — each below owns exactly
+// the routes it's required for, so this list stays the map of who owns what.
 const {
   getAllComplaints,
   listUsers,
@@ -12,29 +28,20 @@ const {
   deleteUser,
   resetUserPassword,
   getAuditLogs,
-  getAnalytics,
-  getSystemSettings,
-  updateSystemSettings,
+} = require('../controllers/superAdminUserController');
+const { getAnalytics, getAnalyticsCsv } = require('../controllers/analyticsController');
+const { getSystemSettings, updateSystemSettings } = require('../controllers/systemSettingsController');
+const {
   getRolePermissions,
   updateRolePermissions,
-  listDepartments,
-  createDepartment,
-  updateDepartment,
-  deleteDepartment,
   getActionPermissions,
   updateActionPermissions,
   getPermissions,
-  getDashboardOverview,
-  getSlaPolicies,
-  updateSlaPolicies,
-  getSlaCompliance,
-  getNotificationRules,
-  updateNotificationRules,
-  getAnalyticsCsv,
-  search,
-  getActivityTimeline,
-  updateDashboardLayout,
-} = require('../controllers/founderController');
+} = require('../controllers/permissionController');
+const { listDepartments, createDepartment, updateDepartment, deleteDepartment } = require('../controllers/departmentController');
+const { getSlaPolicies, updateSlaPolicies, getSlaCompliance } = require('../controllers/slaController');
+const { getNotificationRules, updateNotificationRules } = require('../controllers/notificationController');
+const { getDashboardOverview, search, getActivityTimeline, updateDashboardLayout } = require('../controllers/dashboardController');
 
 router.get('/complaints', auth, role('founder'), getAllComplaints);
 // Role Permissions moved to Super Admin — these three are no longer
@@ -48,17 +55,17 @@ router.patch('/users/:uid/reset-password', auth, role('superadmin'), resetUserPa
 router.delete('/users/:uid', auth, role('superadmin'), deleteUser);
 
 router.get('/audit-logs', auth, role('superadmin'), getAuditLogs);
-router.get('/analytics', auth, role('superadmin'), getAnalytics);
-router.get('/analytics/export', auth, role('superadmin'), getAnalyticsCsv);
+router.get('/analytics', auth, role('superadmin'), expensiveReadLimiter, getAnalytics);
+router.get('/analytics/export', auth, role('superadmin'), expensiveReadLimiter, getAnalyticsCsv);
 router.get('/search', auth, role('superadmin'), search);
 router.get('/activity-timeline', auth, role('superadmin'), getActivityTimeline);
 router.patch('/dashboard-layout', auth, role('superadmin'), updateDashboardLayout);
-router.get('/dashboard-overview', auth, role('superadmin'), getDashboardOverview);
+router.get('/dashboard-overview', auth, role('superadmin'), expensiveReadLimiter, getDashboardOverview);
 
 // SLA policies — readable by anyone logged in, writable by Super Admin only.
 router.get('/sla-policies', auth, getSlaPolicies);
 router.put('/sla-policies', auth, role('superadmin'), updateSlaPolicies);
-router.get('/sla-compliance', auth, role('superadmin'), getSlaCompliance);
+router.get('/sla-compliance', auth, role('superadmin'), expensiveReadLimiter, getSlaCompliance);
 
 // Notification rules — Super Admin only, both read and write.
 router.get('/notification-rules', auth, role('superadmin'), getNotificationRules);

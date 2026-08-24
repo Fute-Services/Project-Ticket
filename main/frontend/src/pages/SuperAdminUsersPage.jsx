@@ -189,8 +189,8 @@ export default function SuperAdminUsersPage() {
                       <div className="px-3.5 py-3.5 bg-muted border-t border-border flex items-center gap-2">
                         <input
                           type="password"
-                          minLength={6}
-                          placeholder="New password (min 6 chars)"
+                          minLength={10}
+                          placeholder="New password (min 10 chars)"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           className={inputClass}

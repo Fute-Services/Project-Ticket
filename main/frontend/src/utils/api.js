@@ -12,11 +12,30 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// A 401 means the token is expired, invalid, or was revoked server-side (an
+// admin's "force logout"/"revoke session" in the Security Center) — without
+// this, the SPA kept showing protected pages with a dead token until the
+// user happened to hit a page that reloaded /api/auth/me. Skip login/register
+// itself so a wrong-password response doesn't bounce the user off the page
+// they're trying to log in from.
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401 && !err.config?.url?.includes('/api/auth/login') && !err.config?.url?.includes('/api/auth/register')) {
+      localStorage.removeItem('fute_token');
+      sessionStorage.removeItem('fute_token');
+      if (window.location.pathname !== '/login') window.location.href = '/login';
+    }
+    return Promise.reject(err);
+  }
+);
+
 // Auth
 export const registerUser = (data) => api.post('/api/auth/register', data);
 export const loginUser = (data) => api.post('/api/auth/login', data);
 export const getMe = () => api.get('/api/auth/me');
 export const verifyPassword = (password) => api.post('/api/auth/verify-password', { password });
+export const logoutUser = () => api.post('/api/auth/logout');
 
 // Founder — role permissions' per-user overrides
 export const getUsers = (role) => api.get('/api/founder/users', { params: { role } });

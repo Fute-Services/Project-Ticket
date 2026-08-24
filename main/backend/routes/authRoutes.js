@@ -1,6 +1,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { register, login, getMe, verifyPassword } = require('../controllers/authController');
+const { register, login, getMe, verifyPassword, logout } = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
 const router = express.Router();
 
@@ -20,6 +20,9 @@ const authLimiter = rateLimit({
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
 router.get('/me', authMiddleware, getMe);
-router.post('/verify-password', authMiddleware, verifyPassword);
+// Rate-limited like login/register — otherwise a stolen JWT lets an attacker
+// brute-force the account's real password here with no throttle at all.
+router.post('/verify-password', authLimiter, authMiddleware, verifyPassword);
+router.post('/logout', authMiddleware, logout);
 
 module.exports = router;

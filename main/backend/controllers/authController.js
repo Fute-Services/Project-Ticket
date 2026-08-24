@@ -1,6 +1,6 @@
 const { auth, db, usingEmulator } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
-const { createSession } = require('../utils/sessions');
+const { createSession, SESSIONS, clearRevokedCache } = require('../utils/sessions');
 require('dotenv').config();
 
 // Accounts lock after this many consecutive failed password attempts, until
@@ -179,4 +179,18 @@ async function verifyPassword(req, res) {
   res.json({ valid: resp.ok });
 }
 
-module.exports = { register, login, getMe, verifyPassword };
+// POST /api/auth/logout — revokes the caller's own session so the JWT stops
+// working immediately instead of staying valid for the rest of its 7-day
+// life. Without this, clicking Logout only cleared the browser's copy of the
+// token; anyone else holding it (devtools, a shared machine, a synced
+// backup) could keep using it. A token issued before session tracking
+// existed has no `sid` — nothing to revoke, so this is a no-op for it.
+async function logout(req, res) {
+  if (req.user.sid) {
+    await SESSIONS.doc(req.user.sid).set({ revoked: true, revokedAt: new Date().toISOString() }, { merge: true });
+    clearRevokedCache(req.user.sid);
+  }
+  res.json({ loggedOut: true });
+}
+
+module.exports = { register, login, getMe, verifyPassword, logout };

@@ -7,6 +7,19 @@ require('dotenv').config();
 // routes are required.
 require('express-async-errors');
 
+// Without this, a missing JWT_SECRET started the server successfully and
+// only surfaced on the first login attempt (jwt.sign throwing inside the
+// request handler) — a config mistake turning into a production incident
+// instead of a failed deploy/CI smoke check. Firebase creds already have
+// their own check (config/firebase.js falls back to the emulator); this is
+// the one required secret with no safe fallback.
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET is not set. Refusing to start.');
+  process.exit(1);
+}
+
+const { db, usingEmulator } = require('./config/firebase');
+
 const app = express();
 
 // Only the app's own known frontend origins may call this API cross-origin
@@ -47,6 +60,19 @@ app.use('/api/hr-desk', require('./routes/hrDeskRoutes'));
 
 app.get('/', (req, res) => res.json({ message: 'Fute Portal API running' }));
 
+// GET /healthz — unlike '/' above, this actually reaches Firestore, so an
+// orchestrator can tell "process is up" apart from "the database it depends
+// on is reachable" instead of treating a wedged Firestore connection as healthy.
+app.get('/healthz', async (req, res) => {
+  const start = Date.now();
+  try {
+    await db.collection('users').limit(1).get();
+    res.json({ status: 'ok', firestore: 'reachable', pingMs: Date.now() - start, usingEmulator });
+  } catch (err) {
+    res.status(503).json({ status: 'error', firestore: 'unreachable', error: err.message });
+  }
+});
+
 // Catch-all — with express-async-errors, this now also receives rejected
 // promises from any async route handler, not just synchronous throws.
 app.use((err, req, res, next) => {
@@ -64,7 +90,22 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 if (!process.env.VERCEL) {
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+  // Without this, a rolling deploy/restart hard-kills in-flight requests
+  // instead of letting them finish — server.close() stops accepting new
+  // connections but lets existing ones complete first.
+  function shutdown(signal) {
+    console.log(`${signal} received, shutting down gracefully...`);
+    server.close(() => {
+      console.log('Server closed.');
+      process.exit(0);
+    });
+    // Don't hang forever if a connection never closes on its own.
+    setTimeout(() => process.exit(1), 10_000).unref();
+  }
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 module.exports = app;

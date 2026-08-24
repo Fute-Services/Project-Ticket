@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { paginatedQuery } = require('../utils/pagination');
 
 const tasksCollection = db.collection('tasks');
@@ -12,14 +13,20 @@ async function getProjects(req, res) {
   // orderBy() would silently drop any doc missing it, which is worse than
   // the current arbitrary-200 issue. Left unordered until projects gain a
   // real create path with a guaranteed timestamp field.
-  const snap = await projectsCollection.limit(200).get();
+  const snap = await projectsCollection.limit(UNPAGINATED_READ_LIMIT).get();
   res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
-// GET /api/coordinator/tasks?after=<cursor> — same broad read access as
-// projects, 20 at a time.
+// GET /api/coordinator/tasks?after=<cursor> — Coordinator/Founder get the
+// full team-wide board (they need to see everyone's tasks to assign/manage
+// them); an Employee only ever gets their own — the frontend used to fetch
+// every task in the system and filter to `assignee === user.full_name`
+// client-side (EmployeeDashboardPage), which meant any employee account
+// could read the whole org's task backlog, PR/Figma links included, straight
+// from the API regardless of what the UI displayed.
 async function getTasks(req, res) {
-  const { docs, nextCursor } = await paginatedQuery(tasksCollection, 'created_at', req.query.after);
+  const query = req.user.role === 'employee' ? tasksCollection.where('assignee', '==', req.user.full_name) : tasksCollection;
+  const { docs, nextCursor } = await paginatedQuery(query, 'created_at', req.query.after);
   res.json({ items: docs.map((d) => ({ id: d.id, ...d.data() })), nextCursor });
 }
 

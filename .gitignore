@@ -12,3 +12,7 @@ playwright/.cache/
 
 # Firebase emulator debug logs
 *-debug.log
+
+# Never commit credential-bearing files
+docs/*credential*
+docs/*Credential*

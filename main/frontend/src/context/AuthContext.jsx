@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getMe } from '../utils/api';
+import { getMe, logoutUser } from '../utils/api';
 
 const AuthContext = createContext(null);
 
@@ -114,6 +114,11 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    // Revoke server-side first (while the token's still in storage for the
+    // request interceptor to attach) so a copied/leaked token can't keep
+    // working after the user clicks Logout — best-effort, since the user is
+    // leaving either way and shouldn't be blocked by a flaky network.
+    logoutUser().catch(() => {});
     setUser(null);
     setToken(null);
     localStorage.removeItem('fute_user');
