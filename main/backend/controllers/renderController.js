@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 
 const collection = db.collection('renders');
 
@@ -6,9 +7,9 @@ const collection = db.collection('renders');
 // No `.orderBy('created_at')` on the query itself — Firestore silently
 // drops any document missing the ordered field from the result set
 // entirely. Sorting in JS after the fetch keeps the same bounded read
-// (.limit(200)) without excluding anyone.
+// (.limit(UNPAGINATED_READ_LIMIT)) without excluding anyone.
 async function getAllRenders(req, res) {
-  const snap = await collection.limit(200).get();
+  const snap = await collection.limit(UNPAGINATED_READ_LIMIT).get();
   const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   res.json(rows);

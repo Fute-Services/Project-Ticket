@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { sendMail, escapeHtml } = require('../utils/mailer');
 
 const sentCollection = db.collection('sent_emails');
@@ -32,7 +33,7 @@ async function sendEmail(req, res) {
 // GET /api/hr-desk/send-email — Sent folder history. No `.orderBy('time')`
 // on the query itself — see the comment in makeCrud's list() below for why.
 async function getSentEmails(req, res) {
-  const snap = await sentCollection.limit(200).get();
+  const snap = await sentCollection.limit(UNPAGINATED_READ_LIMIT).get();
   const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   rows.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
   res.json(rows);
@@ -51,9 +52,9 @@ function makeCrud(collectionName, requiredFields, editableFields) {
     // entirely, which was hiding every legacy/manually-added record (e.g.
     // employees added before this field was set consistently, or created
     // directly in the Firestore console). Sorting in JS after the fetch
-    // keeps the same bounded read (.limit(200)) without excluding anyone —
+    // keeps the same bounded read (.limit(UNPAGINATED_READ_LIMIT)) without excluding anyone —
     // docs with no created_at just sort to the end instead of vanishing.
-    const snap = await collection.limit(200).get();
+    const snap = await collection.limit(UNPAGINATED_READ_LIMIT).get();
     const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     res.json(rows);

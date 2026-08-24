@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 
 const collection = db.collection('leave_requests');
 
@@ -46,14 +47,14 @@ async function applyLeave(req, res) {
 // any document missing the ordered field from the result set entirely;
 // sortByRecent() re-sorts in JS after the fetch instead, so nothing vanishes.
 async function getAllLeaves(req, res) {
-  const snap = await collection.limit(200).get();
+  const snap = await collection.limit(UNPAGINATED_READ_LIMIT).get();
   const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   res.json(sortByRecent(data));
 }
 
 // GET /api/leave/my — an employee's own leave history
 async function getMyLeaves(req, res) {
-  const snap = await collection.where('user_id', '==', req.user.id).limit(200).get();
+  const snap = await collection.where('user_id', '==', req.user.id).limit(UNPAGINATED_READ_LIMIT).get();
   const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   res.json(sortByRecent(data));
 }

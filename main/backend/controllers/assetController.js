@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 
 const collection = db.collection('assets');
 
@@ -39,10 +40,10 @@ async function createAsset(req, res) {
 // GET /api/it/assets — no `.orderBy('created_at')` on the query itself:
 // Firestore silently drops any document missing the ordered field from the
 // result set entirely, which was hiding legacy assets. Sorting in JS after
-// the fetch keeps the same bounded read (.limit(200)) without excluding
+// the fetch keeps the same bounded read (.limit(UNPAGINATED_READ_LIMIT)) without excluding
 // anyone — docs with no created_at just sort to the end instead of vanishing.
 async function getAllAssets(req, res) {
-  const snap = await collection.limit(200).get();
+  const snap = await collection.limit(UNPAGINATED_READ_LIMIT).get();
   const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   res.json(rows);

@@ -1,12 +1,13 @@
 const { db } = require('../config/firebase');
+const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { logAudit } = require('../utils/auditLog');
 const { SESSIONS, clearRevokedCache } = require('../utils/sessions');
 
 // GET /api/founder/security/sessions?uid=&includeRevoked=
 async function listSessions(req, res) {
   const { uid, includeRevoked } = req.query;
-  let query = SESSIONS.orderBy('loginAt', 'desc').limit(200);
-  if (uid) query = SESSIONS.where('uid', '==', uid).limit(200);
+  let query = SESSIONS.orderBy('loginAt', 'desc').limit(UNPAGINATED_READ_LIMIT);
+  if (uid) query = SESSIONS.where('uid', '==', uid).limit(UNPAGINATED_READ_LIMIT);
   const snap = await query.get();
   let sessions = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   if (includeRevoked !== 'true') sessions = sessions.filter((s) => !s.revoked);
