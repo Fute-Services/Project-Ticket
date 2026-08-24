@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { BarChart3, Users, Ticket, CheckSquare, CalendarDays, Download } from 'lucide-react';
 import SuperAdminLayout from '../components/SuperAdminLayout';
 import { Card, SectionHeader, StatCard, EmptyState, inputClass } from '../components/ui';
+import DonutChart from '../components/DonutChart';
 import { getAnalytics, exportAnalyticsCsv } from '../utils/api';
 
 const ROLE_LABEL = {
@@ -14,19 +15,18 @@ const ROLE_LABEL = {
   employee: 'Employee',
 };
 
-function BreakdownList({ data }) {
-  const entries = Object.entries(data || {});
-  if (!entries.length) return <p className="text-xs text-muted-foreground py-2">No data yet.</p>;
-  return (
-    <div className="flex flex-col gap-1">
-      {entries.map(([key, count]) => (
-        <div key={key} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-accent transition-colors">
-          <span className="text-xs font-medium text-foreground">{ROLE_LABEL[key] || key}</span>
-          <span className="text-xs font-semibold text-muted-foreground">{count}</span>
-        </div>
-      ))}
-    </div>
-  );
+const CHART_COLORS = [
+  'hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--chart-6))',
+];
+
+// Turns a { label: count } map into DonutChart's { label, value, color } slices.
+function toDonutData(data, labelMap = {}) {
+  return Object.entries(data || {}).map(([key, value], i) => ({
+    label: labelMap[key] || key,
+    value,
+    color: CHART_COLORS[i % CHART_COLORS.length],
+  }));
 }
 
 export default function SuperAdminAnalyticsPage() {
@@ -102,18 +102,9 @@ export default function SuperAdminAnalyticsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-              <Card>
-                <SectionHeader title="Users by role" />
-                <BreakdownList data={data.users.byRole} />
-              </Card>
-              <Card>
-                <SectionHeader title="HR tickets by status" />
-                <BreakdownList data={data.tickets.hr.byStatus} />
-              </Card>
-              <Card>
-                <SectionHeader title="IT tickets by status" />
-                <BreakdownList data={data.tickets.it.byStatus} />
-              </Card>
+              <DonutChart title="Users by role" data={toDonutData(data.users.byRole, ROLE_LABEL)} />
+              <DonutChart title="HR tickets by status" data={toDonutData(data.tickets.hr.byStatus)} />
+              <DonutChart title="IT tickets by status" data={toDonutData(data.tickets.it.byStatus)} />
             </div>
 
             <Card>
