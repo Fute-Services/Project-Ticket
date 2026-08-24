@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Search,
   MapPin,
@@ -16,11 +16,12 @@ import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, Pill, Drawer, Modal, Field, inputClass, EmptyState } from '../../components/ui';
 import { CANDIDATE_STAGES, RESUME_SOURCES } from '../../data/hrMockData';
 import { candidatesApi } from '../../utils/api';
+import { useHrDesk } from '../../context/HrDeskContext';
 
 const EMPTY_UPLOAD_FORM = { name: '', email: '', phone: '', appliedFor: '', location: '', experience: '' };
 
 export default function Candidates() {
-  const [candidates, setCandidates] = useState([]);
+  const { candidates, setCandidates } = useHrDesk();
   const [query, setQuery] = useState('');
   const [stageFilter, setStageFilter] = useState('All');
   const [sourceFilter, setSourceFilter] = useState('All');
@@ -44,10 +45,6 @@ export default function Candidates() {
       );
     });
   }, [candidates, query, stageFilter, sourceFilter]);
-
-  useEffect(() => {
-    candidatesApi.list().then(({ data }) => setCandidates(data)).catch((e) => console.error('Failed to load candidates:', e.message));
-  }, []);
 
   function updateStage(id, stage) {
     setCandidates((rows) => rows.map((c) => (c.id === id ? { ...c, stage } : c)));

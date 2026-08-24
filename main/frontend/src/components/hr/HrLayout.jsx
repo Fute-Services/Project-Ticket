@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../context/PermissionsContext';
 import { useTickets } from '../../context/TicketContext';
 import { useLeave, isFounderApproval } from '../../context/LeaveContext';
-import { employeesApi, candidatesApi, interviewsApi } from '../../utils/api';
+import { useHrDesk } from '../../context/HrDeskContext';
 import { relativeTime } from '../../utils/tickets';
 import {
   Users2,
@@ -61,17 +61,9 @@ export default function HrLayout({ children }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [query, setQuery] = useState('');
   const [dateRangeLabel, setDateRangeLabel] = useState('Today');
-  const [employees, setEmployees] = useState([]);
-  const [candidates, setCandidates] = useState([]);
-  const [interviews, setInterviews] = useState([]);
+  const { employees, candidates, interviews } = useHrDesk();
   const { tickets } = useTickets();
   const { leaveRequests } = useLeave();
-
-  useEffect(() => {
-    employeesApi.list().then(({ data }) => setEmployees(data)).catch((e) => console.error('Failed to load employees:', e.message));
-    candidatesApi.list().then(({ data }) => setCandidates(data)).catch((e) => console.error('Failed to load candidates:', e.message));
-    interviewsApi.list().then(({ data }) => setInterviews(data)).catch((e) => console.error('Failed to load interviews:', e.message));
-  }, []);
 
   const searchIndex = useMemo(
     () => buildSearchIndex({ employees, candidates, interviews, tickets }),

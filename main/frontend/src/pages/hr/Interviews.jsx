@@ -1,24 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CalendarDays, List, Plus, Video, MapPin } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, Pill, Modal, Field, inputClass, EmptyState } from '../../components/ui';
 import { INTERVIEW_TYPES, INTERVIEW_STATUSES } from '../../data/hrMockData';
-import { interviewsApi, candidatesApi } from '../../utils/api';
+import { interviewsApi } from '../../utils/api';
+import { useHrDesk } from '../../context/HrDeskContext';
 
 const EMPTY_FORM = { candidate: '', type: 'HR', interviewer: '', date: '', time: '', link: '', location: '', notes: '' };
 
 export default function Interviews() {
-  const [interviews, setInterviews] = useState([]);
-  const [candidates, setCandidates] = useState([]);
+  const { interviews, setInterviews, candidates } = useHrDesk();
   const [view, setView] = useState('list');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showSchedule, setShowSchedule] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-
-  useEffect(() => {
-    interviewsApi.list().then(({ data }) => setInterviews(data)).catch((e) => console.error('Failed to load interviews:', e.message));
-    candidatesApi.list().then(({ data }) => setCandidates(data)).catch((e) => console.error('Failed to load candidates:', e.message));
-  }, []);
 
   const filtered = useMemo(
     () => (statusFilter === 'All' ? interviews : interviews.filter((i) => i.status === statusFilter)),

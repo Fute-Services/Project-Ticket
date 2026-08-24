@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Ticket, AlertTriangle } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, StatCard, Badge } from '../../components/ui';
 import DonutChart from '../../components/DonutChart';
 import { useTickets } from '../../context/TicketContext';
+import { useHrDesk } from '../../context/HrDeskContext';
 import { notifications, CANDIDATE_STAGES } from '../../data/hrMockData';
-import { employeesApi, candidatesApi, interviewsApi, attendanceApi } from '../../utils/api';
 
 const TODAY = '2026-08-06';
 
@@ -57,17 +56,7 @@ function daysSince(dateStr) {
 export default function HrOverview() {
   const navigate = useNavigate();
   const { tickets } = useTickets();
-  const [employees, setEmployees] = useState([]);
-  const [candidates, setCandidates] = useState([]);
-  const [interviews, setInterviews] = useState([]);
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
-
-  useEffect(() => {
-    employeesApi.list().then(({ data }) => setEmployees(data)).catch((e) => console.error('Failed to load employees:', e.message));
-    candidatesApi.list().then(({ data }) => setCandidates(data)).catch((e) => console.error('Failed to load candidates:', e.message));
-    interviewsApi.list().then(({ data }) => setInterviews(data)).catch((e) => console.error('Failed to load interviews:', e.message));
-    attendanceApi.list().then(({ data }) => setAttendanceRecords(data)).catch((e) => console.error('Failed to load attendance:', e.message));
-  }, []);
+  const { employees, candidates, interviews, attendanceRecords } = useHrDesk();
 
   const activeEmployees = employees.filter((e) => e.status === 'Active').length;
   const interviewsToday = interviews.filter((i) => i.date === TODAY && i.status === 'Scheduled').length;

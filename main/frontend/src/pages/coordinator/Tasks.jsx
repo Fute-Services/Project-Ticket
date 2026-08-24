@@ -6,8 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import TaskRow from '../../components/tasks/TaskRow';
 import TaskDetailPane from '../../components/tasks/TaskDetailPane';
 import { TASK_STATUSES, TASK_PRIORITIES } from '../../data/coordinatorMockData';
-import { employeesApi } from '../../utils/api';
 import { useTaskProject } from '../../context/TaskProjectContext';
+import { useHrDesk } from '../../context/HrDeskContext';
 import { toast } from 'sonner';
 
 const EMPTY_FORM = (projects, employees) => ({
@@ -29,21 +29,14 @@ function toHref(link) {
 
 export default function Tasks() {
   const { tasks, projects, addTask, moveTask, updateTask, toggleComplete, hasMoreTasks, loadMoreTasks, loadingMore } = useTaskProject();
-  const [showModal, setShowModal] = useState(false);
-  const [employees, setEmployees] = useState([]);
-  const [form, setForm] = useState(() => EMPTY_FORM(projects, []));
-  const [projectFilter, setProjectFilter] = useState('All');
-  const [openTaskId, setOpenTaskId] = useState(null);
-
   // Real roster, not a hardcoded mock list — a task assigned to a name that
   // doesn't match any real signed-in user's full_name never shows up in
   // that person's "My Tasks" (EmployeeDashboardPage matches by exact name).
-  useEffect(() => {
-    employeesApi
-      .list()
-      .then(({ data }) => setEmployees(data))
-      .catch((e) => console.error('Failed to load employees:', e.response?.data?.error || e.message));
-  }, []);
+  const { employees } = useHrDesk();
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState(() => EMPTY_FORM(projects, []));
+  const [projectFilter, setProjectFilter] = useState('All');
+  const [openTaskId, setOpenTaskId] = useState(null);
 
   // The form's default assignee only has a real name to fall back to once
   // the roster has loaded — backfill it the same way the default project

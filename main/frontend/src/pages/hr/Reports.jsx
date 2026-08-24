@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
 import { FileText, FileSpreadsheet, File, Download } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader } from '../../components/ui';
 import { departmentPerformance } from '../../data/hrMockData';
 import { useLeave } from '../../context/LeaveContext';
-import { employeesApi, attendanceApi, candidatesApi, interviewsApi } from '../../utils/api';
+import { useHrDesk } from '../../context/HrDeskContext';
 
 function buildReports({ employees, attendanceRecords, leaveRequests, candidates, interviews }) {
   return [
@@ -134,17 +133,7 @@ function openPrintable(title, headers, rows) {
 
 export default function Reports() {
   const { leaveRequests } = useLeave();
-  const [employees, setEmployees] = useState([]);
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [candidates, setCandidates] = useState([]);
-  const [interviews, setInterviews] = useState([]);
-
-  useEffect(() => {
-    employeesApi.list().then(({ data }) => setEmployees(data)).catch((e) => console.error('Failed to load employees:', e.message));
-    attendanceApi.list().then(({ data }) => setAttendanceRecords(data)).catch((e) => console.error('Failed to load attendance:', e.message));
-    candidatesApi.list().then(({ data }) => setCandidates(data)).catch((e) => console.error('Failed to load candidates:', e.message));
-    interviewsApi.list().then(({ data }) => setInterviews(data)).catch((e) => console.error('Failed to load interviews:', e.message));
-  }, []);
+  const { employees, attendanceRecords, candidates, interviews } = useHrDesk();
 
   const REPORTS = buildReports({ employees, attendanceRecords, leaveRequests, candidates, interviews });
 

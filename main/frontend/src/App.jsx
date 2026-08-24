@@ -8,6 +8,7 @@ import { PermissionsProvider } from './context/PermissionsContext';
 import { TaskProjectProvider } from './context/TaskProjectContext';
 import { RenderProvider } from './context/RenderContext';
 import { AssetProvider } from './context/AssetContext';
+import { HrDeskProvider } from './context/HrDeskContext';
 import LoginPage from './pages/LoginPage';
 import RequireAuth, { AppSkeleton } from './components/RequireAuth';
 import { Toaster } from './components/ui/sonner';
@@ -93,6 +94,7 @@ export default function App() {
       <TaskProjectProvider>
       <RenderProvider>
       <AssetProvider>
+      <HrDeskProvider>
       <BrowserRouter>
       <Suspense fallback={<AppSkeleton />}>
         <Routes>
@@ -241,6 +243,7 @@ export default function App() {
       </Suspense>
         <Toaster position="bottom-right" richColors closeButton />
       </BrowserRouter>
+      </HrDeskProvider>
       </AssetProvider>
       </RenderProvider>
       </TaskProjectProvider>

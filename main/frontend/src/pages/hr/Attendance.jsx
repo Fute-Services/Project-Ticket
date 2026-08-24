@@ -4,7 +4,7 @@ import { Card, SectionHeader, Badge, StatCard, EmptyState } from '../../componen
 import DataTable from '../../components/DataTable';
 import { Users2, UserCheck, UserX, Clock3 } from 'lucide-react';
 import { ATTENDANCE_STATUSES } from '../../data/hrMockData';
-import { employeesApi, attendanceApi } from '../../utils/api';
+import { useHrDesk } from '../../context/HrDeskContext';
 
 const DOT_COLOR = {
   Present: 'bg-primary',
@@ -31,17 +31,14 @@ function formatHours(hours) {
 }
 
 export default function Attendance() {
-  const [employees, setEmployees] = useState([]);
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const { employees, attendanceRecords } = useHrDesk();
+  // '' rather than null — a controlled <select>'s value must be a string
+  // (React warns on null: "should not be null, use '' or undefined instead").
+  const [selectedEmployee, setSelectedEmployee] = useState('');
 
   useEffect(() => {
-    employeesApi.list().then(({ data }) => {
-      setEmployees(data);
-      setSelectedEmployee((s) => s || data[0]?.id || null);
-    }).catch((e) => console.error('Failed to load employees:', e.message));
-    attendanceApi.list().then(({ data }) => setAttendanceRecords(data)).catch((e) => console.error('Failed to load attendance:', e.message));
-  }, []);
+    setSelectedEmployee((s) => s || employees[0]?.id || '');
+  }, [employees]);
 
   // Derived from the records rather than hardcoded. A fixed date drifts out of
   // the data's range the moment the seed changes, and when it does every row

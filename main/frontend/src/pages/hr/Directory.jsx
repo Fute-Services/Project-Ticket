@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Search, Mail, Phone, Calendar, Landmark, Plus, Pencil, Trash2 } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, Pill, Drawer, EmptyState, Modal, Field, inputClass } from '../../components/ui';
 import { bankDetails } from '../../data/hrMockData';
 import { employeesApi } from '../../utils/api';
+import { useHrDesk } from '../../context/HrDeskContext';
 
 const EMPTY_FORM = { name: '', department: '', designation: '', email: '', phone: '', manager: '', status: 'Active', joiningDate: '' };
 const STATUS_OPTIONS = ['Active', 'On Leave', 'Inactive'];
@@ -19,7 +20,7 @@ function initialsOf(name) {
 }
 
 export default function Directory() {
-  const [employees, setEmployees] = useState([]);
+  const { employees, setEmployees } = useHrDesk();
   const [query, setQuery] = useState('');
   const [dept, setDept] = useState('All');
   const [selected, setSelected] = useState(null);
@@ -28,10 +29,6 @@ export default function Directory() {
   const [formMode, setFormMode] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
-
-  useEffect(() => {
-    employeesApi.list().then(({ data }) => setEmployees(data)).catch((e) => console.error('Failed to load employees:', e.message));
-  }, []);
 
   function openAdd() {
     setForm(EMPTY_FORM);
