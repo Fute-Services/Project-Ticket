@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import { relativeTime } from '../utils/tickets';
 import { getApprovals, submitApprovalRequest, decideApproval } from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
+import { useCursorPagination } from '../hooks/useCursorPagination';
 
 const ApprovalContext = createContext(null);
 
@@ -29,14 +30,13 @@ export function ApprovalProvider({ children }) {
   const { user } = useAuth();
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [nextCursor, setNextCursor] = useState(null);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const { hasMore, loadingMore, setCursor, loadMore } = useCursorPagination();
 
   const refresh = useCallback(async () => {
     if (!user || !['it', 'hr', 'founder'].includes(user.role)) {
       setApprovals([]);
-      setNextCursor(null);
+      setCursor(null);
       return;
     }
     setLoading(true);
@@ -45,28 +45,18 @@ export function ApprovalProvider({ children }) {
       // Defensive: a response caught mid-deploy can come back without the
       // expected shape — fall back to empty rather than crash the page.
       setApprovals((data?.items || []).map(fromBackend));
-      setNextCursor(data?.nextCursor || null);
+      setCursor(data?.nextCursor || null);
       setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load approvals:', e.response?.data?.error || e.message);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, setCursor]);
 
   // Appends the next 20 — resets back to page 1 on the next poll/refresh.
-  async function loadMoreApprovals() {
-    if (!nextCursor || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      const { data } = await getApprovals(nextCursor);
-      setApprovals((prev) => [...prev, ...(data?.items || []).map(fromBackend)]);
-      setNextCursor(data?.nextCursor || null);
-    } catch (e) {
-      console.error('Failed to load more approvals:', e.response?.data?.error || e.message);
-    } finally {
-      setLoadingMore(false);
-    }
+  function loadMoreApprovals() {
+    return loadMore(getApprovals, (items) => setApprovals((prev) => [...prev, ...items.map(fromBackend)]));
   }
 
   useEffect(() => {
@@ -100,7 +90,7 @@ export function ApprovalProvider({ children }) {
   }
 
   return (
-    <ApprovalContext.Provider value={{ approvals, loading, submitApproval, decide, refresh, hasMoreApprovals: Boolean(nextCursor), loadMoreApprovals, loadingMore, lastUpdated }}>
+    <ApprovalContext.Provider value={{ approvals, loading, submitApproval, decide, refresh, hasMoreApprovals: hasMore, loadMoreApprovals, loadingMore, lastUpdated }}>
       {children}
     </ApprovalContext.Provider>
   );

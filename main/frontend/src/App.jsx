@@ -74,6 +74,15 @@ const COORDINATOR_ROUTES = [
   { path: '/coordinator/projects/:projectId', element: <CoordinatorProjectDetail /> },
 ];
 
+// ponytail: every non-auth provider below already role-gates its own fetch
+// (e.g. AssetContext no-ops unless user.role is 'it'/'founder'), so an HR
+// user landing here triggers no wasted Asset/Render calls — but a role-gated
+// context still fetches on login even if that role never visits the one page
+// consuming it this session (an IT user lands on Dashboard, Asset Management
+// data loads anyway). Fixing that fully means moving each context's initial
+// refresh() from provider-mount to first-consumer-mount across 6 contexts
+// and every page that reads them — upgrade if login-time latency or read
+// volume actually becomes a problem, not preemptively.
 export default function App() {
   return (
     <AuthProvider>

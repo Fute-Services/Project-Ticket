@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { TICKET_STATUS_COLOR } from '../data/itMockData';
 import { useAuth } from './AuthContext';
 import { mergeByRecent, tagDept } from '../utils/tickets';
@@ -18,6 +19,7 @@ import {
   deleteHrComplaint,
 } from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
+import { useCursorPagination } from '../hooks/useCursorPagination';
 
 const TicketContext = createContext(null);
 
@@ -100,15 +102,14 @@ export function TicketProvider({ children }) {
   // and Employee's "My Tickets" stay whole-list — small/bounded lists,
   // pagination isn't worth the complexity there). nextCursor is null for
   // those roles, so loadMoreTickets is a no-op for them.
-  const [nextCursor, setNextCursor] = useState(null);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const { hasMore, loadingMore, setCursor, loadMore } = useCursorPagination();
   const [lastUpdated, setLastUpdated] = useState(null);
   const isSharedQueue = Boolean(user) && SHARED_QUEUE_ROLES.includes(user.role);
 
   const refresh = useCallback(async () => {
     if (!user) {
       setTickets([]);
-      setNextCursor(null);
+      setCursor(null);
       return;
     }
     setLoading(true);
@@ -133,33 +134,23 @@ export function TicketProvider({ children }) {
         rows = mergeByRecent(tagDept(it.data || [], 'IT'), tagDept(hr.data || [], 'HR'));
       }
       setTickets(rows.map(fromBackend));
-      setNextCursor(cursor);
+      setCursor(cursor);
       setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load tickets:', e.message);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, setCursor]);
 
   // Appends the next 20 to the existing list — resets back to page 1 on the
   // next poll/refresh, same as any other "Load More" list.
-  async function loadMoreTickets() {
-    if (!nextCursor || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      const isIt = user.role === 'it';
-      const { items, nextCursor: nc } = (isIt
-        ? (await getItComplaints(nextCursor)).data
-        : (await getHrComplaints(nextCursor)).data) || {};
-      const tagged = tagDept(items || [], isIt ? 'IT' : 'HR');
-      setTickets((prev) => [...prev, ...tagged.map(fromBackend)]);
-      setNextCursor(nc);
-    } catch (e) {
-      console.error('Failed to load more tickets:', e.message);
-    } finally {
-      setLoadingMore(false);
-    }
+  function loadMoreTickets() {
+    const isIt = user.role === 'it';
+    return loadMore(
+      (cursor) => (isIt ? getItComplaints(cursor) : getHrComplaints(cursor)),
+      (items) => setTickets((prev) => [...prev, ...tagDept(items, isIt ? 'IT' : 'HR').map(fromBackend)])
+    );
   }
 
   useEffect(() => {
@@ -241,10 +232,17 @@ export function TicketProvider({ children }) {
     const ticket = tickets.find((t) => t.id === id);
     if (!ticket) return;
 
-    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
-
+    // Check editability BEFORE touching local state — this used to apply
+    // the edit to the UI first and only then bail out, so a field not valid
+    // for that ticket's department showed the edited value right up until
+    // the next refresh/poll silently reverted it, with no error shown.
     const allowed = EDITABLE_FIELDS[ticket._collection] || [];
-    if (!allowed.includes(field)) return;
+    if (!allowed.includes(field)) {
+      toast.error(`"${field}" can't be edited on this ticket`);
+      return;
+    }
+
+    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
 
     try {
       const updateFn = ticket._collection === 'hr' ? updateHrFields : updateItFields;
@@ -276,7 +274,7 @@ export function TicketProvider({ children }) {
   }
 
   return (
-    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, deleteTicket, refresh, hasMoreTickets: Boolean(nextCursor), loadMoreTickets, loadingMore, lastUpdated, isSharedQueue }}>
+    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, deleteTicket, refresh, hasMoreTickets: hasMore, loadMoreTickets, loadingMore, lastUpdated, isSharedQueue }}>
       {children}
     </TicketContext.Provider>
   );

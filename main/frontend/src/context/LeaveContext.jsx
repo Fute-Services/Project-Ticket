@@ -72,6 +72,10 @@ export function LeaveProvider({ children }) {
       setLeaveRequests((rows) => [data, ...rows]);
     } catch (e) {
       console.error('Failed to apply for leave:', e.response?.data?.error || e.message);
+      // Rethrow (matching addTicket/submitApproval's convention) so a caller
+      // awaiting this can show its own failure state instead of a false
+      // success — swallowing it here made the caller's .then() run either way.
+      throw e;
     }
   }
 

@@ -8,6 +8,7 @@ import {
   updateTask as updateTaskApi,
 } from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
+import { useCursorPagination } from '../hooks/useCursorPagination';
 
 const TaskProjectContext = createContext(null);
 
@@ -29,16 +30,15 @@ export function TaskProjectProvider({ children }) {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [nextCursor, setNextCursor] = useState(null);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const { hasMore, loadingMore, setCursor, loadMore } = useCursorPagination();
   const isSharedBoard = Boolean(user) && SHARED_BOARD_ROLES.includes(user.role);
 
   const refresh = useCallback(async () => {
     if (!user || !['employee', 'coordinator', 'founder'].includes(user.role)) {
       setTasks([]);
       setProjects([]);
-      setNextCursor(null);
+      setCursor(null);
       return;
     }
     setLoading(true);
@@ -49,7 +49,7 @@ export function TaskProjectProvider({ children }) {
       // to empty rather than let `undefined` propagate into .filter/.map
       // and crash the whole dashboard.
       setTasks(taskRes.data?.items || []);
-      setNextCursor(taskRes.data?.nextCursor || null);
+      setCursor(taskRes.data?.nextCursor || null);
       setProjects(projectRes.data || []);
       setLastUpdated(new Date().toISOString());
     } catch (e) {
@@ -57,21 +57,11 @@ export function TaskProjectProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, setCursor]);
 
   // Appends the next 20 tasks — resets back to page 1 on the next poll/refresh.
-  async function loadMoreTasks() {
-    if (!nextCursor || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      const { data } = await getTasks(nextCursor);
-      setTasks((prev) => [...prev, ...(data?.items || [])]);
-      setNextCursor(data?.nextCursor || null);
-    } catch (e) {
-      console.error('Failed to load more tasks:', e.response?.data?.error || e.message);
-    } finally {
-      setLoadingMore(false);
-    }
+  function loadMoreTasks() {
+    return loadMore(getTasks, (items) => setTasks((prev) => [...prev, ...items]));
   }
 
   useEffect(() => {
@@ -126,7 +116,7 @@ export function TaskProjectProvider({ children }) {
 
   return (
     <TaskProjectContext.Provider
-      value={{ tasks, projects, loading, addTask, moveTask, updateTask, toggleComplete, refresh, hasMoreTasks: Boolean(nextCursor), loadMoreTasks, loadingMore, lastUpdated, isSharedBoard }}
+      value={{ tasks, projects, loading, addTask, moveTask, updateTask, toggleComplete, refresh, hasMoreTasks: hasMore, loadMoreTasks, loadingMore, lastUpdated, isSharedBoard }}
     >
       {children}
     </TaskProjectContext.Provider>

@@ -143,7 +143,14 @@ export default function DataTable<T extends Record<string, any>>({
     <div className="flex flex-col gap-3">
       {searchBox}
 
-      {/* Table for md+ */}
+      {/* Table for md+. Both this and the card list below always render,
+          switched purely by CSS (`hidden md:block`/`md:hidden`) rather than
+          a matchMedia check — a deliberate tradeoff: this is a CSR-only SPA
+          (no SSR/hydration to mismatch), rows are already paginated to
+          `pageSize` (10 by default) before either layout renders, and a
+          resize-driven remount would need its own edge-case handling for
+          marginal gain at that row count. Revisit if pageSize grows large or
+          row `render()` cells get expensive. */}
       <div className="hidden md:block overflow-auto rounded-md border border-border" style={{ maxHeight }}>
         <table className="w-full text-left text-sm border-collapse">
           <thead className="sticky top-0 z-10 bg-muted">
