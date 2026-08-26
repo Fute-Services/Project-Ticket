@@ -1,5 +1,10 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getMe, logoutUser } from '../utils/api';
+import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
+
+// Keeps a logged-in user's role/permissionOverrides current (a Super Admin
+// can change these mid-session) without requiring a manual page refresh.
+const POLL_MS = 15 * 1000;
 
 const AuthContext = createContext(null);
 
@@ -61,30 +66,40 @@ export function AuthProvider({ children }) {
     setUser(session.user);
     setToken(session.token);
     setLoading(false);
+  }, []);
 
-    // Best-effort refresh: a founder may have changed this user's role/
-    // permissionOverrides since they last logged in, and the cached copy in
-    // storage can't know that on its own. Never blocks the initial render,
-    // and silently keeps the cached session on any failure (offline, no
-    // backend configured) — same tolerance the login flow already has.
+  // Best-effort refresh: a founder/super admin may have changed this user's
+  // role/permissionOverrides since they last logged in (or 15s ago), and the
+  // cached copy in storage can't know that on its own. Never blocks
+  // rendering, and silently keeps the current session on any failure
+  // (offline, no backend configured) — same tolerance the login flow already
+  // had when this only ran once on mount.
+  const refreshSelf = useCallback(() => {
+    const session = readSession();
+    if (!session) return;
     const store = localStorage.getItem('fute_user') ? localStorage : sessionStorage;
-    function persist(freshUser) {
-      setUser(freshUser);
-      store.setItem('fute_user', JSON.stringify(freshUser));
-    }
-
     getMe()
       .then(({ data }) => {
         const empId = data.employee_id || data.employeeId || session.user.employee_id || session.user.employeeId || '';
-        persist({
+        const freshUser = {
           ...session.user,
           ...data,
           employee_id: empId,
           employeeId: empId,
-        });
+        };
+        setUser(freshUser);
+        store.setItem('fute_user', JSON.stringify(freshUser));
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (token) refreshSelf();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-fire on
+    // a real login/logout, not on every refreshSelf re-creation
+  }, [token]);
+
+  useVisibilityAwarePolling(refreshSelf, POLL_MS, Boolean(token));
 
   function login(userData, jwt, remember = true) {
     const empId = userData.employee_id || userData.employeeId || '';
