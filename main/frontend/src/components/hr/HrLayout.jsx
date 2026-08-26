@@ -3,9 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../context/PermissionsContext';
 import { useTickets } from '../../context/TicketContext';
-import { useLeave, isFounderApproval } from '../../context/LeaveContext';
 import { useHrDesk } from '../../context/HrDeskContext';
-import { relativeTime } from '../../utils/tickets';
+import { useHrNotifications } from '../../hooks/useHrNotifications';
 import {
   Users2,
   LayoutGrid,
@@ -63,7 +62,6 @@ export default function HrLayout({ children }) {
   const [dateRangeLabel, setDateRangeLabel] = useState('Today');
   const { employees, candidates, interviews } = useHrDesk();
   const { tickets } = useTickets();
-  const { leaveRequests } = useLeave();
 
   const searchIndex = useMemo(
     () => buildSearchIndex({ employees, candidates, interviews, tickets }),
@@ -86,39 +84,10 @@ export default function HrLayout({ children }) {
     setMobileNavOpen(false);
   }
 
-  // Real events instead of seeded mock notifications — anything HR still
-  // needs to act on: tickets nobody's started yet, leave requests still
-  // awaiting a decision. There's no persisted "read" state for either kind
-  // (no backend model for it), so "unread" here just means "still pending" —
-  // it clears itself the moment the ticket/leave request is actually handled.
-  const notifications = useMemo(() => {
-    const ticketNotifs = tickets
-      .filter((t) => t.status === 'Open')
-      .map((t) => ({
-        id: `ticket-${t.id}`,
-        text: `New ticket from ${t.user || 'someone'}: ${t.title}`,
-        time: relativeTime(t.submittedAt),
-        at: t.submittedAt,
-        unread: true,
-        path: '/hr/tickets',
-      }));
-    const leaveNotifs = leaveRequests
-      // Admin/Ops and IT leave routes to the Founder to decide, not HR (see
-      // isFounderApproval) — surfacing it here would look actionable when
-      // HR actually can't do anything with it.
-      .filter((l) => l.status === 'Pending' && !isFounderApproval(l.department))
-      .map((l) => ({
-        id: `leave-${l.id}`,
-        text: `Leave request from ${l.employee || 'someone'} awaiting approval`,
-        time: relativeTime(l.submitted_at),
-        at: l.submitted_at,
-        unread: true,
-        path: '/hr/approvals',
-      }));
-    return [...ticketNotifs, ...leaveNotifs]
-      .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
-      .slice(0, 20);
-  }, [tickets, leaveRequests]);
+  // Real, live events (ticket/leave/approval activity) — see useHrNotifications
+  // for what counts as "unread" and why. Shared with Overview.jsx's
+  // Notifications stat card so both show the exact same live count.
+  const notifications = useHrNotifications();
   const unreadCount = notifications.length;
 
   const { canAccess } = usePermissions();

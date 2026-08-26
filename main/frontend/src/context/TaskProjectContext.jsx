@@ -57,7 +57,12 @@ export function TaskProjectProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [user, setCursor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on
+    // id/role (stable primitives), not the `user` object itself, which
+    // AuthContext replaces with a new reference on every login-state
+    // refresh even when the actual user hasn't changed — depending on the
+    // object caused this refresh to needlessly refire and duplicate reads.
+  }, [user?.id, user?.role, setCursor]);
 
   // Appends the next 20 tasks — resets back to page 1 on the next poll/refresh.
   function loadMoreTasks() {

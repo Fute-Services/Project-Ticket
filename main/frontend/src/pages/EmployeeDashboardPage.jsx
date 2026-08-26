@@ -5,6 +5,7 @@ import { useTaskProject } from '../context/TaskProjectContext';
 import ItDeskLayout from '../components/ItDeskLayout';
 import NewItTicketModal from '../components/NewItTicketModal';
 import NewHrTicketModal from '../components/NewHrTicketModal';
+import { issueTitle } from '../components/TicketsQueueView';
 import DataTable from '../components/DataTable';
 import { Card, SectionHeader, StatCard, Badge, Drawer, RefreshBar } from '../components/ui';
 import { Plus, UserPlus, Search, X, Eye, Trash2 } from 'lucide-react';
@@ -180,7 +181,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
               key: 'title',
               label: 'Issue',
               width: '150px',
-              render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{t.description || t.title}</span>,
+              render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{issueTitle(t)}</span>,
             },
             {
               key: 'status',
@@ -353,6 +354,23 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
               <div className="text-muted-foreground font-semibold mb-0.5">Remarks</div>
               <div className="text-foreground">{detailsTicket.remarks || 'No remarks yet'}</div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!window.confirm(`Delete ticket ${detailsTicket.token || ''}? This can't be undone.`)) return;
+                onDelete(detailsTicket.id)
+                  .then(() => {
+                    toast.success('Ticket deleted');
+                    setDetailsTicket(null);
+                  })
+                  .catch(() => toast.error('Could not delete ticket'));
+              }}
+              className="flex items-center justify-center gap-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 font-semibold text-xs rounded-xl px-3.5 py-2.5 transition-colors cursor-pointer"
+            >
+              <Trash2 size={14} />
+              Delete Ticket
+            </button>
           </div>
         )}
       </Drawer>
@@ -650,7 +668,7 @@ export default function EmployeeDashboardPage() {
                   key: 'title',
                   label: 'Issue',
                   width: '150px',
-                  render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{t.description || t.title}</span>,
+                  render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{issueTitle(t)}</span>,
                 },
                 {
                   key: 'status',
@@ -854,6 +872,23 @@ export default function EmployeeDashboardPage() {
               <div className="text-muted-foreground font-semibold mb-0.5">Remarks</div>
               <div className="text-foreground">{detailsTicket.remarks || 'No remarks yet'}</div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!window.confirm(`Delete ticket ${detailsTicket.token || ''}? This can't be undone.`)) return;
+                deleteTicket(detailsTicket.id)
+                  .then(() => {
+                    toast.success('Ticket deleted');
+                    setDetailsTicket(null);
+                  })
+                  .catch(() => toast.error('Could not delete ticket'));
+              }}
+              className="flex items-center justify-center gap-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 font-semibold text-xs rounded-xl px-3.5 py-2.5 transition-colors cursor-pointer"
+            >
+              <Trash2 size={14} />
+              Delete Ticket
+            </button>
           </div>
         )}
       </Drawer>

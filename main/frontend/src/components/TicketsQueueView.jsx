@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import ItDatePicker from './ItDatePicker';
 import DataTable from './DataTable';
 import { Drawer } from './ui';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from './ui/select';
 import { Search, X, Eye, CheckSquare, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 // Requests raised through NewHrTicketModal combine its separate Title +
@@ -11,7 +12,7 @@ import { Search, X, Eye, CheckSquare, CheckCircle2, XCircle, Clock } from 'lucid
 // title column of its own). The Issue column shows only the title part for
 // HR so the queue stays scannable; the drawer below still shows the full
 // combined text via `description`.
-function issueTitle(t) {
+export function issueTitle(t) {
   const full = t.description || t.title || '';
   const sep = full.indexOf(': ');
   return sep === -1 ? full : full.slice(0, sep);
@@ -31,6 +32,54 @@ function findApproval(approvals, ticketId) {
 
 export const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
+// IT still resolves tickets by team; HR resolves them by person — Prajna H.S
+// is HR's actual staff name for now, "Unassigned" is the default until
+// someone picks it up.
+const SOLVER_OPTIONS_BY_DEPT = {
+  HR: ['Unassigned', 'Prajna H.S'],
+  IT: ['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Unassigned'],
+};
+const DEFAULT_SOLVER_BY_DEPT = { HR: 'Unassigned', IT: 'Team 1' };
+
+// A Radix Select (not a native `<select>`) so the OPEN dropdown panel can be
+// fully skinned too — a native `<option>` list ignores almost all CSS, so
+// getting a matching black-and-orange popover (rounded corners, shadow,
+// hover/selected highlight) needs a real custom listbox, not just a styled
+// trigger. Trigger is a graphite gradient "soft UI" control that presses
+// inward on focus; the panel below picks up the same palette.
+const DEFAULT_TEXT_COLOR = 'text-orange-400 hover:text-orange-300 [&>svg]:text-orange-400';
+
+// `textColorClass` lets a caller override just the value/icon color (e.g.
+// Attendance.jsx wants green for "Present" and red for "Absent") while
+// keeping the shared graphite surface, border, and shadows identical.
+// `options` accepts plain strings (value === label, e.g. ticket statuses) or
+// `{ value, label }` objects for when the id shown to the backend isn't what
+// should render (e.g. an employee's id vs. their name).
+export function ColorSelect({ value, onChange, options, ariaLabel, textColorClass = DEFAULT_TEXT_COLOR }) {
+  const normalized = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger
+        aria-label={ariaLabel}
+        className={`h-auto w-full pl-3 pr-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide bg-gradient-to-b from-[#232323] to-[#101010] border border-orange-500/20 shadow-[0_2px_4px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all cursor-pointer hover:border-orange-500/45 focus:outline-none focus:border-orange-500/70 focus:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.85),inset_-1px_-1px_3px_rgba(255,140,40,0.08)] focus:ring-0 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-100 ${textColorClass}`}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className="min-w-[--radix-select-trigger-width] bg-gradient-to-b from-[#1e1e1e] to-[#0d0d0d] border border-orange-500/25 shadow-[0_10px_28px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.04)] rounded-xl p-1">
+        {normalized.map((o) => (
+          <SelectItem
+            key={o.value}
+            value={o.value}
+            className="text-orange-200/90 text-xs font-semibold uppercase tracking-wide rounded-lg py-1.5 pl-2.5 cursor-pointer focus:bg-orange-500/15 focus:text-orange-300 data-[state=checked]:bg-orange-500/20 data-[state=checked]:text-orange-300"
+          >
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 // Shared by every department's Tickets Queue (IT's DashboardPage, HR's
 // pages/hr/Tickets.jsx) so they stay pixel-identical instead of drifting
 // into slightly different tables. `deptLabel` only changes the status
@@ -38,6 +87,8 @@ export const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Reso
 // everything else (search, filters, drawer) is department-agnostic since
 // TicketContext already normalizes both collections to the same shape.
 export default function TicketsQueueView({ tickets, onStatusChange, onFieldChange, deptLabel = 'IT', showVpnNo = deptLabel === 'IT', showOnlyTitle = deptLabel === 'HR', approvals, showApprovalsColumn = Boolean(approvals), hasMoreTickets, loadMoreTickets, loadingMoreTickets }) {
+  const solverOptions = SOLVER_OPTIONS_BY_DEPT[deptLabel] || SOLVER_OPTIONS_BY_DEPT.IT;
+  const defaultSolver = DEFAULT_SOLVER_BY_DEPT[deptLabel] || DEFAULT_SOLVER_BY_DEPT.IT;
   const { user } = useAuth();
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -186,16 +237,12 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
               label: `${deptLabel} Dept Status`,
               width: '135px',
               render: (t) => (
-                <select
+                <ColorSelect
                   value={t.status}
-                  onChange={(e) => onStatusChange(t.id, e.target.value)}
-                  aria-label={`${deptLabel} Status for ticket ${t.token || t.id}`}
-                  className="w-full bg-muted border border-border rounded-lg px-1.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-                >
-                  {TICKET_STATUSES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                  onChange={(value) => onStatusChange(t.id, value)}
+                  options={TICKET_STATUSES}
+                  ariaLabel={`${deptLabel} Status for ticket ${t.token || t.id}`}
+                />
               ),
             },
             {
@@ -228,16 +275,12 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
               label: 'Resolved By',
               width: '110px',
               render: (t) => (
-                <select
-                  value={t.solver || 'Team 1'}
-                  onChange={(e) => onFieldChange && onFieldChange(t.id, 'solver', e.target.value)}
-                  aria-label={`Resolved by for ticket ${t.token || t.id}`}
-                  className="w-full bg-muted/70 border border-border rounded-lg px-1.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-                >
-                  {['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Unassigned'].map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                <ColorSelect
+                  value={t.solver || defaultSolver}
+                  onChange={(value) => onFieldChange && onFieldChange(t.id, 'solver', value)}
+                  options={solverOptions}
+                  ariaLabel={`Resolved by for ticket ${t.token || t.id}`}
+                />
               ),
             },
             {
@@ -406,7 +449,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
 
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">Resolved By</div>
-                <div className="font-semibold text-foreground">{detailsTicket.solver || 'Team 1'}</div>
+                <div className="font-semibold text-foreground">{detailsTicket.solver || defaultSolver}</div>
               </div>
 
               {showVpnNo && (

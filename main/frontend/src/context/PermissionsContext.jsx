@@ -126,7 +126,12 @@ export function PermissionsProvider({ children }) {
     } catch (e) {
       console.error('Failed to load role permissions:', e.response?.data?.error || e.message);
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on user id
+    // (a stable primitive), not the `user` object itself, which AuthContext
+    // replaces with a new reference on every login-state refresh even when
+    // the actual user hasn't changed — depending on the object caused this
+    // refresh to needlessly refire and duplicate the network request.
+  }, [user?.id]);
 
   useEffect(() => {
     refresh();

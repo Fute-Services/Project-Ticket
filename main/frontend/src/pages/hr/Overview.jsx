@@ -5,7 +5,8 @@ import { Card, SectionHeader, StatCard, Badge } from '../../components/ui';
 import DonutChart from '../../components/DonutChart';
 import { useTickets } from '../../context/TicketContext';
 import { useHrDesk } from '../../context/HrDeskContext';
-import { notifications, CANDIDATE_STAGES } from '../../data/hrMockData';
+import { useHrNotifications } from '../../hooks/useHrNotifications';
+import { CANDIDATE_STAGES } from '../../data/hrMockData';
 
 const TODAY = '2026-08-06';
 
@@ -57,6 +58,7 @@ export default function HrOverview() {
   const navigate = useNavigate();
   const { tickets } = useTickets();
   const { employees, candidates, interviews, attendanceRecords } = useHrDesk();
+  const notifications = useHrNotifications();
 
   const activeEmployees = employees.filter((e) => e.status === 'Active').length;
   const interviewsToday = interviews.filter((i) => i.date === TODAY && i.status === 'Scheduled').length;

@@ -141,7 +141,12 @@ export function TicketProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [user, setCursor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on
+    // id/role (stable primitives), not the `user` object itself, which
+    // AuthContext replaces with a new reference on every login-state
+    // refresh even when the actual user hasn't changed — depending on the
+    // object caused this refresh to needlessly refire and duplicate reads.
+  }, [user?.id, user?.role, setCursor]);
 
   // Appends the next 20 to the existing list — resets back to page 1 on the
   // next poll/refresh, same as any other "Load More" list.
@@ -180,6 +185,8 @@ export function TicketProvider({ children }) {
           name,
           role: ticketRole,
           department: req.department || user?.department || ticketRole,
+          category: req.category || 'General',
+          sub_category: req.subcategory || req.sub_category || 'General',
           description,
           complaint_date: new Date().toISOString().slice(0, 10),
           priority: req.priority || 'Medium',

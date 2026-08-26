@@ -143,7 +143,7 @@ function createComplaintController(opts) {
       priority,
       employeeId: resolvedEmployeeId,
       employeeStatus: 'Active',
-      solver: 'Team 1',
+      solver: opts.defaultSolver || 'Team 1',
       remarks: '',
       status: 'Pending',
       updated_at: submitted_at,
@@ -298,7 +298,21 @@ function createComplaintController(opts) {
       return res.status(403).json({ error: 'Forbidden: you can only delete your own ticket' });
     }
 
-    await docRef.delete();
+    const batch = db.batch();
+    batch.delete(docRef);
+
+    // A ticket sent for approval leaves a linked approvals/{id} record
+    // behind (complaintRef, set in updateStatus above) — without this, the
+    // Founder's Approval Center would keep showing (and letting someone
+    // decide on) an approval for a ticket that no longer exists.
+    const linkedApprovals = await db
+      .collection('approvals')
+      .where('complaintRef.collection', '==', opts.collectionName)
+      .where('complaintRef.id', '==', id)
+      .get();
+    linkedApprovals.docs.forEach((d) => batch.delete(d.ref));
+
+    await batch.commit();
     res.json({ id, deleted: true });
   }
 

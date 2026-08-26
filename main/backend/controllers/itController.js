@@ -24,7 +24,7 @@ module.exports = createComplaintController({
   },
   buildApprovalRecord: (data, previousStatus, id) => ({
     source: 'IT',
-    title: `${data.category} — ${data.sub_category}`,
+    title: `${data.category} - ${data.sub_category}`,
     sub: data.description,
     requestedBy: data.name,
     priority: data.priority,

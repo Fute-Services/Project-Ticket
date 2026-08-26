@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, StatCard, EmptyState } from '../../components/ui';
 import DataTable from '../../components/DataTable';
 import { Users2, UserCheck, UserX, Clock3 } from 'lucide-react';
 import { ATTENDANCE_STATUSES } from '../../data/hrMockData';
 import { useHrDesk } from '../../context/HrDeskContext';
+import { attendanceApi } from '../../utils/api';
+import { ColorSelect } from '../../components/TicketsQueueView';
+
+const ATTENDANCE_MARK_OPTIONS = ['Present', 'Absent'];
 
 const DOT_COLOR = {
   Present: 'bg-primary',
@@ -31,7 +36,7 @@ function formatHours(hours) {
 }
 
 export default function Attendance() {
-  const { employees, attendanceRecords } = useHrDesk();
+  const { employees, attendanceRecords, setAttendanceRecords } = useHrDesk();
   // '' rather than null — a controlled <select>'s value must be a string
   // (React warns on null: "should not be null, use '' or undefined instead").
   const [selectedEmployee, setSelectedEmployee] = useState('');
@@ -40,12 +45,15 @@ export default function Attendance() {
     setSelectedEmployee((s) => s || employees[0]?.id || '');
   }, [employees]);
 
-  // Derived from the records rather than hardcoded. A fixed date drifts out of
-  // the data's range the moment the seed changes, and when it does every row
-  // reads "No record", the five stat cards all show 0, and sorting the check-in
-  // /check-out/hours columns does nothing because every value is identical.
+  // The real current date — marking someone present/absent always writes
+  // against today, not whatever date happens to be the most recent one
+  // already sitting in seeded/historical records.
+  const TODAY = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  // History strip below still spans every date actually present in the
+  // records (seeded history + whatever's been marked so far) — a fixed date
+  // range drifts out of the data the moment the seed changes.
   const MONTH_DATES = useMemo(() => [...new Set(attendanceRecords.map((a) => a.date))].sort(), [attendanceRecords]);
-  const TODAY = MONTH_DATES[MONTH_DATES.length - 1];
 
   // One flat row per employee, with today's record merged in. Flattening the
   // join here (rather than pairing two arrays by index at render time) is what
@@ -67,6 +75,37 @@ export default function Attendance() {
     [employees, attendanceRecords, TODAY]
   );
 
+  // Present/Absent dropdown upserts today's record: PATCH the existing one
+  // if this employee already has a row for today (e.g. flipping a mistaken
+  // mark), otherwise POST a fresh one. Both write through the same
+  // `attendance` collection the Monthly Report history below already reads,
+  // so a mark shows up there immediately via the local state update — no
+  // separate "history" plumbing needed.
+  async function markAttendance(employeeId, status) {
+    const existing = attendanceRecords.find((a) => a.employeeId === employeeId && a.date === TODAY);
+    try {
+      if (existing) {
+        const { data } = await attendanceApi.update(existing.id, {
+          status,
+          checkIn: status === 'Present' ? (existing.checkIn && existing.checkIn !== '-' ? existing.checkIn : new Date().toTimeString().slice(0, 5)) : '-',
+          checkOut: status === 'Present' ? existing.checkOut : '-',
+        });
+        setAttendanceRecords((prev) => prev.map((a) => (a.id === existing.id ? { ...a, ...data } : a)));
+      } else {
+        const { data } = await attendanceApi.create({
+          employeeId,
+          date: TODAY,
+          status,
+          checkIn: status === 'Present' ? new Date().toTimeString().slice(0, 5) : '-',
+          checkOut: '-',
+        });
+        setAttendanceRecords((prev) => [...prev, data]);
+      }
+    } catch (e) {
+      toast.error('Could not update attendance', { description: e.response?.data?.error || e.message });
+    }
+  }
+
   const counts = useMemo(() => {
     const c = { Present: 0, Absent: 0, Late: 0, 'Half Day': 0, 'Work From Home': 0 };
     todayRows.forEach((r) => {
@@ -79,10 +118,10 @@ export default function Attendance() {
 
   return (
     <HrLayout>
-      <div className="flex flex-col gap-6 max-w-[1600px] mx-auto">
-        <SectionHeader title="Attendance Management" subtitle={`Snapshot for ${TODAY}`} />
+      <div className="flex flex-col gap-2 max-w-[1600px] mx-auto">
+        <h1 className="text-base font-semibold text-foreground tracking-tight">Attendance Management</h1>
 
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
           <StatCard icon={Users2} label="Total" value={employees.length} accent="#e86024" />
           <StatCard icon={UserCheck} label="Present" value={counts.Present} accent="#22c55e" />
           <StatCard icon={UserX} label="Absent" value={counts.Absent} accent="#ef4444" />
@@ -90,11 +129,13 @@ export default function Attendance() {
           <StatCard icon={Users2} label="WFH" value={counts['Work From Home']} accent="#a855f7" />
         </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 items-start">
         <Card>
           <SectionHeader title="Today's Attendance" subtitle={TODAY} />
           <DataTable
             rows={todayRows}
-            pageSize={10}
+            pageSize={6}
+            maxHeight="none"
             emptyMessage="No employees on record yet."
             columns={[
               { key: 'name', label: 'Employee', render: (r) => <span className="font-bold text-foreground">{r.name}</span> },
@@ -102,14 +143,23 @@ export default function Attendance() {
               { key: 'checkIn', label: 'Check In', render: (r) => <span className="text-muted-foreground">{r.checkIn}</span> },
               { key: 'checkOut', label: 'Check Out', render: (r) => <span className="text-muted-foreground">{r.checkOut}</span> },
               {
-                key: 'hours',
-                label: 'Working Hours',
-                render: (r) => <span className="text-muted-foreground font-semibold">{formatHours(r.hours)}</span>,
-              },
-              {
                 key: 'status',
-                label: 'Status',
-                render: (r) => (r.status ? <Badge value={r.status} /> : <span className="text-muted-foreground">No record</span>),
+                label: 'Present / Absent',
+                sortable: false,
+                width: '150px',
+                render: (r) => (
+                  <ColorSelect
+                    value={r.status || 'Absent'}
+                    onChange={(value) => markAttendance(r.id, value)}
+                    options={ATTENDANCE_MARK_OPTIONS}
+                    ariaLabel={`Mark attendance for ${r.name}`}
+                    textColorClass={
+                      (r.status || 'Absent') === 'Present'
+                        ? 'text-emerald-500 hover:text-emerald-400 [&>svg]:text-emerald-500'
+                        : 'text-red-500 hover:text-red-400 [&>svg]:text-red-500'
+                    }
+                  />
+                ),
               },
             ]}
           />
@@ -122,16 +172,14 @@ export default function Attendance() {
               employeeHistory.reduce((sum, r) => sum + (workingHours(r) || 0), 0)
             )} total`}
             action={
-              <select
-                aria-label="Show monthly attendance for employee"
-                value={selectedEmployee}
-                onChange={(e) => setSelectedEmployee(e.target.value)}
-                className="bg-muted border border-border rounded-xl px-3 py-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-              >
-                {employees.map((e) => (
-                  <option key={e.id} value={e.id}>{e.name}</option>
-                ))}
-              </select>
+              <div className="w-48">
+                <ColorSelect
+                  value={selectedEmployee}
+                  onChange={setSelectedEmployee}
+                  options={employees.map((e) => ({ value: e.id, label: e.name }))}
+                  ariaLabel="Show monthly attendance for employee"
+                />
+              </div>
             }
           />
 
@@ -166,14 +214,15 @@ export default function Attendance() {
               ))}
             </div>
           )}
-        </Card>
 
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-          {ATTENDANCE_STATUSES.map((s) => (
-            <div key={s} className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${DOT_COLOR[s]}`} /> {s}
-            </div>
-          ))}
+          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-5 pt-4 border-t border-border">
+            {ATTENDANCE_STATUSES.map((s) => (
+              <div key={s} className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${DOT_COLOR[s]}`} /> {s}
+              </div>
+            ))}
+          </div>
+        </Card>
         </div>
       </div>
     </HrLayout>

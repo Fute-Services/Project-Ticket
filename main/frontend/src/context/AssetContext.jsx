@@ -36,7 +36,12 @@ export function AssetProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on
+    // id/role (stable primitives), not the `user` object itself, which
+    // AuthContext replaces with a new reference on every login-state
+    // refresh even when the actual user hasn't changed — depending on the
+    // object caused this refresh to needlessly refire and duplicate reads.
+  }, [user?.id, user?.role]);
 
   useEffect(() => {
     refresh();
