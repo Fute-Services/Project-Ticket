@@ -99,10 +99,9 @@ function toBackend(permissions) {
   return serializable;
 }
 
-// Read-only nav config that changes rarely (only when a founder toggles a
-// page) — a long interval is fine since refresh() also fires immediately on
-// mount and on regaining tab visibility (useVisibilityAwarePolling).
-const POLL_MS = 5 * 60 * 1000;
+// Short interval so a permission change made by Super Admin on one device
+// shows up for everyone else without needing a manual page refresh.
+const POLL_MS = 15 * 1000;
 
 const PermissionsContext = createContext(null);
 
