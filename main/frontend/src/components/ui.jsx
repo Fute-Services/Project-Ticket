@@ -37,7 +37,9 @@ const STATUS_COLORS = {
   'Final Interview': 'bg-primary/10 text-primary border-primary/20',
   'Offer Sent': 'bg-primary/10 text-primary dark:text-primary border-primary/20',
   Joined: 'bg-primary/15 text-primary dark:text-primary border-primary/30',
+  'Offer Declined': 'bg-destructive/10 text-destructive dark:text-destructive border-destructive/20',
   Rejected: 'bg-destructive/10 text-destructive dark:text-destructive border-destructive/20',
+  'On Hold': 'bg-warning/10 text-warning dark:text-warning border-warning/20',
   // Interview / meeting statuses
   Scheduled: 'bg-muted/10 text-muted-foreground dark:text-muted-foreground border-muted/20',
   Completed: 'bg-primary/10 text-primary dark:text-primary border-primary/20',

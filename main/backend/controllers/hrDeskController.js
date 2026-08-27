@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { Timestamp } = require('firebase-admin').firestore;
 const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { sendMail, escapeHtml } = require('../utils/mailer');
 
@@ -39,11 +40,29 @@ async function getSentEmails(req, res) {
   res.json(rows);
 }
 
+// Firestore Timestamp fields (e.g. candidates.appliedOn) come back from
+// `.data()` as Timestamp instances, which JSON.stringify mangles into a raw
+// {_seconds,_nanoseconds} object — convert them to ISO strings so API
+// responses stay plain JSON.
+function serializeDoc(data) {
+  const out = {};
+  for (const [key, value] of Object.entries(data)) {
+    out[key] = value && typeof value.toDate === 'function' ? value.toDate().toISOString() : value;
+  }
+  return out;
+}
+
 // Six HR sub-resources (Candidates, Interviews, Meetings, Attendance,
 // Feedback, Job postings) share the same shape of CRUD — list/create/
 // update/delete against one Firestore collection, no cross-resource logic —
-// so one factory replaces six near-identical controllers.
-function makeCrud(collectionName, requiredFields, editableFields) {
+// so one factory replaces six near-identical controllers. `options.transforms`
+// converts a field's incoming value before it's stored (e.g. a date string
+// into a Firestore Timestamp); `options.trackUpdatedBy` stamps who made the
+// change; `options.afterWrite` runs a side effect after a create/update
+// (e.g. candidates.nextInterview needs updating whenever an interview is
+// scheduled) without pulling that cross-resource logic into every resource.
+function makeCrud(collectionName, requiredFields, editableFields, options = {}) {
+  const { transforms = {}, trackUpdatedBy = false, afterWrite } = options;
   const collection = db.collection(collectionName);
 
   async function list(req, res) {
@@ -55,7 +74,7 @@ function makeCrud(collectionName, requiredFields, editableFields) {
     // keeps the same bounded read (.limit(UNPAGINATED_READ_LIMIT)) without excluding anyone —
     // docs with no created_at just sort to the end instead of vanishing.
     const snap = await collection.limit(UNPAGINATED_READ_LIMIT).get();
-    const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const rows = snap.docs.map((d) => ({ id: d.id, ...serializeDoc(d.data()) }));
     rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     res.json(rows);
   }
@@ -65,11 +84,13 @@ function makeCrud(collectionName, requiredFields, editableFields) {
       if (!req.body[field]) return res.status(400).json({ error: `${field} is required` });
     }
     const docData = { created_at: new Date().toISOString() };
+    if (trackUpdatedBy) docData.lastUpdatedBy = req.user.full_name;
     for (const key of editableFields) {
-      if (req.body[key] !== undefined) docData[key] = req.body[key];
+      if (req.body[key] !== undefined) docData[key] = transforms[key] ? transforms[key](req.body[key]) : req.body[key];
     }
     const docRef = await collection.add(docData);
-    res.status(201).json({ id: docRef.id, ...docData });
+    if (afterWrite) await afterWrite(docData);
+    res.status(201).json({ id: docRef.id, ...serializeDoc(docData) });
   }
 
   async function update(req, res) {
@@ -79,11 +100,14 @@ function makeCrud(collectionName, requiredFields, editableFields) {
     if (!doc.exists) return res.status(404).json({ error: 'Not found' });
 
     const updates = { updated_at: new Date().toISOString() };
+    if (trackUpdatedBy) updates.lastUpdatedBy = req.user.full_name;
     for (const key of editableFields) {
-      if (req.body[key] !== undefined) updates[key] = req.body[key];
+      if (req.body[key] !== undefined) updates[key] = transforms[key] ? transforms[key](req.body[key]) : req.body[key];
     }
     await docRef.update(updates);
-    res.json({ id, ...doc.data(), ...updates });
+    const merged = { ...doc.data(), ...updates };
+    if (afterWrite) await afterWrite(merged);
+    res.json({ id, ...serializeDoc(merged) });
   }
 
   async function remove(req, res) {
@@ -98,16 +122,32 @@ function makeCrud(collectionName, requiredFields, editableFields) {
   return { list, create, update, remove };
 }
 
+// Keeps candidates.nextInterview (the denormalized summary used by the
+// candidates list view, so it doesn't need a per-candidate interviews query)
+// in sync whenever an interview is scheduled/rescheduled. Best-effort: a
+// missing/deleted candidate shouldn't fail the interview write itself.
+async function syncNextInterview(interview) {
+  if (!interview.candidateId || interview.status === 'Cancelled') return;
+  await db
+    .collection('candidates')
+    .doc(interview.candidateId)
+    .update({ nextInterview: { date: interview.date, type: interview.type, interviewer: interview.interviewer } })
+    .catch(() => {});
+}
+
 module.exports = {
   sendEmail,
   getSentEmails,
   employees: makeCrud('employees', ['name', 'department'],
     ['name', 'department', 'designation', 'status', 'email', 'phone', 'manager', 'joiningDate']),
   candidates: makeCrud('candidates', ['name', 'email'],
-    ['name', 'email', 'phone', 'location', 'skills', 'experience', 'education', 'expectedSalary',
-      'currentCompany', 'portfolio', 'source', 'stage', 'appliedFor', 'appliedOn', 'resumeFileName']),
+    ['name', 'email', 'phone', 'location', 'skills', 'experience', 'education', 'currentCTC', 'expectedSalary',
+      'noticePeriod', 'currentCompany', 'portfolio', 'source', 'stage', 'appliedFor', 'appliedOn',
+      'resumeFileName', 'resumeUrl', 'rejectionReason', 'assignedRecruiter', 'nextInterview'],
+    { transforms: { appliedOn: (v) => (v ? Timestamp.fromDate(new Date(v)) : v) }, trackUpdatedBy: true }),
   interviews: makeCrud('interviews', ['candidate', 'type', 'date'],
-    ['candidate', 'type', 'interviewer', 'date', 'time', 'link', 'location', 'notes', 'status']),
+    ['candidateId', 'candidate', 'type', 'interviewer', 'date', 'time', 'link', 'location', 'notes', 'status'],
+    { afterWrite: syncNextInterview }),
   meetings: makeCrud('meetings', ['title', 'date'],
     ['title', 'type', 'agenda', 'participants', 'date', 'time', 'notes']),
   attendance: makeCrud('attendance', ['employeeId', 'date', 'status'],

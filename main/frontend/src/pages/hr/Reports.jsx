@@ -1,4 +1,4 @@
-import { FileText, FileSpreadsheet, File, Download } from 'lucide-react';
+import { FileText, FileSpreadsheet, File } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader } from '../../components/ui';
 import { departmentPerformance } from '../../data/hrMockData';
@@ -12,7 +12,7 @@ function buildReports({ employees, attendanceRecords, leaveRequests, candidates,
       title: 'Hiring Report',
       desc: 'Applications, stages, and time-to-hire across roles.',
       headers: ['Candidate', 'Applied For', 'Stage', 'Source', 'Applied On'],
-      rows: () => candidates.map((c) => [c.name, c.appliedFor, c.stage, c.source, c.appliedOn]),
+      rows: () => candidates.map((c) => [c.name, c.appliedFor, c.stage, c.source, String(c.appliedOn || '').slice(0, 10)]),
     },
     {
       id: 'attendance',
@@ -150,19 +150,19 @@ export default function Reports() {
 
   return (
     <HrLayout>
-      <div className="flex flex-col gap-6 max-w-[1600px] mx-auto">
+      <div className="flex flex-col gap-6 w-full">
         <SectionHeader title="Reports" subtitle="Generate and export HR reports" />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
           {REPORTS.map((r) => (
             <Card key={r.id}>
               <h3 className="text-sm font-bold text-foreground mb-1.5">{r.title}</h3>
               <p className="text-xs text-muted-foreground leading-relaxed mb-4">{r.desc}</p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => exportReport(r, 'pdf')}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors cursor-pointer"
                 >
                   <FileText size={12} />
                   PDF
@@ -170,7 +170,7 @@ export default function Reports() {
                 <button
                   type="button"
                   onClick={() => exportReport(r, 'excel')}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors cursor-pointer"
                 >
                   <FileSpreadsheet size={12} />
                   Excel
@@ -178,18 +178,10 @@ export default function Reports() {
                 <button
                   type="button"
                   onClick={() => exportReport(r, 'csv')}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors cursor-pointer"
                 >
                   <File size={12} />
                   CSV
-                </button>
-                <button
-                  type="button"
-                  onClick={() => exportReport(r, 'csv')}
-                  className="ml-auto flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 transition-colors cursor-pointer"
-                >
-                  <Download size={12} />
-                  Generate
                 </button>
               </div>
             </Card>

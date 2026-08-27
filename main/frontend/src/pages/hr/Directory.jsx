@@ -119,7 +119,7 @@ export default function Directory() {
 
   return (
     <HrLayout>
-      <div className="flex flex-col gap-6 max-w-[1600px] mx-auto">
+      <div className="flex flex-col gap-6 w-full">
         <SectionHeader
           title="Employee Directory"
           subtitle={`${filtered.length} of ${employees.length} employees`}
@@ -155,7 +155,7 @@ export default function Directory() {
           {filtered.length === 0 ? (
             <EmptyState text="No employees match this search." />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
               {filtered.map((e) => (
                 <button
                   key={e.id}

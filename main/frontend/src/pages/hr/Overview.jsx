@@ -182,7 +182,7 @@ export default function HrOverview() {
                 <div key={c.id} className="p-2 rounded-xl bg-muted border border-border flex items-center justify-between">
                   <div className="min-w-0 pr-2">
                     <div className="text-xs font-bold text-foreground truncate">{c.name}</div>
-                    <div className="text-xs text-muted-foreground truncate">{c.appliedFor} · {c.experience}</div>
+                    <div className="text-xs text-muted-foreground truncate">{c.appliedFor} · {c.experience} yrs</div>
                   </div>
                   <Badge value={c.stage} className="shrink-0" />
                 </div>

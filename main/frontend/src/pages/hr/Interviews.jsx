@@ -6,7 +6,7 @@ import { INTERVIEW_TYPES, INTERVIEW_STATUSES } from '../../data/hrMockData';
 import { interviewsApi } from '../../utils/api';
 import { useHrDesk } from '../../context/HrDeskContext';
 
-const EMPTY_FORM = { candidate: '', type: 'HR', interviewer: '', date: '', time: '', link: '', location: '', notes: '' };
+const EMPTY_FORM = { candidateId: '', candidate: '', type: 'HR', interviewer: '', date: '', time: '', link: '', location: '', notes: '' };
 
 export default function Interviews() {
   const { interviews, setInterviews, candidates } = useHrDesk();
@@ -45,7 +45,7 @@ export default function Interviews() {
 
   return (
     <HrLayout>
-      <div className="flex flex-col gap-6 max-w-[1600px] mx-auto">
+      <div className="flex flex-col gap-6 w-full">
         <SectionHeader
           title="Interview Management"
           subtitle={`${interviews.filter((i) => i.status === 'Scheduled').length} scheduled`}
@@ -152,13 +152,17 @@ export default function Interviews() {
           <Field label="Candidate">
             <select
               required
-              value={form.candidate}
-              onChange={(e) => setForm((f) => ({ ...f, candidate: e.target.value }))}
+              value={form.candidateId}
+              onChange={(e) => {
+                const candidateId = e.target.value;
+                const candidate = candidates.find((c) => c.id === candidateId)?.name || '';
+                setForm((f) => ({ ...f, candidateId, candidate }));
+              }}
               className={inputClass}
             >
               <option value="">Select candidate</option>
               {candidates.map((c) => (
-                <option key={c.id} value={c.name}>{c.name}</option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </Field>

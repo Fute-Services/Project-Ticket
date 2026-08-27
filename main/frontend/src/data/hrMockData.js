@@ -70,10 +70,25 @@ export const CANDIDATE_STAGES = [
   'Final Interview',
   'Offer Sent',
   'Joined',
+  'Offer Declined',
   'Rejected',
+  'On Hold',
 ];
 
-export const RESUME_SOURCES = ['LinkedIn', 'Naukri', 'Indeed', 'Monster', 'Internal Portal', 'Referral', 'Manual Upload'];
+export const RESUME_SOURCES = ['LinkedIn', 'Naukri', 'Indeed', 'Monster', 'Internal Portal', 'Referral', 'Manual Upload', 'Company Website/Career Page'];
+
+// Only relevant when stage is 'Rejected' or 'Offer Declined' — a structured
+// list (not free text) so HR can report on "why we lose candidates" later.
+export const REJECTION_REASONS = [
+  'Salary Mismatch',
+  'Skill Gap',
+  'Culture Fit',
+  'Position Closed/On Hold',
+  'Candidate Withdrew',
+  'Better Candidate Selected',
+  'Notice Period Too Long',
+  'Other',
+];
 
 export const candidates = [
   { id: 'C-1001', name: 'Ananya Rao', email: 'ananya.rao@mail.com', phone: '+91 98765 43210', location: 'Bengaluru', skills: ['React', 'Node.js', 'TypeScript'], experience: '4 yrs', education: 'B.Tech CSE, RVCE', expectedSalary: '₹18 LPA', currentCompany: 'Zeta Labs', portfolio: 'ananyarao.dev', source: 'LinkedIn', stage: 'Technical Round', appliedFor: 'Senior Frontend Engineer', appliedOn: '2026-07-18' },
