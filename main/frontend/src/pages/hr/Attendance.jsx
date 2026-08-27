@@ -140,8 +140,10 @@ export default function Attendance() {
             columns={[
               { key: 'name', label: 'Employee', render: (r) => <span className="font-bold text-foreground">{r.name}</span> },
               { key: 'department', label: 'Department', render: (r) => <span className="text-muted-foreground">{r.department}</span> },
-              { key: 'checkIn', label: 'Check In', render: (r) => <span className="text-muted-foreground">{r.checkIn}</span> },
-              { key: 'checkOut', label: 'Check Out', render: (r) => <span className="text-muted-foreground">{r.checkOut}</span> },
+              // Commented out for now — check-in/check-out isn't reliably
+              // captured yet (no real check-out flow), revisit later.
+              // { key: 'checkIn', label: 'Check In', render: (r) => <span className="text-muted-foreground">{r.checkIn}</span> },
+              // { key: 'checkOut', label: 'Check Out', render: (r) => <span className="text-muted-foreground">{r.checkOut}</span> },
               {
                 key: 'status',
                 label: 'Present / Absent',
@@ -207,7 +209,7 @@ export default function Attendance() {
               {employeeHistory.map((r, i) => (
                 <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border">
                   <span className="text-xs text-muted-foreground">{r.date}</span>
-                  <span className="text-xs text-muted-foreground">{r.checkIn} — {r.checkOut}</span>
+                  {/* <span className="text-xs text-muted-foreground">{r.checkIn} — {r.checkOut}</span> */}
                   <span className="text-xs text-muted-foreground font-semibold">{formatHours(workingHours(r))}</span>
                   <Badge value={r.status} />
                 </div>

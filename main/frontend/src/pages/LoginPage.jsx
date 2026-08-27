@@ -126,12 +126,6 @@ export default function LoginPage() {
             />
             <span>Remember me</span>
           </label>
-          <span
-            title="Password reset isn't available yet"
-            className="text-muted-foreground hover:text-muted-foreground cursor-not-allowed select-none transition-colors"
-          >
-            Forgot password?
-          </span>
         </div>
 
         {error && (
