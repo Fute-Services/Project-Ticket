@@ -17,6 +17,12 @@ const hasRealCredentials =
 
 const projectId = hasRealCredentials ? process.env.FIREBASE_PROJECT_ID : 'fute-portal-dev';
 
+// Falls back to the project's default bucket name convention when
+// FIREBASE_STORAGE_BUCKET isn't set explicitly in .env.
+const storageBucket = hasRealCredentials
+  ? process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.appspot.com`
+  : undefined;
+
 if (hasRealCredentials) {
   admin.initializeApp({
     credential: admin.credential.cert({
@@ -24,6 +30,7 @@ if (hasRealCredentials) {
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
     }),
+    storageBucket,
   });
 } else {
   // Emulators need these env vars set before initializeApp — no service
@@ -37,5 +44,8 @@ if (hasRealCredentials) {
 module.exports = {
   auth: admin.auth(),
   db: admin.firestore(),
+  // Only real credential setups have a usable Storage bucket — the emulator
+  // fallback above never sets `storageBucket`, so `bucket()` would throw.
+  bucket: hasRealCredentials ? admin.storage().bucket() : null,
   usingEmulator: !hasRealCredentials,
 };

@@ -119,7 +119,7 @@ export const meetings = [
   { id: 'MT-203', title: 'Q3 Hiring Plan', type: 'Team Meeting', agenda: 'Headcount planning for Q3.', participants: ['Founder', 'Ms. Payel Saha', 'Department Managers'], date: '2026-08-10', time: '11:00 AM', notes: '' },
 ];
 
-export const ATTENDANCE_STATUSES = ['Present', 'Absent', 'Late', 'Half Day', 'Work From Home'];
+export const ATTENDANCE_STATUSES = ['Present', 'Absent', 'Late', 'Half Day', 'Work From Home', 'Leave'];
 
 // yyyy-mm-dd -> status, per employee id, for the current month demo view
 export const attendanceRecords = [

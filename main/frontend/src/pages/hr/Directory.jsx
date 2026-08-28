@@ -1,13 +1,44 @@
 import { useMemo, useState } from 'react';
-import { Search, Mail, Phone, Calendar, Landmark, Plus, Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Search, Mail, Phone, Calendar, Landmark, Plus, Pencil, Trash2, Upload, FileText } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
-import { Card, SectionHeader, Badge, Pill, Drawer, EmptyState, Modal, Field, inputClass } from '../../components/ui';
+import { Card, SectionHeader, Badge, Pill, EmptyState, Modal, Field, inputClass } from '../../components/ui';
 import { bankDetails } from '../../data/hrMockData';
 import { employeesApi } from '../../utils/api';
 import { useHrDesk } from '../../context/HrDeskContext';
 
-const EMPTY_FORM = { name: '', department: '', designation: '', email: '', phone: '', manager: '', status: 'Active', joiningDate: '' };
+const EMPTY_FORM = {
+  name: '', department: '', designation: '', email: '', phone: '', manager: '', status: 'Active', joiningDate: '',
+  employmentType: 'Full time', probationCompletionDate: '',
+  empCode: '', biometricVpnNumber: '',
+  accountNumber: '', salary: '',
+  emergencyContact: '', emergencyContactRelation: '', personalEmail: '', dob: '', bloodGroup: '',
+  permanentAddress: '', presentAddress: '',
+  aadharNumber: '', panDetails: '', voterId: '',
+  driveLink: '', bgVerification: 'Pending', leaveEntitlement: '24',
+};
+const DEFAULT_LEAVE_ENTITLEMENT = 24;
 const STATUS_OPTIONS = ['Active', 'On Leave', 'Inactive'];
+const EMPLOYMENT_TYPE_OPTIONS = ['Full time'];
+const BG_VERIFICATION_OPTIONS = ['Pending', 'Verified', 'Not Verified'];
+const BLOOD_GROUP_OPTIONS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+// Document Template module — full names shown to HR (not the OL/NDA/LP/COC
+// shorthand from the original notes), each paired with the Storage URL +
+// filename fields the upload endpoint writes onto the employee record.
+const DOCUMENT_TYPES = [
+  { key: 'olSigned', label: 'Offer Letter (Signed)', urlField: 'olSignedUrl', fileNameField: 'olSignedFileName' },
+  { key: 'nda', label: 'Non-Disclosure Agreement (NDA)', urlField: 'ndaUrl', fileNameField: 'ndaFileName' },
+  { key: 'leavePolicy', label: 'Leave Policy (Acknowledged)', urlField: 'leavePolicyUrl', fileNameField: 'leavePolicyFileName' },
+  { key: 'coc', label: 'Code of Conduct (COC)', urlField: 'cocUrl', fileNameField: 'cocFileName' },
+  { key: 'oldAppointmentLetter', label: 'Old Appointment Letter', urlField: 'oldAppointmentLetterUrl', fileNameField: 'oldAppointmentLetterFileName' },
+  { key: 'relievingLetter', label: 'Relieving Letter', urlField: 'relievingLetterUrl', fileNameField: 'relievingLetterFileName' },
+  { key: 'aadharCard', label: 'Aadhar Card', urlField: 'aadharCardUrl', fileNameField: 'aadharCardFileName' },
+  { key: 'panCard', label: 'PAN Card', urlField: 'panCardUrl', fileNameField: 'panCardFileName' },
+  { key: 'voterIdCard', label: 'Voter ID', urlField: 'voterIdCardUrl', fileNameField: 'voterIdCardFileName' },
+  { key: 'driveLinkDoc', label: 'Drive Link Document', urlField: 'driveLinkDocUrl', fileNameField: 'driveLinkDocFileName' },
+];
+const DOCUMENT_ACCEPT = '.pdf,.jpg,.jpeg,.doc,.docx';
 
 // Real employees created through this form have no `photo` field (the
 // backend only stores what's in editableFields, and "photo" here is just
@@ -20,7 +51,7 @@ function initialsOf(name) {
 }
 
 export default function Directory() {
-  const { employees, setEmployees } = useHrDesk();
+  const { employees, setEmployees, attendanceRecords } = useHrDesk();
   const [query, setQuery] = useState('');
   const [dept, setDept] = useState('All');
   const [selected, setSelected] = useState(null);
@@ -29,6 +60,23 @@ export default function Directory() {
   const [formMode, setFormMode] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  // The doc.key currently uploading, so only that row's button shows
+  // "Uploading…" instead of the whole Documents list locking up.
+  const [uploadingDoc, setUploadingDoc] = useState(null);
+
+  async function uploadDocument(doc, file) {
+    setUploadingDoc(doc.key);
+    try {
+      const { data } = await employeesApi.uploadDocument(selected.id, doc.key, file);
+      setEmployees((rows) => rows.map((r) => (r.id === selected.id ? { ...r, ...data } : r)));
+      setSelected((cur) => (cur && cur.id === selected.id ? { ...cur, ...data } : cur));
+      toast.success(`${doc.label} uploaded`);
+    } catch (e) {
+      toast.error(`Could not upload ${doc.label}`, { description: e.response?.data?.error || e.message });
+    } finally {
+      setUploadingDoc(null);
+    }
+  }
 
   function openAdd() {
     setForm(EMPTY_FORM);
@@ -38,14 +86,8 @@ export default function Directory() {
 
   function openEdit(employee) {
     setForm({
-      name: employee.name || '',
-      department: employee.department || '',
-      designation: employee.designation || '',
-      email: employee.email || '',
-      phone: employee.phone || '',
-      manager: employee.manager || '',
-      status: employee.status || 'Active',
-      joiningDate: employee.joiningDate || '',
+      ...EMPTY_FORM,
+      ...Object.fromEntries(Object.keys(EMPTY_FORM).map((key) => [key, employee[key] ?? EMPTY_FORM[key]])),
     });
     setFormError('');
     setFormMode(employee.id);
@@ -90,6 +132,18 @@ export default function Directory() {
 
   const DEPARTMENTS = useMemo(() => ['All', ...new Set(employees.map((e) => e.department))], [employees]);
 
+  // Dropdown-driven per the requirements doc, sourced from whatever
+  // departments/designations already exist in real records — no hardcoded
+  // list to keep in sync as the org's actual departments/designations grow.
+  const DEPARTMENT_OPTIONS = useMemo(
+    () => [...new Set(employees.map((e) => e.department).filter(Boolean))].sort(),
+    [employees]
+  );
+  const DESIGNATION_OPTIONS = useMemo(
+    () => [...new Set(employees.map((e) => e.designation).filter(Boolean))].sort(),
+    [employees]
+  );
+
   // Same reduce-and-count logic the old "Headcount by Department" card used
   // (pages/hr/Overview.jsx) — 'All' isn't a real department value, so it's
   // looked up separately as the full employee count rather than falling
@@ -116,6 +170,18 @@ export default function Directory() {
   }, [employees, query, dept]);
 
   const bank = selected ? bankDetails[selected.id] : null;
+
+  // Leave taken is counted straight from attendance rows this employee
+  // marked as 'Leave' via their own Check-in/Check-out widget (see
+  // CheckInWidget.jsx + checkIn() in hrDeskController.js) — that's the one
+  // and only place a day becomes 'Leave', so no separate leave-request
+  // approval flow needs to feed this number.
+  const leaveStats = useMemo(() => {
+    if (!selected) return null;
+    const taken = attendanceRecords.filter((a) => a.employeeId === selected.id && a.status === 'Leave').length;
+    const entitlement = Number(selected.leaveEntitlement) || DEFAULT_LEAVE_ENTITLEMENT;
+    return { taken, entitlement, remaining: Math.max(0, entitlement - taken) };
+  }, [attendanceRecords, selected]);
 
   return (
     <HrLayout>
@@ -188,11 +254,16 @@ export default function Directory() {
         </Card>
       </div>
 
-      <Drawer open={!!selected} onClose={() => setSelected(null)} title="Employee Profile">
+      <Modal
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title="Employee Profile"
+        className="max-w-5xl max-h-[95vh] overflow-y-auto"
+      >
         {selected && (
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center font-bold text-sm text-primary shrink-0">
+              <div className="w-11 h-11 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center font-bold text-sm text-primary shrink-0">
                 {selected.photo || initialsOf(selected.name)}
               </div>
               <div className="min-w-0">
@@ -220,37 +291,146 @@ export default function Directory() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5 text-xs">
-              <div className="flex items-center gap-2 text-muted-foreground"><Mail size={13} className="text-primary" /> {selected.email}</div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Phone size={13} className="text-primary" /> {selected.phone}</div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Calendar size={13} className="text-primary" /> Joined {selected.joiningDate}</div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pb-2 border-b border-border">
+              <span className="flex items-center gap-1.5"><Mail size={12} className="text-primary" /> {selected.email}</span>
+              <span className="flex items-center gap-1.5"><Phone size={12} className="text-primary" /> {selected.phone}</span>
+              <span className="flex items-center gap-1.5"><Calendar size={12} className="text-primary" /> Joined {selected.joiningDate}</span>
+              <span>{selected.department} · Reports to {selected.manager} · {selected.employmentType || 'Full time'}</span>
+              <span className="ml-auto font-semibold text-foreground">
+                Leave: <span className="text-primary">{leaveStats.taken}</span> taken · <span className="text-primary">{leaveStats.remaining}</span> left of {leaveStats.entitlement}
+              </span>
             </div>
 
-            <div className="text-xs text-muted-foreground pt-2 border-t border-border">
-              {selected.department} · Reports to {selected.manager}
-            </div>
-
-            <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
-                <Landmark size={12} className="text-primary" /> Bank Details
-              </div>
-              {bank ? (
-                <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-muted border border-border text-xs">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Account Holder</span><span className="text-foreground font-medium">{bank.accountHolder}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span className="text-foreground font-medium">{bank.bankName}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Account No.</span><span className="text-foreground font-medium">{bank.accountNumber}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">IFSC</span><span className="text-foreground font-medium">{bank.ifsc}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Branch</span><span className="text-foreground font-medium">{bank.branch}</span></div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+              <div className="flex flex-col gap-3">
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Employee Details</div>
+                  <div className="rounded-xl bg-muted border border-border divide-y divide-border/60 overflow-hidden text-xs">
+                    {[
+                      ['Emp Code', selected.empCode],
+                      ['DOJ', selected.joiningDate],
+                      ['Probation Completion', selected.probationCompletionDate],
+                      ['Biometric / VPN No.', selected.biometricVpnNumber],
+                      ['DOB', selected.dob],
+                      ['Blood Group', selected.bloodGroup],
+                      ['Personal Email', selected.personalEmail],
+                      ['Emergency Contact', [selected.emergencyContact, selected.emergencyContactRelation && `(${selected.emergencyContactRelation})`].filter(Boolean).join(' ')],
+                      ['Aadhar No.', selected.aadharNumber],
+                      ['PAN Details', selected.panDetails],
+                      ['Voter ID', selected.voterId],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex items-center justify-between gap-3 px-3 py-1.5">
+                        <span className="text-muted-foreground shrink-0">{label}</span>
+                        <span className="text-foreground font-medium text-right truncate">{value || '—'}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground shrink-0">Drive Link</span>
+                      {selected.driveLink ? (
+                        <a href={selected.driveLink} target="_blank" rel="noreferrer" className="text-primary font-medium hover:underline truncate">Open folder</a>
+                      ) : (
+                        <span className="text-foreground font-medium">—</span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground shrink-0">Permanent Address</span>
+                      <span className="text-foreground font-medium text-right truncate">{selected.permanentAddress || '—'}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 px-3 py-1.5">
+                      <span className="text-muted-foreground shrink-0">Present Address</span>
+                      <span className="text-foreground font-medium text-right truncate">{selected.presentAddress || '—'}</span>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">No bank details on file.</p>
-              )}
+
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                    <Landmark size={12} className="text-primary" /> Bank Details
+                  </div>
+                  {bank ? (
+                    <div className="rounded-xl bg-muted border border-border divide-y divide-border/60 overflow-hidden text-xs">
+                      {[
+                        ['Account Holder', bank.accountHolder],
+                        ['Bank', bank.bankName],
+                        ['Account No.', bank.accountNumber],
+                        ['IFSC', bank.ifsc],
+                        ['Branch', bank.branch],
+                      ].map(([label, value]) => (
+                        <div key={label} className="flex items-center justify-between gap-3 px-3 py-1.5">
+                          <span className="text-muted-foreground shrink-0">{label}</span>
+                          <span className="text-foreground font-medium text-right truncate">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No bank details on file.</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Documents</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {DOCUMENT_TYPES.map((doc) => {
+                    const url = selected[doc.urlField];
+                    const fileName = selected[doc.fileNameField];
+                    const busy = uploadingDoc === doc.key;
+                    return (
+                      <div key={doc.key} className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-muted border border-border">
+                        <div className="min-w-0 flex items-center gap-1.5">
+                          <FileText size={12} className={url ? 'text-primary shrink-0' : 'text-muted-foreground shrink-0'} />
+                          <div className="min-w-0">
+                            <div className="text-xs font-medium text-foreground truncate">{doc.label}</div>
+                            {url ? (
+                              <a href={url} target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline truncate block">
+                                {fileName || 'View file'}
+                              </a>
+                            ) : (
+                              <div className="text-[10px] text-muted-foreground">Not uploaded</div>
+                            )}
+                          </div>
+                        </div>
+                        <label
+                          title={busy ? 'Uploading…' : url ? 'Replace file' : 'Upload file'}
+                          className={`shrink-0 flex items-center justify-center w-6 h-6 rounded-md border cursor-pointer transition-colors ${
+                            busy
+                              ? 'bg-muted text-muted-foreground border-border cursor-not-allowed'
+                              : 'bg-background hover:bg-accent text-foreground border-border'
+                          }`}
+                        >
+                          <Upload size={11} />
+                          <input
+                            type="file"
+                            accept={DOCUMENT_ACCEPT}
+                            className="hidden"
+                            disabled={busy}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = '';
+                              if (file) uploadDocument(doc, file);
+                            }}
+                          />
+                        </label>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-muted border border-border">
+                    <span className="text-xs font-medium text-foreground">BG Verification</span>
+                    <span className="text-[10px] text-muted-foreground">{selected.bgVerification || 'Pending'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
-      </Drawer>
+      </Modal>
 
-      <Modal open={!!formMode} onClose={closeForm} title={formMode === 'add' ? 'Add Employee' : 'Edit Employee'}>
+      <Modal
+        open={!!formMode}
+        onClose={closeForm}
+        title={formMode === 'add' ? 'Add Employee' : 'Edit Employee'}
+        className="max-w-2xl max-h-[85vh] overflow-y-auto"
+      >
         <form onSubmit={submitForm} className="flex flex-col gap-3">
           <Field label="Full name">
             <input
@@ -265,23 +445,35 @@ export default function Directory() {
             <Field label="Department">
               <input
                 required
+                list="department-options"
                 value={form.department}
                 onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
                 className={inputClass}
                 placeholder="Production"
               />
+              <datalist id="department-options">
+                {DEPARTMENT_OPTIONS.map((d) => (
+                  <option key={d} value={d} />
+                ))}
+              </datalist>
             </Field>
             <Field label="Designation">
               <input
+                list="designation-options"
                 value={form.designation}
                 onChange={(e) => setForm((f) => ({ ...f, designation: e.target.value }))}
                 className={inputClass}
                 placeholder="3D Artist"
               />
+              <datalist id="designation-options">
+                {DESIGNATION_OPTIONS.map((d) => (
+                  <option key={d} value={d} />
+                ))}
+              </datalist>
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Email">
+            <Field label="Official Mail ID">
               <input
                 type="email"
                 value={form.email}
@@ -290,7 +482,7 @@ export default function Directory() {
                 placeholder="jane@futeservices.com"
               />
             </Field>
-            <Field label="Phone">
+            <Field label="Contact No.">
               <input
                 value={form.phone}
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
@@ -320,11 +512,120 @@ export default function Directory() {
               </select>
             </Field>
           </div>
-          <Field label="Joining date">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="DOJ (Joining date)">
+              <input
+                type="date"
+                value={form.joiningDate}
+                onChange={(e) => setForm((f) => ({ ...f, joiningDate: e.target.value }))}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Employment Type">
+              <select
+                value={form.employmentType}
+                onChange={(e) => setForm((f) => ({ ...f, employmentType: e.target.value }))}
+                className={inputClass}
+              >
+                {EMPLOYMENT_TYPE_OPTIONS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <Field label="Completion of probation period">
             <input
               type="date"
-              value={form.joiningDate}
-              onChange={(e) => setForm((f) => ({ ...f, joiningDate: e.target.value }))}
+              value={form.probationCompletionDate}
+              onChange={(e) => setForm((f) => ({ ...f, probationCompletionDate: e.target.value }))}
+              className={inputClass}
+            />
+          </Field>
+          <p className="text-xs text-muted-foreground -mt-1">
+            Offer Letter, NDA, Leave Policy, COC and other document uploads are done from the employee's profile after saving.
+          </p>
+
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mt-2 mb-1">Employment &amp; Access</div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Emp Code">
+              <input value={form.empCode} onChange={(e) => setForm((f) => ({ ...f, empCode: e.target.value }))} className={inputClass} placeholder="e.g. 10352" />
+            </Field>
+            <Field label="Biometric / VPN Number">
+              <input value={form.biometricVpnNumber} onChange={(e) => setForm((f) => ({ ...f, biometricVpnNumber: e.target.value }))} className={inputClass} />
+            </Field>
+          </div>
+
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mt-2 mb-1">Banking &amp; Salary</div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="A/C No.">
+              <input value={form.accountNumber} onChange={(e) => setForm((f) => ({ ...f, accountNumber: e.target.value }))} className={inputClass} />
+            </Field>
+            <Field label="Salary (in Rs)">
+              <input type="number" min="0" value={form.salary} onChange={(e) => setForm((f) => ({ ...f, salary: e.target.value }))} className={inputClass} />
+            </Field>
+          </div>
+
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mt-2 mb-1">Personal &amp; Emergency Contact</div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Emergency Contact No.">
+              <input value={form.emergencyContact} onChange={(e) => setForm((f) => ({ ...f, emergencyContact: e.target.value }))} className={inputClass} />
+            </Field>
+            <Field label="Relation">
+              <input value={form.emergencyContactRelation} onChange={(e) => setForm((f) => ({ ...f, emergencyContactRelation: e.target.value }))} className={inputClass} placeholder="e.g. Father" />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Personal Email ID">
+              <input type="email" value={form.personalEmail} onChange={(e) => setForm((f) => ({ ...f, personalEmail: e.target.value }))} className={inputClass} />
+            </Field>
+            <Field label="DOB">
+              <input type="date" value={form.dob} onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))} className={inputClass} />
+            </Field>
+          </div>
+          <Field label="Blood Group">
+            <select value={form.bloodGroup} onChange={(e) => setForm((f) => ({ ...f, bloodGroup: e.target.value }))} className={inputClass}>
+              <option value="">Select</option>
+              {BLOOD_GROUP_OPTIONS.map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </Field>
+          <Field label="Permanent Address">
+            <input value={form.permanentAddress} onChange={(e) => setForm((f) => ({ ...f, permanentAddress: e.target.value }))} className={inputClass} />
+          </Field>
+          <Field label="Present Address">
+            <input value={form.presentAddress} onChange={(e) => setForm((f) => ({ ...f, presentAddress: e.target.value }))} className={inputClass} />
+          </Field>
+
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mt-2 mb-1">Government ID</div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Aadhar Card No.">
+              <input value={form.aadharNumber} onChange={(e) => setForm((f) => ({ ...f, aadharNumber: e.target.value }))} className={inputClass} />
+            </Field>
+            <Field label="PAN Card Details">
+              <input value={form.panDetails} onChange={(e) => setForm((f) => ({ ...f, panDetails: e.target.value }))} className={inputClass} />
+            </Field>
+          </div>
+          <Field label="Voter ID">
+            <input value={form.voterId} onChange={(e) => setForm((f) => ({ ...f, voterId: e.target.value }))} className={inputClass} />
+          </Field>
+
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mt-2 mb-1">Other</div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Drive Link">
+              <input value={form.driveLink} onChange={(e) => setForm((f) => ({ ...f, driveLink: e.target.value }))} className={inputClass} placeholder="https://drive.google.com/..." />
+            </Field>
+            <Field label="BG Verification">
+              <select value={form.bgVerification} onChange={(e) => setForm((f) => ({ ...f, bgVerification: e.target.value }))} className={inputClass}>
+                {BG_VERIFICATION_OPTIONS.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </Field>
+          </div>
+          <Field label="Annual Leave Entitlement (days)">
+            <input
+              type="number"
+              min="0"
+              value={form.leaveEntitlement}
+              onChange={(e) => setForm((f) => ({ ...f, leaveEntitlement: e.target.value }))}
               className={inputClass}
             />
           </Field>

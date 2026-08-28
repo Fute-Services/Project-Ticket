@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useAuth } from './AuthContext';
 import { applyLeave as applyLeaveApi, getAllLeaves, getMyLeaves, decideLeave } from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
+import { useCursorPagination } from '../hooks/useCursorPagination';
 
 const LeaveContext = createContext(null);
 
@@ -30,17 +31,26 @@ export function LeaveProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const isSharedQueue = Boolean(user) && SHARED_QUEUE_ROLES.includes(user.role);
+  const { hasMore, loadingMore, setCursor, loadMore } = useCursorPagination();
 
   const refresh = useCallback(async () => {
     if (!user) {
       setLeaveRequests([]);
+      setCursor(null);
       return;
     }
     setLoading(true);
     try {
       const canSeeAll = user.role === 'hr' || user.role === 'founder';
-      const { data } = canSeeAll ? await getAllLeaves() : await getMyLeaves();
-      setLeaveRequests(data);
+      if (canSeeAll) {
+        const { data } = await getAllLeaves();
+        setLeaveRequests(data?.items || []);
+        setCursor(data?.nextCursor || null);
+      } else {
+        const { data } = await getMyLeaves();
+        setLeaveRequests(data);
+        setCursor(null);
+      }
       setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load leave requests:', e.response?.data?.error || e.message);
@@ -52,7 +62,12 @@ export function LeaveProvider({ children }) {
     // AuthContext replaces with a new reference on every login-state
     // refresh even when the actual user hasn't changed — depending on the
     // object caused this refresh to needlessly refire and duplicate reads.
-  }, [user?.id, user?.role]);
+  }, [user?.id, user?.role, setCursor]);
+
+  // Appends the next 20 — resets back to page 1 on the next poll/refresh.
+  function loadMoreLeaves() {
+    return loadMore(getAllLeaves, (items) => setLeaveRequests((prev) => [...prev, ...items]));
+  }
 
   useEffect(() => {
     refresh();
@@ -85,7 +100,20 @@ export function LeaveProvider({ children }) {
   }
 
   return (
-    <LeaveContext.Provider value={{ leaveRequests, loading, decide, applyLeave, refresh, lastUpdated, isSharedQueue }}>
+    <LeaveContext.Provider
+      value={{
+        leaveRequests,
+        loading,
+        decide,
+        applyLeave,
+        refresh,
+        lastUpdated,
+        isSharedQueue,
+        hasMoreLeaves: hasMore,
+        loadMoreLeaves,
+        loadingMore,
+      }}
+    >
       {children}
     </LeaveContext.Provider>
   );

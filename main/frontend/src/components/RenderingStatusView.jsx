@@ -131,7 +131,7 @@ function AddRenderModal({ isOpen, onClose, onAdd }) {
 }
 
 export default function RenderingStatusView() {
-  const { renders, addRender, updateRenderField } = useRenders();
+  const { renders, addRender, updateRenderField, hasMoreRenders, loadMoreRenders, loadingMore } = useRenders();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -308,6 +308,19 @@ export default function RenderingStatusView() {
           ]}
         />
       </Card>
+
+      {hasMoreRenders && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={loadMoreRenders}
+            disabled={loadingMore}
+            className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingMore ? 'Loading…' : 'Load More'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -29,7 +29,7 @@ const ASSET_STATUS_COLOR = {
 
 export default function AssetsView() {
   const { approvals, submitApproval } = useApprovals();
-  const { assets, addOrUpdateAsset, patchAsset, removeAsset, restoreAsset } = useAssets();
+  const { assets, addOrUpdateAsset, patchAsset, removeAsset, restoreAsset, hasMoreAssets, loadMoreAssets, loadingMore } = useAssets();
   const [typeFilter, setTypeFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -308,6 +308,19 @@ export default function AssetsView() {
           ]}
         />
       </Card>
+
+      {hasMoreAssets && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={loadMoreAssets}
+            disabled={loadingMore}
+            className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingMore ? 'Loading…' : 'Load More'}
+          </button>
+        </div>
+      )}
 
       {/* Asset Audit / Details Sidebar */}
       <Drawer open={!!auditAsset} onClose={() => setAuditAsset(null)} title={auditAsset ? `Asset Details: ${auditAsset.id}` : 'Asset Details'}>

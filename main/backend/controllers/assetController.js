@@ -1,5 +1,9 @@
 const { db } = require('../config/firebase');
-const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
+const { paginatedQuery } = require('../utils/pagination');
+
+function sortByRecent(rows) {
+  return rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
 
 const collection = db.collection('assets');
 
@@ -37,16 +41,14 @@ async function createAsset(req, res) {
   res.status(201).json({ id, ...docData });
 }
 
-// GET /api/it/assets — no `.orderBy('created_at')` on the query itself:
-// Firestore silently drops any document missing the ordered field from the
-// result set entirely, which was hiding legacy assets. Sorting in JS after
-// the fetch keeps the same bounded read (.limit(UNPAGINATED_READ_LIMIT)) without excluding
-// anyone — docs with no created_at just sort to the end instead of vanishing.
+// GET /api/it/assets?after=<cursor> — 20 at a time (was a full-collection
+// re-read every 5min poll — see paginatedQuery). Legacy assets with no
+// created_at won't sort into the ordered query, same tradeoff Tickets/
+// Approvals/Leave already accept for their own paginated lists.
 async function getAllAssets(req, res) {
-  const snap = await collection.limit(UNPAGINATED_READ_LIMIT).get();
-  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  res.json(rows);
+  const { docs, nextCursor } = await paginatedQuery(collection, 'created_at', req.query.after);
+  const rows = docs.map((d) => ({ id: d.id, ...d.data() }));
+  res.json({ items: sortByRecent(rows), nextCursor });
 }
 
 const EDITABLE_FIELDS = [

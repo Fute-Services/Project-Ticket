@@ -29,7 +29,7 @@ const EMPTY_FORM = () => ({
 export default function ProductionDashboardView() {
   const { user } = useAuth();
   const { addTicket } = useTickets();
-  const { renders, addRender, toggleStatus } = useRenders();
+  const { renders, addRender, toggleStatus, hasMoreRenders, loadMoreRenders, loadingMore } = useRenders();
   const [form, setForm] = useState(EMPTY_FORM);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [issueTitle, setIssueTitle] = useState('');
@@ -197,6 +197,19 @@ export default function ProductionDashboardView() {
           ]}
         />
       </Card>
+
+      {hasMoreRenders && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={loadMoreRenders}
+            disabled={loadingMore}
+            className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingMore ? 'Loading…' : 'Load More'}
+          </button>
+        </div>
+      )}
 
       <Modal open={reportModalOpen} onClose={() => setReportModalOpen(false)} title="Report Issue to IT" description="Raises a ticket directly in the IT Service Desk queue.">
         <form onSubmit={submitReport} className="flex flex-col gap-3">

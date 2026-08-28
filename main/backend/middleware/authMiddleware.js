@@ -53,7 +53,14 @@ async function authMiddleware(req, res, next) {
     return res.status(401).json({ error: 'This session has been signed out remotely — please log in again' });
   }
 
-  req.user = { id: decoded.id, email: data.email, role: data.role, full_name: data.full_name, sid: decoded.sid };
+  req.user = {
+    id: decoded.id,
+    email: data.email,
+    role: data.role,
+    full_name: data.full_name,
+    sid: decoded.sid,
+    employeeId: data.employee_id || data.employeeId || '',
+  };
   next();
 }
 

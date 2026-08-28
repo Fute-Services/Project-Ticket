@@ -1,5 +1,6 @@
 const { db } = require('../config/firebase');
 const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
+const { paginatedQuery } = require('../utils/pagination');
 
 const collection = db.collection('leave_requests');
 
@@ -42,14 +43,12 @@ async function applyLeave(req, res) {
   res.status(201).json({ id: docRef.id, ...docData });
 }
 
-// GET /api/leave — HR staff / founder see every request. No
-// `.orderBy('submitted_at')` on the query itself — Firestore silently drops
-// any document missing the ordered field from the result set entirely;
-// sortByRecent() re-sorts in JS after the fetch instead, so nothing vanishes.
+// GET /api/leave?after=<cursor> — HR staff / founder see every request, 20
+// at a time (was a full-collection re-read every poll — see paginatedQuery).
 async function getAllLeaves(req, res) {
-  const snap = await collection.limit(UNPAGINATED_READ_LIMIT).get();
-  const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  res.json(sortByRecent(data));
+  const { docs, nextCursor } = await paginatedQuery(collection, 'submitted_at', req.query.after);
+  const data = docs.map((d) => ({ id: d.id, ...d.data() }));
+  res.json({ items: sortByRecent(data), nextCursor });
 }
 
 // GET /api/leave/my — an employee's own leave history

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useAuth } from './AuthContext';
 import { getRenders, addRender as addRenderApi, updateRender as updateRenderApi } from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
+import { useCursorPagination } from '../hooks/useCursorPagination';
 
 const RenderContext = createContext(null);
 
@@ -19,16 +20,19 @@ export function RenderProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const canSeeRenders = Boolean(user) && ['it', 'production'].includes(user.role);
+  const { hasMore, loadingMore, setCursor, loadMore } = useCursorPagination();
 
   const refresh = useCallback(async () => {
     if (!user || !['it', 'production'].includes(user.role)) {
       setRenders([]);
+      setCursor(null);
       return;
     }
     setLoading(true);
     try {
       const { data } = await getRenders();
-      setRenders(data);
+      setRenders(data?.items || []);
+      setCursor(data?.nextCursor || null);
       setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load render jobs:', e.response?.data?.error || e.message);
@@ -40,7 +44,12 @@ export function RenderProvider({ children }) {
     // AuthContext replaces with a new reference on every login-state
     // refresh even when the actual user hasn't changed — depending on the
     // object caused this refresh to needlessly refire and duplicate reads.
-  }, [user?.id, user?.role]);
+  }, [user?.id, user?.role, setCursor]);
+
+  // Appends the next 20 — resets back to page 1 on the next poll/refresh.
+  function loadMoreRenders() {
+    return loadMore(getRenders, (items) => setRenders((prev) => [...prev, ...items]));
+  }
 
   useEffect(() => {
     refresh();
@@ -76,7 +85,20 @@ export function RenderProvider({ children }) {
   }
 
   return (
-    <RenderContext.Provider value={{ renders, loading, addRender, toggleStatus, updateRenderField, refresh, lastUpdated }}>
+    <RenderContext.Provider
+      value={{
+        renders,
+        loading,
+        addRender,
+        toggleStatus,
+        updateRenderField,
+        refresh,
+        lastUpdated,
+        hasMoreRenders: hasMore,
+        loadMoreRenders,
+        loadingMore,
+      }}
+    >
       {children}
     </RenderContext.Provider>
   );

@@ -4,6 +4,24 @@ import { Card, SectionHeader } from '../../components/ui';
 import { departmentPerformance } from '../../data/hrMockData';
 import { useLeave } from '../../context/LeaveContext';
 import { useHrDesk } from '../../context/HrDeskContext';
+import { getAllLeaves } from '../../utils/api';
+
+// Leave requests now come from LeaveContext 20 at a time (see
+// LeaveContext.jsx) so the poll that keeps HR's queue fresh doesn't re-read
+// the whole collection every cycle — but a report export needs every row,
+// not just whatever page happens to be loaded. Walks the same cursor
+// straight against the API (bypassing context state) so exporting doesn't
+// depend on how many "Load More" clicks happened to occur first.
+async function fetchAllLeaves() {
+  const rows = [];
+  let cursor;
+  do {
+    const { data } = await getAllLeaves(cursor);
+    rows.push(...(data?.items || []));
+    cursor = data?.nextCursor || null;
+  } while (cursor);
+  return rows;
+}
 
 function buildReports({ employees, attendanceRecords, leaveRequests, candidates, interviews }) {
   return [
@@ -137,8 +155,12 @@ export default function Reports() {
 
   const REPORTS = buildReports({ employees, attendanceRecords, leaveRequests, candidates, interviews });
 
-  function exportReport(report, format) {
-    const rows = report.rows();
+  async function exportReport(report, format) {
+    const rows = report.id === 'leave'
+      ? buildReports({ employees, attendanceRecords, leaveRequests: await fetchAllLeaves(), candidates, interviews })
+          .find((r) => r.id === 'leave')
+          .rows()
+      : report.rows();
     if (format === 'pdf') {
       openPrintable(report.title, report.headers, rows);
     } else if (format === 'excel') {

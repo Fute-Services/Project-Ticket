@@ -11,6 +11,7 @@ import { Card, SectionHeader, StatCard, Badge, Drawer, RefreshBar } from '../com
 import { Plus, UserPlus, Search, X, Eye, Trash2 } from 'lucide-react';
 import TaskRow from '../components/tasks/TaskRow';
 import TaskDetailPane from '../components/tasks/TaskDetailPane';
+import CheckInWidget from '../components/CheckInWidget';
 import { toast } from 'sonner';
 
 const TICKET_STATUS_BADGE = {
@@ -591,7 +592,8 @@ export default function EmployeeDashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-stretch">
+            <CheckInWidget />
             <StatCard label="Total Tickets" value={myTickets.length} sub="raised by you" />
             <StatCard
               label="In Progress"

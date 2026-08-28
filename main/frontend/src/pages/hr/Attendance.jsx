@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, StatCard, EmptyState } from '../../components/ui';
 import DataTable from '../../components/DataTable';
-import { Users2, UserCheck, UserX, Clock3 } from 'lucide-react';
+import { Users2, UserCheck, UserX, Home, Timer, CalendarOff } from 'lucide-react';
 import { ATTENDANCE_STATUSES } from '../../data/hrMockData';
 import { useHrDesk } from '../../context/HrDeskContext';
-import { attendanceApi } from '../../utils/api';
 import { ColorSelect } from '../../components/TicketsQueueView';
-
-const ATTENDANCE_MARK_OPTIONS = ['Present', 'Absent'];
 
 const DOT_COLOR = {
   Present: 'bg-primary',
@@ -17,6 +13,7 @@ const DOT_COLOR = {
   Late: 'bg-warning',
   'Half Day': 'bg-muted',
   'Work From Home': 'bg-muted',
+  Leave: 'bg-warning',
 };
 
 // Working hours are derived from check-in/out rather than stored, so the
@@ -36,7 +33,7 @@ function formatHours(hours) {
 }
 
 export default function Attendance() {
-  const { employees, attendanceRecords, setAttendanceRecords } = useHrDesk();
+  const { employees, attendanceRecords } = useHrDesk();
   // '' rather than null — a controlled <select>'s value must be a string
   // (React warns on null: "should not be null, use '' or undefined instead").
   const [selectedEmployee, setSelectedEmployee] = useState('');
@@ -58,6 +55,8 @@ export default function Attendance() {
   // One flat row per employee, with today's record merged in. Flattening the
   // join here (rather than pairing two arrays by index at render time) is what
   // lets the table sort on any column without the two lists drifting apart.
+  // Read-only — attendance is written exclusively by the employee's own
+  // Check-in/Check-out widget (see CheckInWidget.jsx), never by HR here.
   const todayRows = useMemo(
     () =>
       employees.map((e) => {
@@ -70,48 +69,26 @@ export default function Attendance() {
           checkOut: record?.checkOut || '—',
           hours: workingHours(record),
           status: record?.status || null,
+          workMode: record?.workMode || null,
         };
       }),
     [employees, attendanceRecords, TODAY]
   );
 
-  // Present/Absent dropdown upserts today's record: PATCH the existing one
-  // if this employee already has a row for today (e.g. flipping a mistaken
-  // mark), otherwise POST a fresh one. Both write through the same
-  // `attendance` collection the Monthly Report history below already reads,
-  // so a mark shows up there immediately via the local state update — no
-  // separate "history" plumbing needed.
-  async function markAttendance(employeeId, status) {
-    const existing = attendanceRecords.find((a) => a.employeeId === employeeId && a.date === TODAY);
-    try {
-      if (existing) {
-        const { data } = await attendanceApi.update(existing.id, {
-          status,
-          checkIn: status === 'Present' ? (existing.checkIn && existing.checkIn !== '-' ? existing.checkIn : new Date().toTimeString().slice(0, 5)) : '-',
-          checkOut: status === 'Present' ? existing.checkOut : '-',
-        });
-        setAttendanceRecords((prev) => prev.map((a) => (a.id === existing.id ? { ...a, ...data } : a)));
-      } else {
-        const { data } = await attendanceApi.create({
-          employeeId,
-          date: TODAY,
-          status,
-          checkIn: status === 'Present' ? new Date().toTimeString().slice(0, 5) : '-',
-          checkOut: '-',
-        });
-        setAttendanceRecords((prev) => [...prev, data]);
-      }
-    } catch (e) {
-      toast.error('Could not update attendance', { description: e.response?.data?.error || e.message });
-    }
-  }
-
+  // Present/Absent, WFH count, and today's total hours are all derived from
+  // whether/how an employee checked in — nothing here is HR-editable.
   const counts = useMemo(() => {
-    const c = { Present: 0, Absent: 0, Late: 0, 'Half Day': 0, 'Work From Home': 0 };
+    let present = 0;
+    let onLeave = 0;
+    let wfh = 0;
+    let totalHours = 0;
     todayRows.forEach((r) => {
-      if (r.status) c[r.status] = (c[r.status] || 0) + 1;
+      if (r.status === 'Leave') onLeave += 1;
+      else if (r.checkIn && r.checkIn !== '—') present += 1;
+      if (r.workMode === 'WFH') wfh += 1;
+      if (r.hours) totalHours += r.hours;
     });
-    return c;
+    return { present, onLeave, absent: todayRows.length - present - onLeave, wfh, totalHours };
   }, [todayRows]);
 
   const employeeHistory = attendanceRecords.filter((a) => a.employeeId === selectedEmployee);
@@ -121,12 +98,13 @@ export default function Attendance() {
       <div className="flex flex-col gap-2 max-w-[1600px] mx-auto">
         <h1 className="text-base font-semibold text-foreground tracking-tight">Attendance Management</h1>
 
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
           <StatCard icon={Users2} label="Total" value={employees.length} accent="#e86024" />
-          <StatCard icon={UserCheck} label="Present" value={counts.Present} accent="#22c55e" />
-          <StatCard icon={UserX} label="Absent" value={counts.Absent} accent="#ef4444" />
-          <StatCard icon={Clock3} label="Late" value={counts.Late} accent="#f59e0b" />
-          <StatCard icon={Users2} label="WFH" value={counts['Work From Home']} accent="#a855f7" />
+          <StatCard icon={UserCheck} label="Present" value={counts.present} accent="#22c55e" />
+          <StatCard icon={UserX} label="Absent" value={counts.absent} accent="#ef4444" />
+          <StatCard icon={Home} label="WFH" value={counts.wfh} accent="#a855f7" />
+          <StatCard icon={CalendarOff} label="On Leave" value={counts.onLeave} accent="#f59e0b" />
+          <StatCard icon={Timer} label="Total Hours Today" value={formatHours(counts.totalHours)} accent="#38bdf8" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 items-start">
@@ -140,28 +118,23 @@ export default function Attendance() {
             columns={[
               { key: 'name', label: 'Employee', render: (r) => <span className="font-bold text-foreground">{r.name}</span> },
               { key: 'department', label: 'Department', render: (r) => <span className="text-muted-foreground">{r.department}</span> },
-              // Commented out for now — check-in/check-out isn't reliably
-              // captured yet (no real check-out flow), revisit later.
-              // { key: 'checkIn', label: 'Check In', render: (r) => <span className="text-muted-foreground">{r.checkIn}</span> },
-              // { key: 'checkOut', label: 'Check Out', render: (r) => <span className="text-muted-foreground">{r.checkOut}</span> },
+              { key: 'checkIn', label: 'Check In', render: (r) => <span className="text-muted-foreground">{r.checkIn}</span> },
+              { key: 'checkOut', label: 'Check Out', render: (r) => <span className="text-muted-foreground">{r.checkOut}</span> },
               {
-                key: 'status',
-                label: 'Present / Absent',
-                sortable: false,
-                width: '150px',
+                key: 'workMode',
+                label: 'Mode',
+                width: '90px',
                 render: (r) => (
-                  <ColorSelect
-                    value={r.status || 'Absent'}
-                    onChange={(value) => markAttendance(r.id, value)}
-                    options={ATTENDANCE_MARK_OPTIONS}
-                    ariaLabel={`Mark attendance for ${r.name}`}
-                    textColorClass={
-                      (r.status || 'Absent') === 'Present'
-                        ? 'text-emerald-500 hover:text-emerald-400 [&>svg]:text-emerald-500'
-                        : 'text-red-500 hover:text-red-400 [&>svg]:text-red-500'
-                    }
-                  />
+                  <span className="text-muted-foreground">
+                    {r.status === 'Leave' ? 'Leave' : r.checkIn && r.checkIn !== '—' ? (r.workMode || 'Office') : '—'}
+                  </span>
                 ),
+              },
+              {
+                key: 'hours',
+                label: 'Total Hours',
+                width: '110px',
+                render: (r) => <span className="text-foreground font-semibold">{formatHours(r.hours)}</span>,
               },
             ]}
           />
@@ -209,7 +182,7 @@ export default function Attendance() {
               {employeeHistory.map((r, i) => (
                 <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border">
                   <span className="text-xs text-muted-foreground">{r.date}</span>
-                  {/* <span className="text-xs text-muted-foreground">{r.checkIn} — {r.checkOut}</span> */}
+                  <span className="text-xs text-muted-foreground">{r.checkIn} — {r.checkOut}</span>
                   <span className="text-xs text-muted-foreground font-semibold">{formatHours(workingHours(r))}</span>
                   <Badge value={r.status} />
                 </div>

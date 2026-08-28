@@ -125,12 +125,12 @@ export const decideApproval = (id, status) => api.patch(`/api/approvals/${id}/de
 
 // Leave — any employee applies, HR/founder read all + decide
 export const applyLeave = (data) => api.post('/api/leave', data);
-export const getAllLeaves = () => api.get('/api/leave');
+export const getAllLeaves = (after) => api.get('/api/leave', { params: after ? { after } : {} });
 export const getMyLeaves = () => api.get('/api/leave/my');
 export const decideLeave = (id, status) => api.patch(`/api/leave/${id}/decide`, { status });
 
 // Assets — IT desk inventory
-export const getAssets = () => api.get('/api/it/assets');
+export const getAssets = (after) => api.get('/api/it/assets', { params: after ? { after } : {} });
 export const createAsset = (data) => api.post('/api/it/assets', data);
 export const updateAsset = (id, data) => api.put(`/api/it/assets/${id}`, data);
 export const deleteAsset = (id) => api.delete(`/api/it/assets/${id}`);
@@ -143,7 +143,7 @@ export const updateTaskStatus = (id, status) => api.patch(`/api/coordinator/task
 export const updateTask = (id, patch) => api.patch(`/api/coordinator/tasks/${id}`, patch);
 
 // Rendering Status — Production logs jobs, IT reads the same list
-export const getRenders = () => api.get('/api/production/renders');
+export const getRenders = (after) => api.get('/api/production/renders', { params: after ? { after } : {} });
 export const addRender = (data) => api.post('/api/production/renders', data);
 export const updateRender = (id, patch) => api.patch(`/api/production/renders/${id}`, patch);
 
@@ -158,10 +158,19 @@ function hrDeskResource(path) {
   };
 }
 export const employeesApi = hrDeskResource('employees');
+// Document Template uploads — PDF/JPG/Word only (enforced server-side too).
+employeesApi.uploadDocument = (employeeId, docType, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post(`/api/hr-desk/employees/${employeeId}/documents/${docType}`, formData);
+};
 export const candidatesApi = hrDeskResource('candidates');
 export const interviewsApi = hrDeskResource('interviews');
 export const meetingsApi = hrDeskResource('meetings');
 export const attendanceApi = hrDeskResource('attendance');
+attendanceApi.myToday = () => api.get('/api/hr-desk/attendance/me/today');
+attendanceApi.checkIn = (workMode) => api.post('/api/hr-desk/attendance/check-in', { workMode });
+attendanceApi.checkOut = () => api.post('/api/hr-desk/attendance/check-out');
 export const feedbackApi = hrDeskResource('feedback');
 export const jobsApi = hrDeskResource('jobs');
 

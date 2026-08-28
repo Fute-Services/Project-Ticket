@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
 const resources = require('../controllers/hrDeskController');
+const { upload } = require('../utils/upload');
 
 router.post('/send-email', auth, role('hr', 'founder'), resources.sendEmail);
 router.get('/send-email', auth, role('hr', 'founder'), resources.getSentEmails);
@@ -12,6 +13,23 @@ router.get('/send-email', auth, role('hr', 'founder'), resources.getSentEmails);
 // one GET is opened to 'coordinator' too. Every other verb on `employees`,
 // and every verb on every other HR-desk resource, stays HR/founder-only.
 router.get('/employees', auth, role('hr', 'founder', 'coordinator'), resources.employees.list);
+
+// Self-service Attendance/Check-in — Employee Details module is HR/Founder/
+// Employee only (not IT/Production/Coordinator), and each of these only ever
+// touches the calling user's own record (see findTodayDoc in the controller).
+router.get('/attendance/me/today', auth, role('hr', 'founder', 'employee'), resources.myTodayAttendance);
+router.post('/attendance/check-in', auth, role('hr', 'founder', 'employee'), resources.checkIn);
+router.post('/attendance/check-out', auth, role('hr', 'founder', 'employee'), resources.checkOut);
+
+// Document Template uploads — HR/founder only, matches who can already
+// edit an employee record; not opened to 'employee' or any other role.
+router.post(
+  '/employees/:id/documents/:docType',
+  auth,
+  role('hr', 'founder'),
+  upload.single('file'),
+  resources.uploadEmployeeDocument
+);
 
 for (const [path, handlers] of Object.entries({
   employees: resources.employees,
@@ -23,8 +41,15 @@ for (const [path, handlers] of Object.entries({
   jobs: resources.jobs,
 })) {
   if (path !== 'employees') router.get(`/${path}`, auth, role('hr', 'founder'), handlers.list);
-  router.post(`/${path}`, auth, role('hr', 'founder'), handlers.create);
-  router.patch(`/${path}/:id`, auth, role('hr', 'founder'), handlers.update);
+  // Attendance is written exclusively through /attendance/check-in and
+  // /attendance/check-out above (each employee's own record only) — HR gets
+  // read-only access here, no create/update, so there's no path for HR to
+  // mark or edit anyone's attendance by hand. Delete stays available for
+  // removing a genuinely bad record, which isn't "editing" attendance.
+  if (path !== 'attendance') {
+    router.post(`/${path}`, auth, role('hr', 'founder'), handlers.create);
+    router.patch(`/${path}/:id`, auth, role('hr', 'founder'), handlers.update);
+  }
   router.delete(`/${path}/:id`, auth, role('hr', 'founder'), handlers.remove);
 }
 

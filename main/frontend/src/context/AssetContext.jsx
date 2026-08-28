@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useAuth } from './AuthContext';
 import { getAssets, createAsset as createAssetApi, updateAsset as updateAssetApi, deleteAsset as deleteAssetApi } from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
+import { useCursorPagination } from '../hooks/useCursorPagination';
 
 const AssetContext = createContext(null);
 
@@ -20,16 +21,19 @@ export function AssetProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const canSeeAssets = Boolean(user) && (user.role === 'it' || user.role === 'founder');
+  const { hasMore, loadingMore, setCursor, loadMore } = useCursorPagination();
 
   const refresh = useCallback(async () => {
     if (!user || (user.role !== 'it' && user.role !== 'founder')) {
       setAssets([]);
+      setCursor(null);
       return;
     }
     setLoading(true);
     try {
       const { data } = await getAssets();
-      setAssets(data);
+      setAssets(data?.items || []);
+      setCursor(data?.nextCursor || null);
       setLastUpdated(new Date().toISOString());
     } catch (e) {
       console.error('Failed to load assets:', e.response?.data?.error || e.message);
@@ -41,7 +45,12 @@ export function AssetProvider({ children }) {
     // AuthContext replaces with a new reference on every login-state
     // refresh even when the actual user hasn't changed — depending on the
     // object caused this refresh to needlessly refire and duplicate reads.
-  }, [user?.id, user?.role]);
+  }, [user?.id, user?.role, setCursor]);
+
+  // Appends the next 20 — resets back to page 1 on the next poll/refresh.
+  function loadMoreAssets() {
+    return loadMore(getAssets, (items) => setAssets((prev) => [...prev, ...items]));
+  }
 
   useEffect(() => {
     refresh();
@@ -98,7 +107,21 @@ export function AssetProvider({ children }) {
   }
 
   return (
-    <AssetContext.Provider value={{ assets, loading, addOrUpdateAsset, patchAsset, removeAsset, restoreAsset, refresh, lastUpdated }}>
+    <AssetContext.Provider
+      value={{
+        assets,
+        loading,
+        addOrUpdateAsset,
+        patchAsset,
+        removeAsset,
+        restoreAsset,
+        refresh,
+        lastUpdated,
+        hasMoreAssets: hasMore,
+        loadMoreAssets,
+        loadingMore,
+      }}
+    >
       {children}
     </AssetContext.Provider>
   );

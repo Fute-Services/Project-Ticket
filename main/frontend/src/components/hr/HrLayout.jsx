@@ -19,7 +19,6 @@ import {
   LogOut,
   ChevronDown,
   Menu,
-  Calendar,
   ArrowRight,
   ChevronsLeft,
   ChevronsRight,
@@ -48,7 +47,6 @@ function buildSearchIndex({ employees, candidates, interviews, tickets }) {
 }
 
 const ROLE_LABEL = { founder: 'Founder', hr: 'HR Manager', it: 'IT Support', employee: 'Employee' };
-const DATE_RANGES = ['Today', 'This Week', 'This Month'];
 
 export default function HrLayout({ children }) {
   const { user, logout } = useAuth();
@@ -59,7 +57,6 @@ export default function HrLayout({ children }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [query, setQuery] = useState('');
-  const [dateRangeLabel, setDateRangeLabel] = useState('Today');
   const { employees, candidates, interviews } = useHrDesk();
   const { tickets } = useTickets();
 
@@ -315,17 +312,6 @@ export default function HrLayout({ children }) {
               className="relative w-9 h-9 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-muted-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
             >
               <Mail size={15} />
-            </button>
-
-            {/* Calendar Date Pill */}
-            <button
-              type="button"
-              onClick={() => setDateRangeLabel((l) => DATE_RANGES[(DATE_RANGES.indexOf(l) + 1) % DATE_RANGES.length])}
-              className="h-9 hidden sm:flex items-center gap-2 px-3 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-xs text-muted-foreground font-medium shrink-0 cursor-pointer transition-colors"
-            >
-              <Calendar size={13} className="text-primary" />
-              <span>{dateRangeLabel}</span>
-              <ChevronDown size={11} className="text-muted-foreground" />
             </button>
 
             {/* User Profile Pill — display only; sign out lives in the sidebar profile card */}
