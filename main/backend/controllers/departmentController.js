@@ -1,5 +1,6 @@
 const { db } = require('../config/firebase');
 const { logAudit } = require('../utils/auditLog');
+const { ok, created, fail } = require('../utils/respond');
 
 const DEPARTMENTS = db.collection('departments');
 
@@ -11,17 +12,17 @@ const DEPARTMENTS = db.collection('departments');
 // other roles and isn't a reliable source for a clean department list.
 async function listDepartments(req, res) {
   const snap = await DEPARTMENTS.get();
-  res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  ok(res, snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
 // POST /api/founder/departments — { name, head? }
 async function createDepartment(req, res) {
   const { name, head } = req.body;
-  if (!name || !name.trim()) return res.status(400).json({ error: 'name is required' });
+  if (!name || !name.trim()) return fail(res, { status: 400, message: 'name is required', code: 'VALIDATION_ERROR' });
   const dept = { name: name.trim(), head: head || null, active: true, created_at: new Date().toISOString() };
   const ref = await DEPARTMENTS.add(dept);
   await logAudit({ actor: req.user, action: 'create_department', target: { type: 'department', id: ref.id, name: dept.name } });
-  res.status(201).json({ id: ref.id, ...dept });
+  created(res, { id: ref.id, ...dept }, 'Department created successfully');
 }
 
 // PATCH /api/founder/departments/:id — { name?, head?, active? }
@@ -30,7 +31,7 @@ async function updateDepartment(req, res) {
   const { name, head, active } = req.body;
   const ref = DEPARTMENTS.doc(id);
   const doc = await ref.get();
-  if (!doc.exists) return res.status(404).json({ error: 'Department not found' });
+  if (!doc.exists) return fail(res, { status: 404, message: 'Department not found', code: 'NOT_FOUND' });
 
   const before = doc.data();
   const updates = {};
@@ -45,7 +46,7 @@ async function updateDepartment(req, res) {
     target: { type: 'department', id, name: before.name },
     details: { before: { name: before.name, head: before.head, active: before.active }, after: updates },
   });
-  res.json({ id, ...before, ...updates });
+  ok(res, { id, ...before, ...updates }, { message: 'Department updated successfully' });
 }
 
 // DELETE /api/founder/departments/:id — refuses if any user still points at
@@ -56,17 +57,21 @@ async function deleteDepartment(req, res) {
   const { reason } = req.body;
   const ref = DEPARTMENTS.doc(id);
   const doc = await ref.get();
-  if (!doc.exists) return res.status(404).json({ error: 'Department not found' });
+  if (!doc.exists) return fail(res, { status: 404, message: 'Department not found', code: 'NOT_FOUND' });
   const { name } = doc.data();
 
   const inUse = await db.collection('users').where('department', '==', name).limit(1).get();
   if (!inUse.empty) {
-    return res.status(400).json({ error: `${inUse.size >= 1 ? 'At least one' : 'A'} user is still assigned to "${name}" — reassign them first` });
+    return fail(res, {
+      status: 400,
+      message: `${inUse.size >= 1 ? 'At least one' : 'A'} user is still assigned to "${name}" — reassign them first`,
+      code: 'DEPARTMENT_IN_USE',
+    });
   }
 
   await ref.delete();
   await logAudit({ actor: req.user, action: 'delete_department', target: { type: 'department', id, name }, details: reason ? { reason } : null });
-  res.json({ id, deleted: true });
+  ok(res, { id, deleted: true }, { message: 'Department deleted successfully' });
 }
 
 module.exports = { listDepartments, createDepartment, updateDepartment, deleteDepartment, DEPARTMENTS };

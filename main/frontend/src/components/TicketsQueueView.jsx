@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ItDatePicker from './ItDatePicker';
 import DataTable from './DataTable';
 import { Drawer } from './ui';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from './ui/select';
 import { Search, X, Eye, CheckSquare, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { getHrStaff, getItStaff } from '../utils/api';
 
 // Requests raised through NewHrTicketModal combine its separate Title +
 // Description fields into one string ("Title: Description") before they
@@ -32,14 +33,34 @@ function findApproval(approvals, ticketId) {
 
 export const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
-// IT still resolves tickets by team; HR resolves them by person — Prajna H.S
-// is HR's actual staff name for now, "Unassigned" is the default until
-// someone picks it up.
-const SOLVER_OPTIONS_BY_DEPT = {
-  HR: ['Unassigned', 'Prajna H.S'],
-  IT: ['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5', 'Unassigned'],
-};
-const DEFAULT_SOLVER_BY_DEPT = { HR: 'Unassigned', IT: 'Team 1' };
+const DEFAULT_SOLVER = 'Unassigned';
+
+// The "Resolved By" dropdown used to be a hardcoded name/team list per
+// department — someone newly given the hr/it role never showed up until a
+// developer edited this file. Now it's whoever currently holds that role,
+// fetched from GET /api/{hr,it}/staff (staffController.js) — same source of
+// truth the Founder's Role Permissions page uses to grant the role itself.
+function useSolverOptions(deptLabel) {
+  const [names, setNames] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchStaff = deptLabel === 'HR' ? getHrStaff : getItStaff;
+    fetchStaff()
+      .then(({ data }) => {
+        if (!cancelled) setNames((data || []).map((u) => u.full_name).filter(Boolean));
+      })
+      .catch(() => {
+        // Queue still works with just "Unassigned" if this fails — not
+        // worth surfacing a toast for a dropdown's option list.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [deptLabel]);
+
+  return useMemo(() => [DEFAULT_SOLVER, ...names], [names]);
+}
 
 // A Radix Select (not a native `<select>`) so the OPEN dropdown panel can be
 // fully skinned too — a native `<option>` list ignores almost all CSS, so
@@ -86,9 +107,15 @@ export function ColorSelect({ value, onChange, options, ariaLabel, textColorClas
 // column's header text and whether the IT-only VPN ID column shows —
 // everything else (search, filters, drawer) is department-agnostic since
 // TicketContext already normalizes both collections to the same shape.
+// A ticket already marked Resolved/Closed sitting in the default queue view
+// forever was the complaint — this is the "history" it moves into instead:
+// still fully there, just not cluttering the active worklist. Picking the
+// Resolved or Closed filter tab explicitly still shows it.
+const HISTORY_STATUSES = ['Resolved', 'Closed'];
+
 export default function TicketsQueueView({ tickets, onStatusChange, onFieldChange, deptLabel = 'IT', showVpnNo = deptLabel === 'IT', showOnlyTitle = deptLabel === 'HR', approvals, showApprovalsColumn = Boolean(approvals), hasMoreTickets, loadMoreTickets, loadingMoreTickets }) {
-  const solverOptions = SOLVER_OPTIONS_BY_DEPT[deptLabel] || SOLVER_OPTIONS_BY_DEPT.IT;
-  const defaultSolver = DEFAULT_SOLVER_BY_DEPT[deptLabel] || DEFAULT_SOLVER_BY_DEPT.IT;
+  const solverOptions = useSolverOptions(deptLabel);
+  const defaultSolver = DEFAULT_SOLVER;
   const { user } = useAuth();
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,7 +123,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
 
   const visible = useMemo(() => {
     return tickets
-      .filter((t) => filter === 'All' || t.status === filter)
+      .filter((t) => (filter === 'All' ? !HISTORY_STATUSES.includes(t.status) : t.status === filter))
       .filter((t) => {
         if (!searchQuery.trim()) return true;
         const q = searchQuery.trim().toLowerCase();
@@ -189,6 +216,12 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
               render: (_, index) => <span className="text-muted-foreground font-semibold text-xs">{(index ?? 0) + 1}</span>,
             },
             {
+              key: 'token',
+              label: 'Ticket ID',
+              width: '95px',
+              render: (t) => <span className="font-bold text-primary text-xs font-mono">{t.token || '—'}</span>,
+            },
+            {
               key: 'date',
               label: 'Date',
               width: '80px',
@@ -274,14 +307,22 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
               key: 'solver',
               label: 'Resolved By',
               width: '110px',
-              render: (t) => (
-                <ColorSelect
-                  value={t.solver || defaultSolver}
-                  onChange={(value) => onFieldChange && onFieldChange(t.id, 'solver', value)}
-                  options={solverOptions}
-                  ariaLabel={`Resolved by for ticket ${t.token || t.id}`}
-                />
-              ),
+              render: (t) => {
+                const currentSolver = t.solver || defaultSolver;
+                // A ticket resolved before this dropdown went dynamic can
+                // carry a value (e.g. a retired "Team 1") that's no longer in
+                // the live staff list — keep it selectable so the trigger
+                // doesn't just render blank.
+                const options = solverOptions.includes(currentSolver) ? solverOptions : [currentSolver, ...solverOptions];
+                return (
+                  <ColorSelect
+                    value={currentSolver}
+                    onChange={(value) => onFieldChange && onFieldChange(t.id, 'solver', value)}
+                    options={options}
+                    ariaLabel={`Resolved by for ticket ${t.token || t.id}`}
+                  />
+                );
+              },
             },
             {
               key: 'remarks',

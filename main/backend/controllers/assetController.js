@@ -1,5 +1,6 @@
 const { db } = require('../config/firebase');
 const { paginatedQuery } = require('../utils/pagination');
+const { ok, created, fail } = require('../utils/respond');
 
 function sortByRecent(rows) {
   return rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -12,13 +13,13 @@ const collection = db.collection('assets');
 // old mock data used.
 async function createAsset(req, res) {
   const { id, type, model } = req.body;
-  if (!id || !type || !model) return res.status(400).json({ error: 'id, type and model are required' });
+  if (!id || !type || !model) return fail(res, { status: 400, message: 'id, type and model are required', code: 'VALIDATION_ERROR' });
   if (!/^[\w-]+$/.test(id)) {
-    return res.status(400).json({ error: 'id may only contain letters, numbers, hyphens and underscores' });
+    return fail(res, { status: 400, message: 'id may only contain letters, numbers, hyphens and underscores', code: 'VALIDATION_ERROR' });
   }
 
   const docRef = collection.doc(id);
-  if ((await docRef.get()).exists) return res.status(409).json({ error: `Asset ${id} already exists` });
+  if ((await docRef.get()).exists) return fail(res, { status: 409, message: `Asset ${id} already exists`, code: 'ASSET_ALREADY_EXISTS' });
 
   const docData = {
     type,
@@ -38,7 +39,7 @@ async function createAsset(req, res) {
   };
 
   await docRef.set(docData);
-  res.status(201).json({ id, ...docData });
+  created(res, { id, ...docData }, 'Asset created successfully');
 }
 
 // GET /api/it/assets?after=<cursor> — 20 at a time (was a full-collection
@@ -48,7 +49,7 @@ async function createAsset(req, res) {
 async function getAllAssets(req, res) {
   const { docs, nextCursor } = await paginatedQuery(collection, 'created_at', req.query.after);
   const rows = docs.map((d) => ({ id: d.id, ...d.data() }));
-  res.json({ items: sortByRecent(rows), nextCursor });
+  ok(res, { items: sortByRecent(rows), nextCursor });
 }
 
 const EDITABLE_FIELDS = [
@@ -61,7 +62,7 @@ async function updateAsset(req, res) {
   const { id } = req.params;
   const docRef = collection.doc(id);
   const doc = await docRef.get();
-  if (!doc.exists) return res.status(404).json({ error: 'Asset not found' });
+  if (!doc.exists) return fail(res, { status: 404, message: 'Asset not found', code: 'NOT_FOUND' });
 
   const updates = {};
   for (const key of EDITABLE_FIELDS) {
@@ -69,7 +70,7 @@ async function updateAsset(req, res) {
   }
   updates.updated_at = new Date().toISOString();
   await docRef.update(updates);
-  res.json({ id, ...doc.data(), ...updates });
+  ok(res, { id, ...doc.data(), ...updates }, { message: 'Asset updated successfully' });
 }
 
 // DELETE /api/it/assets/:id
@@ -77,9 +78,9 @@ async function deleteAsset(req, res) {
   const { id } = req.params;
   const docRef = collection.doc(id);
   const doc = await docRef.get();
-  if (!doc.exists) return res.status(404).json({ error: 'Asset not found' });
+  if (!doc.exists) return fail(res, { status: 404, message: 'Asset not found', code: 'NOT_FOUND' });
   await docRef.delete();
-  res.json({ id });
+  ok(res, { id }, { message: 'Asset deleted successfully' });
 }
 
 module.exports = { createAsset, getAllAssets, updateAsset, deleteAsset };

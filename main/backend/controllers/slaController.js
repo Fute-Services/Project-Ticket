@@ -1,6 +1,7 @@
 const { db } = require('../config/firebase');
 const { DASHBOARD_SCAN_CAP } = require('../utils/constants');
 const { logAudit } = require('../utils/auditLog');
+const { ok, fail } = require('../utils/respond');
 
 const SLA_POLICIES_DOC = db.collection('settings').doc('sla_policies');
 
@@ -26,18 +27,18 @@ const DEFAULT_SLA_POLICIES = {
 // queue may want to show SLA countdowns), only Super Admin can write.
 async function getSlaPolicies(req, res) {
   const doc = await SLA_POLICIES_DOC.get();
-  res.json(doc.exists ? { ...DEFAULT_SLA_POLICIES, ...doc.data() } : DEFAULT_SLA_POLICIES);
+  ok(res, doc.exists ? { ...DEFAULT_SLA_POLICIES, ...doc.data() } : DEFAULT_SLA_POLICIES);
 }
 
 async function updateSlaPolicies(req, res) {
   const { policies } = req.body;
   if (!policies || typeof policies !== 'object') {
-    return res.status(400).json({ error: 'policies object is required' });
+    return fail(res, { status: 400, message: 'policies object is required', code: 'VALIDATION_ERROR' });
   }
   await SLA_POLICIES_DOC.set(policies);
   await logAudit({ actor: req.user, action: 'update_sla_policies', details: { policies } });
   const doc = await SLA_POLICIES_DOC.get();
-  res.json({ ...DEFAULT_SLA_POLICIES, ...doc.data() });
+  ok(res, { ...DEFAULT_SLA_POLICIES, ...doc.data() }, { message: 'SLA policies updated successfully' });
 }
 
 // A ticket still open past its priority's resolutionMinutes is breached;
@@ -87,7 +88,7 @@ async function getSlaCompliance(req, res) {
     SLA_POLICIES_DOC.get(),
   ]);
   const policies = policiesDoc.exists ? { ...DEFAULT_SLA_POLICIES, ...policiesDoc.data() } : DEFAULT_SLA_POLICIES;
-  res.json({
+  ok(res, {
     it: summarizeSlaForQueue(itSnap, policies.it),
     hr: summarizeSlaForQueue(hrSnap, policies.hr),
   });

@@ -18,6 +18,8 @@ import {
   Bell,
   FileText,
   Search,
+  TrendingUp,
+  CalendarDays,
   LogOut,
   ChevronDown,
   ChevronsLeft,
@@ -52,6 +54,8 @@ const EMPLOYEE_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
   { id: 'tickets', label: 'My Tickets', icon: Ticket },
   { id: 'tasks', label: 'My Tasks', icon: CheckSquare },
+  { id: 'leaves', label: 'My Leaves', icon: CalendarDays },
+  { id: 'performance', label: 'Performance', icon: TrendingUp },
 ];
 
 export default function ItDeskLayout({ activeTab, setActiveTab, children, searchIndex = [], role = 'it', approvalCount = 0 }) {

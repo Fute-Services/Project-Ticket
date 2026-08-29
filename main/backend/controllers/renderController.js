@@ -1,5 +1,6 @@
 const { db } = require('../config/firebase');
 const { paginatedQuery } = require('../utils/pagination');
+const { ok, created, fail } = require('../utils/respond');
 
 const collection = db.collection('renders');
 
@@ -15,13 +16,13 @@ function sortByRecent(rows) {
 async function getAllRenders(req, res) {
   const { docs, nextCursor } = await paginatedQuery(collection, 'created_at', req.query.after);
   const rows = docs.map((d) => ({ id: d.id, ...d.data() }));
-  res.json({ items: sortByRecent(rows), nextCursor });
+  ok(res, { items: sortByRecent(rows), nextCursor });
 }
 
 // POST /api/production/renders
 async function addRender(req, res) {
   const { personName } = req.body;
-  if (!personName) return res.status(400).json({ error: 'personName is required' });
+  if (!personName) return fail(res, { status: 400, message: 'personName is required', code: 'VALIDATION_ERROR' });
 
   const docData = {
     date: req.body.date || new Date().toISOString().slice(0, 10),
@@ -35,7 +36,7 @@ async function addRender(req, res) {
   };
 
   const docRef = await collection.add(docData);
-  res.status(201).json({ id: docRef.id, ...docData });
+  created(res, { id: docRef.id, ...docData }, 'Render job created successfully');
 }
 
 const EDITABLE_FIELDS = ['date', 'sequence', 'frameNo', 'personName', 'endDate', 'allocatedSystems', 'status'];
@@ -47,15 +48,15 @@ async function updateRender(req, res) {
   for (const key of EDITABLE_FIELDS) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
   }
-  if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No editable fields provided' });
+  if (Object.keys(updates).length === 0) return fail(res, { status: 400, message: 'No editable fields provided', code: 'VALIDATION_ERROR' });
 
   const docRef = collection.doc(id);
   const doc = await docRef.get();
-  if (!doc.exists) return res.status(404).json({ error: 'Render job not found' });
+  if (!doc.exists) return fail(res, { status: 404, message: 'Render job not found', code: 'NOT_FOUND' });
 
   updates.updated_at = new Date().toISOString();
   await docRef.update(updates);
-  res.json({ id, ...doc.data(), ...updates });
+  ok(res, { id, ...doc.data(), ...updates }, { message: 'Render job updated successfully' });
 }
 
 module.exports = { getAllRenders, addRender, updateRender };

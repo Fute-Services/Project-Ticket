@@ -1,6 +1,7 @@
 const { db } = require('../config/firebase');
 const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { paginatedQuery } = require('../utils/pagination');
+const { ok, created, fail } = require('../utils/respond');
 
 const collection = db.collection('leave_requests');
 
@@ -20,7 +21,7 @@ function sortByRecent(docs) {
 async function applyLeave(req, res) {
   const { type, from, to, days, reason } = req.body;
   if (!type || !from || !to || !days) {
-    return res.status(400).json({ error: 'type, from, to and days are required' });
+    return fail(res, { status: 400, message: 'type, from, to and days are required', code: 'VALIDATION_ERROR' });
   }
 
   const userDoc = await db.collection('users').doc(req.user.id).get();
@@ -40,7 +41,7 @@ async function applyLeave(req, res) {
   };
 
   const docRef = await collection.add(docData);
-  res.status(201).json({ id: docRef.id, ...docData });
+  created(res, { id: docRef.id, ...docData }, 'Leave request submitted successfully');
 }
 
 // GET /api/leave?after=<cursor> — HR staff / founder see every request, 20
@@ -48,14 +49,14 @@ async function applyLeave(req, res) {
 async function getAllLeaves(req, res) {
   const { docs, nextCursor } = await paginatedQuery(collection, 'submitted_at', req.query.after);
   const data = docs.map((d) => ({ id: d.id, ...d.data() }));
-  res.json({ items: sortByRecent(data), nextCursor });
+  ok(res, { items: sortByRecent(data), nextCursor });
 }
 
 // GET /api/leave/my — an employee's own leave history
 async function getMyLeaves(req, res) {
   const snap = await collection.where('user_id', '==', req.user.id).limit(UNPAGINATED_READ_LIMIT).get();
   const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  res.json(sortByRecent(data));
+  ok(res, sortByRecent(data));
 }
 
 const DECISIONS = ['Approved', 'Rejected'];
@@ -64,23 +65,23 @@ const DECISIONS = ['Approved', 'Rejected'];
 async function decide(req, res) {
   const { id } = req.params;
   const { status } = req.body;
-  if (!DECISIONS.includes(status)) return res.status(400).json({ error: 'status must be Approved or Rejected' });
+  if (!DECISIONS.includes(status)) return fail(res, { status: 400, message: 'status must be Approved or Rejected', code: 'VALIDATION_ERROR' });
 
   const docRef = collection.doc(id);
   const doc = await docRef.get();
-  if (!doc.exists) return res.status(404).json({ error: 'Leave request not found' });
+  if (!doc.exists) return fail(res, { status: 404, message: 'Leave request not found', code: 'NOT_FOUND' });
   const leave = doc.data();
 
   // Admin/Ops and IT leave is the Founder's call — HR can't decide those,
   // same routing rule the frontend used to apply client-side.
   if (isFounderApproval(leave.department) && req.user.role !== 'founder') {
-    return res.status(403).json({ error: 'Only the founder can decide leave for this department' });
+    return fail(res, { status: 403, message: 'Only the founder can decide leave for this department', code: 'FORBIDDEN' });
   }
 
   const updated_at = new Date().toISOString();
   const decidedBy = req.user.full_name;
   await docRef.update({ status, updated_at, decidedBy });
-  res.json({ id, ...leave, status, updated_at, decidedBy });
+  ok(res, { id, ...leave, status, updated_at, decidedBy }, { message: 'Leave decision recorded' });
 }
 
 module.exports = { applyLeave, getAllLeaves, getMyLeaves, decide };

@@ -1,6 +1,7 @@
 const { db } = require('../config/firebase');
 const { logAudit } = require('../utils/auditLog');
 const { ACTION_PERMISSIONS_DOC, clearActionPermissionsCache } = require('../middleware/permissionMiddleware');
+const { ok, fail } = require('../utils/respond');
 
 const ROLE_PERMISSIONS_DOC = db.collection('settings').doc('role_permissions');
 
@@ -8,7 +9,7 @@ const ROLE_PERMISSIONS_DOC = db.collection('settings').doc('role_permissions');
 // gate their own nav (PermissionsContext.canAccess), not just Super Admin.
 async function getRolePermissions(req, res) {
   const doc = await ROLE_PERMISSIONS_DOC.get();
-  res.json(doc.exists ? doc.data() : {});
+  ok(res, doc.exists ? doc.data() : {});
 }
 
 // PUT /api/founder/role-permissions — Super Admin only. Frontend sends the
@@ -18,11 +19,11 @@ async function getRolePermissions(req, res) {
 async function updateRolePermissions(req, res) {
   const { permissions } = req.body;
   if (!permissions || typeof permissions !== 'object') {
-    return res.status(400).json({ error: 'permissions object is required' });
+    return fail(res, { status: 400, message: 'permissions object is required', code: 'VALIDATION_ERROR' });
   }
   await ROLE_PERMISSIONS_DOC.set(permissions);
   await logAudit({ actor: req.user, action: 'update_role_permissions', details: { permissions } });
-  res.json({ permissions });
+  ok(res, { permissions }, { message: 'Role permissions updated successfully' });
 }
 
 // GET /api/founder/action-permissions — every logged-in user reads this so
@@ -33,7 +34,7 @@ async function updateRolePermissions(req, res) {
 // change silently wipe out the action matrix.
 async function getActionPermissions(req, res) {
   const doc = await ACTION_PERMISSIONS_DOC.get();
-  res.json(doc.exists ? doc.data() : {});
+  ok(res, doc.exists ? doc.data() : {});
 }
 
 // GET /api/founder/permissions — combined read of role-permissions +
@@ -41,7 +42,7 @@ async function getActionPermissions(req, res) {
 // doesn't fire two separate requests for what's always fetched together.
 async function getPermissions(req, res) {
   const [pagesDoc, actionsDoc] = await Promise.all([ROLE_PERMISSIONS_DOC.get(), ACTION_PERMISSIONS_DOC.get()]);
-  res.json({
+  ok(res, {
     pages: pagesDoc.exists ? pagesDoc.data() : {},
     actions: actionsDoc.exists ? actionsDoc.data() : {},
   });
@@ -51,12 +52,12 @@ async function getPermissions(req, res) {
 async function updateActionPermissions(req, res) {
   const { permissions } = req.body;
   if (!permissions || typeof permissions !== 'object') {
-    return res.status(400).json({ error: 'permissions object is required' });
+    return fail(res, { status: 400, message: 'permissions object is required', code: 'VALIDATION_ERROR' });
   }
   await ACTION_PERMISSIONS_DOC.set(permissions);
   clearActionPermissionsCache();
   await logAudit({ actor: req.user, action: 'update_action_permissions', details: { permissions } });
-  res.json({ permissions });
+  ok(res, { permissions }, { message: 'Action permissions updated successfully' });
 }
 
 module.exports = { getRolePermissions, updateRolePermissions, getActionPermissions, updateActionPermissions, getPermissions };

@@ -1,4 +1,10 @@
-const admin = require('firebase-admin');
+// firebase-admin v14 dropped the old `admin.auth()`/`admin.credential.cert()`
+// namespace API in favor of these modular imports (the SDK version that
+// fixed the uuid vulnerability npm audit flagged — see package.json).
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+const { getFirestore } = require('firebase-admin/firestore');
+const { getStorage } = require('firebase-admin/storage');
 require('dotenv').config();
 
 // Real service-account credentials aren't checked in — the placeholder
@@ -23,9 +29,10 @@ const storageBucket = hasRealCredentials
   ? process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.appspot.com`
   : undefined;
 
+let app;
 if (hasRealCredentials) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
+  app = initializeApp({
+    credential: cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
@@ -37,15 +44,15 @@ if (hasRealCredentials) {
   // account cert required, the Admin SDK auto-detects the emulator hosts.
   process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || 'localhost:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || 'localhost:9099';
-  admin.initializeApp({ projectId });
+  app = initializeApp({ projectId });
   console.log(`[firebase] No real credentials in .env — using Local Emulator Suite (project "${projectId}"). Run "npm run emulators" first.`);
 }
 
 module.exports = {
-  auth: admin.auth(),
-  db: admin.firestore(),
+  auth: getAuth(app),
+  db: getFirestore(app),
   // Only real credential setups have a usable Storage bucket — the emulator
   // fallback above never sets `storageBucket`, so `bucket()` would throw.
-  bucket: hasRealCredentials ? admin.storage().bucket() : null,
+  bucket: hasRealCredentials ? getStorage(app).bucket() : null,
   usingEmulator: !hasRealCredentials,
 };

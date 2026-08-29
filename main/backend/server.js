@@ -1,5 +1,8 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 // Patches Express 4's router so a rejected promise thrown inside any async
 // route handler is forwarded to the error-handling middleware below instead
@@ -18,9 +21,33 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-const { db, usingEmulator } = require('./config/firebase');
+const { db } = require('./config/firebase');
+const { ok, fail } = require('./utils/respond');
+const csrfMiddleware = require('./middleware/csrfMiddleware');
+const errorMiddleware = require('./middleware/errorMiddleware');
 
 const app = express();
+
+// Vercel terminates TLS and proxies every request through one internal hop,
+// setting X-Forwarded-For to the real client IP. Without this, Express falls
+// back to the raw socket address — identical for every visitor behind the
+// proxy — so express-rate-limit's default per-IP key buckets all traffic
+// together instead of throttling individual clients.
+app.set('trust proxy', 1);
+
+app.use(helmet());
+
+// Baseline throttle for every route below, on top of the stricter limiter
+// authRoutes.js already applies to /login, /register and /verify-password —
+// this just stops any other endpoint (complaints, tasks, assets, ...) from
+// being hammered with zero limit at all by a compromised or careless client.
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later', error: { code: 'RATE_LIMITED', details: null } },
+}));
 
 // Only the app's own known frontend origins may call this API cross-origin
 // — it handles real employee PII, so an unrestricted `cors()` default is
@@ -42,9 +69,19 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin) || isLocalhost(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
+  // Required for the browser to actually send/receive the httpOnly session
+  // cookie cross-origin (frontend and backend are separate Vercel domains).
+  // Safe specifically because origin above is never a wildcard — the CORS
+  // spec forbids combining credentials:true with Access-Control-Allow-Origin: *.
+  credentials: true,
   maxAge: 600,
 }));
 app.use(express.json());
+app.use(cookieParser());
+// Global: every mutating request needs a matching CSRF cookie+header pair
+// (see middleware/csrfMiddleware.js) now that auth lives in a SameSite=None
+// cross-origin cookie instead of a JS-attached header.
+app.use(csrfMiddleware);
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -58,7 +95,7 @@ app.use('/api/coordinator', require('./routes/coordinatorRoutes'));
 app.use('/api/production/renders', require('./routes/renderRoutes'));
 app.use('/api/hr-desk', require('./routes/hrDeskRoutes'));
 
-app.get('/', (req, res) => res.json({ message: 'Fute Portal API running' }));
+app.get('/', (req, res) => ok(res, { message: 'Fute Portal API running' }));
 
 // GET /healthz — unlike '/' above, this actually reaches Firestore, so an
 // orchestrator can tell "process is up" apart from "the database it depends
@@ -67,26 +104,22 @@ app.get('/healthz', async (req, res) => {
   const start = Date.now();
   try {
     await db.collection('users').limit(1).get();
-    res.json({ status: 'ok', firestore: 'reachable', pingMs: Date.now() - start, usingEmulator });
+    ok(res, { firestore: 'reachable', pingMs: Date.now() - start });
   } catch (err) {
-    res.status(503).json({ status: 'error', firestore: 'unreachable', error: err.message });
+    // This endpoint is unauthenticated (orchestrators/uptime checks hit it
+    // pre-login) — err.message could echo Firestore/driver internals, so log
+    // the detail server-side and only confirm "unreachable" to the caller.
+    console.error('healthz check failed:', err);
+    fail(res, { status: 503, message: 'Firestore unreachable', code: 'SERVICE_UNAVAILABLE' });
   }
 });
 
-// Catch-all — with express-async-errors, this now also receives rejected
-// promises from any async route handler, not just synchronous throws.
-app.use((err, req, res, next) => {
-  console.error(err);
-  if (res.headersSent) return next(err);
-  const status = err.status || (err.message === 'Not allowed by CORS' ? 403 : 500);
-  // Controllers that intentionally throw Object.assign(new Error(...), {status})
-  // want that message shown to the client. Anything else is an unexpected
-  // error (Firestore/driver internals, TypeErrors, etc.) whose raw message
-  // could leak internal details — send a generic message for those instead,
-  // the real error is already logged above.
-  const message = err.status ? err.message : (status === 403 ? err.message : 'Internal server error');
-  res.status(status).json({ error: message });
-});
+// No route matched — without this, an unmapped URL fell through to Express's
+// own default 404 handler, which sends an HTML error page instead of the
+// same JSON envelope every other response on this API uses.
+app.use((req, res) => fail(res, { status: 404, message: 'Not found', code: 'NOT_FOUND' }));
+
+app.use(errorMiddleware);
 
 const PORT = process.env.PORT || 5000;
 if (!process.env.VERCEL) {

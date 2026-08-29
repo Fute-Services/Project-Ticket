@@ -1,7 +1,8 @@
 const { db, bucket } = require('../config/firebase');
-const { Timestamp } = require('firebase-admin').firestore;
+const { Timestamp } = require('firebase-admin/firestore');
 const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { sendMail, escapeHtml } = require('../utils/mailer');
+const { ok, created, fail } = require('../utils/respond');
 
 const sentCollection = db.collection('sent_emails');
 const approvalsCollection = db.collection('approvals');
@@ -26,13 +27,13 @@ async function notifyFounder(subject, html) {
 // so the Sent folder reflects real history across sessions/devices.
 async function sendEmail(req, res) {
   const { to, subject, body } = req.body;
-  if (!to || !subject || !body) return res.status(400).json({ error: 'to, subject and body are required' });
+  if (!to || !subject || !body) return fail(res, { status: 400, message: 'to, subject and body are required', code: 'VALIDATION_ERROR' });
 
   const html = `<div style="font-family:sans-serif;white-space:pre-wrap">${escapeHtml(body)}</div>`;
   try {
     await sendMail(to, subject, html);
   } catch (err) {
-    return res.status(502).json({ error: 'Failed to send email' });
+    return fail(res, { status: 502, message: 'Failed to send email', code: 'EMAIL_SEND_FAILED' });
   }
 
   const docData = {
@@ -44,7 +45,7 @@ async function sendEmail(req, res) {
     time: new Date().toISOString(),
   };
   const docRef = await sentCollection.add(docData);
-  res.status(201).json({ id: docRef.id, ...docData });
+  created(res, { id: docRef.id, ...docData }, 'Email sent successfully');
 }
 
 // GET /api/hr-desk/send-email — Sent folder history. No `.orderBy('time')`
@@ -53,7 +54,7 @@ async function getSentEmails(req, res) {
   const snap = await sentCollection.limit(UNPAGINATED_READ_LIMIT).get();
   const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   rows.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
-  res.json(rows);
+  ok(res, rows);
 }
 
 // Firestore Timestamp fields (e.g. candidates.appliedOn) come back from
@@ -92,12 +93,12 @@ function makeCrud(collectionName, requiredFields, editableFields, options = {}) 
     const snap = await collection.limit(UNPAGINATED_READ_LIMIT).get();
     const rows = snap.docs.map((d) => ({ id: d.id, ...serializeDoc(d.data()) }));
     rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    res.json(rows);
+    ok(res, rows);
   }
 
   async function create(req, res) {
     for (const field of requiredFields) {
-      if (!req.body[field]) return res.status(400).json({ error: `${field} is required` });
+      if (!req.body[field]) return fail(res, { status: 400, message: `${field} is required`, code: 'VALIDATION_ERROR' });
     }
     const docData = { created_at: new Date().toISOString() };
     if (trackUpdatedBy) docData.lastUpdatedBy = req.user.full_name;
@@ -106,14 +107,14 @@ function makeCrud(collectionName, requiredFields, editableFields, options = {}) 
     }
     const docRef = await collection.add(docData);
     if (afterWrite) await afterWrite(docData);
-    res.status(201).json({ id: docRef.id, ...serializeDoc(docData) });
+    created(res, { id: docRef.id, ...serializeDoc(docData) }, 'Created successfully');
   }
 
   async function update(req, res) {
     const { id } = req.params;
     const docRef = collection.doc(id);
     const doc = await docRef.get();
-    if (!doc.exists) return res.status(404).json({ error: 'Not found' });
+    if (!doc.exists) return fail(res, { status: 404, message: 'Not found', code: 'NOT_FOUND' });
 
     const updates = { updated_at: new Date().toISOString() };
     if (trackUpdatedBy) updates.lastUpdatedBy = req.user.full_name;
@@ -123,16 +124,16 @@ function makeCrud(collectionName, requiredFields, editableFields, options = {}) 
     await docRef.update(updates);
     const merged = { ...doc.data(), ...updates };
     if (afterWrite) await afterWrite(merged);
-    res.json({ id, ...serializeDoc(merged) });
+    ok(res, { id, ...serializeDoc(merged) }, { message: 'Updated successfully' });
   }
 
   async function remove(req, res) {
     const { id } = req.params;
     const docRef = collection.doc(id);
     const doc = await docRef.get();
-    if (!doc.exists) return res.status(404).json({ error: 'Not found' });
+    if (!doc.exists) return fail(res, { status: 404, message: 'Not found', code: 'NOT_FOUND' });
     await docRef.delete();
-    res.json({ id });
+    ok(res, { id }, { message: 'Deleted successfully' });
   }
 
   return { list, create, update, remove };
@@ -177,12 +178,12 @@ const DOCUMENT_TYPES = {
 async function uploadEmployeeDocument(req, res) {
   const { id, docType } = req.params;
   const doc = DOCUMENT_TYPES[docType];
-  if (!doc) return res.status(400).json({ error: `Unknown document type "${docType}"` });
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  if (!bucket) return res.status(503).json({ error: 'File storage is not configured on this server' });
+  if (!doc) return fail(res, { status: 400, message: `Unknown document type "${docType}"`, code: 'VALIDATION_ERROR' });
+  if (!req.file) return fail(res, { status: 400, message: 'No file uploaded', code: 'VALIDATION_ERROR' });
+  if (!bucket) return fail(res, { status: 503, message: 'File storage is not configured on this server', code: 'SERVICE_UNAVAILABLE' });
 
   const employeeRef = db.collection('employees').doc(id);
-  if (!(await employeeRef.get()).exists) return res.status(404).json({ error: 'Employee not found' });
+  if (!(await employeeRef.get()).exists) return fail(res, { status: 404, message: 'Employee not found', code: 'NOT_FOUND' });
 
   const safeName = req.file.originalname.replace(/[^\w.\-]/g, '_');
   const storagePath = `employee-documents/${id}/${docType}-${Date.now()}-${safeName}`;
@@ -233,7 +234,7 @@ async function uploadEmployeeDocument(req, res) {
     `<p>${escapeHtml(req.user.full_name)} uploaded <strong>${escapeHtml(doc.label)}</strong> for <strong>${escapeHtml(employeeData.name)}</strong>. Awaiting sign-off.</p>`
   );
 
-  res.json({ id, ...updates, approvalId: approvalRef.id });
+  ok(res, { id, ...updates, approvalId: approvalRef.id }, { message: 'Document uploaded successfully' });
 }
 
 const attendanceCollection = db.collection('attendance');
@@ -277,9 +278,22 @@ function dateRange(from, to) {
 // know on load whether the current user is already checked in, without
 // pulling the whole attendance collection like the HR-side list() does.
 async function myTodayAttendance(req, res) {
-  if (!req.user.employeeId) return res.json(null);
+  if (!req.user.employeeId) return ok(res, null);
   const doc = await findTodayDoc(req.user.employeeId);
-  res.json(doc ? { id: doc.id, ...doc.data() } : null);
+  ok(res, doc ? { id: doc.id, ...doc.data() } : null);
+}
+
+// GET /api/hr-desk/attendance/me — an employee's own attendance history
+// (for the Performance page's Extra Hours card). Same self-only scoping as
+// findTodayDoc: keyed off req.user.employeeId, never a client-supplied id.
+async function myAttendanceHistory(req, res) {
+  if (!req.user.employeeId) return ok(res, []);
+  const snap = await attendanceCollection
+    .where('employeeId', '==', req.user.employeeId)
+    .limit(UNPAGINATED_READ_LIMIT)
+    .get();
+  const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  ok(res, data.sort((a, b) => String(b.date).localeCompare(String(a.date))));
 }
 
 // POST /api/hr-desk/attendance/check-in — workMode 'Leave' marks the whole
@@ -290,12 +304,12 @@ async function myTodayAttendance(req, res) {
 // counting these rows directly instead of re-deriving it some other way.
 async function checkIn(req, res) {
   if (!req.user.employeeId) {
-    return res.status(400).json({ error: 'Your account is not linked to an employee record yet — ask HR to set that up.' });
+    return fail(res, { status: 400, message: 'Your account is not linked to an employee record yet — ask HR to set that up.', code: 'VALIDATION_ERROR' });
   }
   const workMode = ['WFH', 'Leave'].includes(req.body.workMode) ? req.body.workMode : 'Office';
   const existing = await findTodayDoc(req.user.employeeId);
   if (existing && existing.data().checkIn && existing.data().checkIn !== '-' && (!existing.data().checkOut || existing.data().checkOut === '-')) {
-    return res.status(409).json({ error: 'Already checked in for today.' });
+    return fail(res, { status: 409, message: 'Already checked in for today.', code: 'CONFLICT' });
   }
 
   if (workMode === 'Leave') {
@@ -319,7 +333,7 @@ async function checkIn(req, res) {
         return { id: docRef.id, ...docData };
       })
     );
-    return res.status(201).json(rows[0]);
+    return created(res, rows[0], 'Leave marked successfully');
   }
 
   // "HH:MM" (not a full timestamp) — matches the format Attendance.jsx's
@@ -328,24 +342,24 @@ async function checkIn(req, res) {
   const checkInTime = new Date().toTimeString().slice(0, 5);
   if (existing) {
     await existing.ref.update({ checkIn: checkInTime, checkOut: '-', status: 'Present', workMode });
-    return res.json({ id: existing.id, ...existing.data(), checkIn: checkInTime, checkOut: '-', status: 'Present', workMode });
+    return ok(res, { id: existing.id, ...existing.data(), checkIn: checkInTime, checkOut: '-', status: 'Present', workMode }, { message: 'Checked in successfully' });
   }
   const docData = { employeeId: req.user.employeeId, date: todayStr(), status: 'Present', checkIn: checkInTime, checkOut: '-', hours: null, workMode };
   const docRef = await attendanceCollection.add(docData);
-  res.status(201).json({ id: docRef.id, ...docData });
+  created(res, { id: docRef.id, ...docData }, 'Checked in successfully');
 }
 
 // POST /api/hr-desk/attendance/check-out
 async function checkOut(req, res) {
   if (!req.user.employeeId) {
-    return res.status(400).json({ error: 'Your account is not linked to an employee record yet — ask HR to set that up.' });
+    return fail(res, { status: 400, message: 'Your account is not linked to an employee record yet — ask HR to set that up.', code: 'VALIDATION_ERROR' });
   }
   const doc = await findTodayDoc(req.user.employeeId);
   if (!doc || !doc.data().checkIn || doc.data().checkIn === '-') {
-    return res.status(409).json({ error: 'You have not checked in today.' });
+    return fail(res, { status: 409, message: 'You have not checked in today.', code: 'CONFLICT' });
   }
   if (doc.data().checkOut && doc.data().checkOut !== '-') {
-    return res.status(409).json({ error: 'Already checked out for today.' });
+    return fail(res, { status: 409, message: 'Already checked out for today.', code: 'CONFLICT' });
   }
 
   const checkOutTime = new Date().toTimeString().slice(0, 5);
@@ -353,7 +367,7 @@ async function checkOut(req, res) {
   const [outH, outM] = checkOutTime.split(':').map(Number);
   const hours = Math.max(0, (outH * 60 + outM - (inH * 60 + inM)) / 60);
   await doc.ref.update({ checkOut: checkOutTime, hours });
-  res.json({ id: doc.id, ...doc.data(), checkOut: checkOutTime, hours });
+  ok(res, { id: doc.id, ...doc.data(), checkOut: checkOutTime, hours }, { message: 'Checked out successfully' });
 }
 
 // Extra Hours Logging module — self-service submit (mirrors checkIn's
@@ -368,11 +382,11 @@ const extraHoursCollection = db.collection('extra_hours');
 
 async function submitExtraHours(req, res) {
   if (!req.user.employeeId) {
-    return res.status(400).json({ error: 'Your account is not linked to an employee record yet — ask HR to set that up.' });
+    return fail(res, { status: 400, message: 'Your account is not linked to an employee record yet — ask HR to set that up.', code: 'VALIDATION_ERROR' });
   }
   const { projectCode, hours, date, time, teammates } = req.body;
   if (!projectCode || !hours || !date) {
-    return res.status(400).json({ error: 'projectCode, hours and date are required' });
+    return fail(res, { status: 400, message: 'projectCode, hours and date are required', code: 'VALIDATION_ERROR' });
   }
 
   const employeeDoc = await db.collection('employees').doc(req.user.employeeId).get();
@@ -411,19 +425,19 @@ async function submitExtraHours(req, res) {
     `<p><strong>${escapeHtml(employeeName)}</strong> logged <strong>${docData.hours}h</strong> on project <strong>${escapeHtml(projectCode)}</strong> (${escapeHtml(date)}). Awaiting sign-off.</p>`
   );
 
-  res.status(201).json({ id: docRef.id, ...docData, approvalId: approvalRef.id });
+  created(res, { id: docRef.id, ...docData, approvalId: approvalRef.id }, 'Extra hours submitted successfully');
 }
 
 // GET /api/hr-desk/extra-hours/me — the calling employee's own entries only.
 async function myExtraHours(req, res) {
-  if (!req.user.employeeId) return res.json([]);
+  if (!req.user.employeeId) return ok(res, []);
   const snap = await extraHoursCollection
     .where('employeeId', '==', req.user.employeeId)
     .limit(UNPAGINATED_READ_LIMIT)
     .get();
   const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(rows);
+  ok(res, rows);
 }
 
 // GET /api/hr-desk/extra-hours — HR/founder, every employee's entries
@@ -432,7 +446,7 @@ async function listExtraHours(req, res) {
   const snap = await extraHoursCollection.limit(UNPAGINATED_READ_LIMIT).get();
   const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(rows);
+  ok(res, rows);
 }
 
 // "Taken" is stored one row per (employeeId, periodKey) in leave_entries —
@@ -446,7 +460,7 @@ const leaveEntriesCollection = db.collection('leave_entries');
 // Leave & Performance gap), plus the raw per-period entries so the employee
 // can also pick a month/quarter and see that period's taken count.
 async function myLeaveSummary(req, res) {
-  if (!req.user.employeeId) return res.json({ entitlement: 0, takenYear: 0, remaining: 0, entries: [] });
+  if (!req.user.employeeId) return ok(res, { entitlement: 0, takenYear: 0, remaining: 0, entries: [] });
   const [empDoc, entriesSnap] = await Promise.all([
     db.collection('employees').doc(req.user.employeeId).get(),
     leaveEntriesCollection.where('employeeId', '==', req.user.employeeId).limit(UNPAGINATED_READ_LIMIT).get(),
@@ -454,18 +468,18 @@ async function myLeaveSummary(req, res) {
   const entitlement = Number(empDoc.exists ? empDoc.data().leaveEntitlement : 0) || DEFAULT_LEAVE_ENTITLEMENT;
   const entries = entriesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const takenYear = entries.reduce((s, e) => s + (Number(e.taken) || 0), 0);
-  res.json({ entitlement, takenYear, remaining: Math.max(0, entitlement - takenYear), entries });
+  ok(res, { entitlement, takenYear, remaining: Math.max(0, entitlement - takenYear), entries });
 }
 
 // GET /api/hr-desk/performance/me — self-scoped, mirrors myLeaveSummary.
 async function myPerformance(req, res) {
-  if (!req.user.employeeId) return res.json([]);
+  if (!req.user.employeeId) return ok(res, []);
   const snap = await db
     .collection('performance_entries')
     .where('employeeId', '==', req.user.employeeId)
     .limit(UNPAGINATED_READ_LIMIT)
     .get();
-  res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  ok(res, snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
 module.exports = {
@@ -501,6 +515,7 @@ module.exports = {
   attendance: makeCrud('attendance', ['employeeId', 'date', 'status'],
     ['employeeId', 'date', 'status', 'checkIn', 'checkOut', 'hours', 'workMode']),
   myTodayAttendance,
+  myAttendanceHistory,
   checkIn,
   checkOut,
   feedback: makeCrud('interview_feedback', ['candidate', 'interviewer', 'recommendation'],

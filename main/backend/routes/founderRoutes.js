@@ -12,7 +12,7 @@ const expensiveReadLimiter = rateLimit({
   limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many requests, please slow down' },
+  message: { success: false, message: 'Too many requests, please slow down', error: { code: 'RATE_LIMITED', details: null } },
 });
 // Split from a single 951-line founderController.js into one file per real
 // concern (user mgmt, analytics, SLA, notifications, departments,

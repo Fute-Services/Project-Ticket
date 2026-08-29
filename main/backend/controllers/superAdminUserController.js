@@ -1,6 +1,7 @@
 const { auth, db } = require('../config/firebase');
 const { UNPAGINATED_READ_LIMIT, FOUNDER_LIST_CAP } = require('../utils/constants');
 const { logAudit, AUDIT_LOGS } = require('../utils/auditLog');
+const { ok, created, fail } = require('../utils/respond');
 
 // Roles Super Admin is allowed to hand-create an account for from the Role
 // Permissions page. Deliberately excludes 'founder' and 'superadmin' —
@@ -81,7 +82,7 @@ async function getAllComplaints(req, res) {
   }
 
   const enriched = await enrichWithUserRole(all);
-  res.json(enriched);
+  ok(res, enriched);
 }
 
 // GET /api/founder/users?role=it — no passwords stored here, Firebase Auth
@@ -104,7 +105,7 @@ async function listUsers(req, res) {
       active: u.active !== false,
       created_at: u.created_at || null,
     }));
-  res.json(users);
+  ok(res, users);
 }
 
 // PATCH /api/founder/users/:uid/permissions — { permissionOverrides: {...} }
@@ -114,11 +115,11 @@ async function updateUserPermissions(req, res) {
   const { uid } = req.params;
   const { permissionOverrides } = req.body;
   if (!permissionOverrides || typeof permissionOverrides !== 'object') {
-    return res.status(400).json({ error: 'permissionOverrides object is required' });
+    return fail(res, { status: 400, message: 'permissionOverrides object is required', code: 'VALIDATION_ERROR' });
   }
   const userRef = db.collection('users').doc(uid);
   const userDoc = await userRef.get();
-  if (!userDoc.exists) return res.status(404).json({ error: 'User not found' });
+  if (!userDoc.exists) return fail(res, { status: 404, message: 'User not found', code: 'NOT_FOUND' });
 
   await userRef.set({ permissionOverrides }, { merge: true });
   await logAudit({
@@ -127,7 +128,7 @@ async function updateUserPermissions(req, res) {
     target: { type: 'user', id: uid, email: userDoc.data().email },
     details: { permissionOverrides },
   });
-  res.json({ id: uid, permissionOverrides });
+  ok(res, { id: uid, permissionOverrides }, { message: 'Permissions updated successfully' });
 }
 
 // POST /api/founder/users — { email, password, full_name, role, department }
@@ -139,17 +140,20 @@ async function updateUserPermissions(req, res) {
 async function createUser(req, res) {
   const { email, password, full_name, role, department } = req.body;
   if (!email || !password || !full_name || !role) {
-    return res.status(400).json({ error: 'email, password, full_name and role are required' });
+    return fail(res, { status: 400, message: 'email, password, full_name and role are required', code: 'VALIDATION_ERROR' });
   }
   if (!ASSIGNABLE_ROLES.includes(role)) {
-    return res.status(400).json({ error: `role must be one of: ${ASSIGNABLE_ROLES.join(', ')}` });
+    return fail(res, { status: 400, message: `role must be one of: ${ASSIGNABLE_ROLES.join(', ')}`, code: 'VALIDATION_ERROR' });
+  }
+  if (password.length < 10) {
+    return fail(res, { status: 400, message: 'password (min 10 chars) is required', code: 'VALIDATION_ERROR' });
   }
 
   let userRecord;
   try {
     userRecord = await auth.createUser({ email, password, displayName: full_name });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return fail(res, { status: 400, message: err.message, code: 'USER_CREATE_FAILED' });
   }
 
   const profile = {
@@ -169,7 +173,7 @@ async function createUser(req, res) {
     details: { role, department: department || null },
   });
 
-  res.status(201).json({ id: userRecord.uid, ...profile });
+  created(res, { id: userRecord.uid, ...profile }, 'User created successfully');
 }
 
 // PATCH /api/founder/users/:uid — { full_name?, department?, role? }
@@ -179,14 +183,14 @@ async function updateUser(req, res) {
   const { uid } = req.params;
   const { full_name, department, role } = req.body;
   if (uid === req.user.id) {
-    return res.status(400).json({ error: "Can't edit your own account from this panel" });
+    return fail(res, { status: 400, message: "Can't edit your own account from this panel", code: 'VALIDATION_ERROR' });
   }
   if (role !== undefined && !EDITABLE_ROLES.includes(role)) {
-    return res.status(400).json({ error: `role must be one of: ${EDITABLE_ROLES.join(', ')}` });
+    return fail(res, { status: 400, message: `role must be one of: ${EDITABLE_ROLES.join(', ')}`, code: 'VALIDATION_ERROR' });
   }
   const userRef = db.collection('users').doc(uid);
   const userDoc = await userRef.get();
-  if (!userDoc.exists) return res.status(404).json({ error: 'User not found' });
+  if (!userDoc.exists) return fail(res, { status: 404, message: 'User not found', code: 'NOT_FOUND' });
 
   const before = userDoc.data();
   const updates = {};
@@ -202,7 +206,7 @@ async function updateUser(req, res) {
     details: { before: { full_name: before.full_name, department: before.department, role: before.role }, after: updates },
   });
 
-  res.json({ id: uid, ...before, ...updates });
+  ok(res, { id: uid, ...before, ...updates }, { message: 'User updated successfully' });
 }
 
 // PATCH /api/founder/users/:uid/active — { active: boolean }
@@ -211,13 +215,13 @@ async function updateUser(req, res) {
 async function setUserActive(req, res) {
   const { uid } = req.params;
   const { active, reason } = req.body;
-  if (typeof active !== 'boolean') return res.status(400).json({ error: 'active (boolean) is required' });
+  if (typeof active !== 'boolean') return fail(res, { status: 400, message: 'active (boolean) is required', code: 'VALIDATION_ERROR' });
   if (uid === req.user.id) {
-    return res.status(400).json({ error: "Can't deactivate your own account" });
+    return fail(res, { status: 400, message: "Can't deactivate your own account", code: 'VALIDATION_ERROR' });
   }
   const userRef = db.collection('users').doc(uid);
   const userDoc = await userRef.get();
-  if (!userDoc.exists) return res.status(404).json({ error: 'User not found' });
+  if (!userDoc.exists) return fail(res, { status: 404, message: 'User not found', code: 'NOT_FOUND' });
 
   await userRef.set({ active }, { merge: true });
   await auth.updateUser(uid, { disabled: !active });
@@ -229,7 +233,7 @@ async function setUserActive(req, res) {
     details: reason ? { reason } : null,
   });
 
-  res.json({ id: uid, active });
+  ok(res, { id: uid, active }, { message: active ? 'User reactivated successfully' : 'User deactivated successfully' });
 }
 
 // DELETE /api/founder/users/:uid — removes the Firebase Auth account and
@@ -240,11 +244,11 @@ async function deleteUser(req, res) {
   const { uid } = req.params;
   const { reason } = req.body;
   if (uid === req.user.id) {
-    return res.status(400).json({ error: "Can't delete your own account" });
+    return fail(res, { status: 400, message: "Can't delete your own account", code: 'VALIDATION_ERROR' });
   }
   const userRef = db.collection('users').doc(uid);
   const userDoc = await userRef.get();
-  if (!userDoc.exists) return res.status(404).json({ error: 'User not found' });
+  if (!userDoc.exists) return fail(res, { status: 404, message: 'User not found', code: 'NOT_FOUND' });
   const email = userDoc.data().email;
 
   try {
@@ -261,7 +265,7 @@ async function deleteUser(req, res) {
     details: reason ? { reason } : null,
   });
 
-  res.json({ id: uid, deleted: true });
+  ok(res, { id: uid, deleted: true }, { message: 'User deleted successfully' });
 }
 
 // PATCH /api/founder/users/:uid/reset-password — { password }
@@ -272,11 +276,11 @@ async function resetUserPassword(req, res) {
   // after an account lockout, so a weak reset here undermines the lockout
   // protection it's meant to restore.
   if (!password || password.length < 10) {
-    return res.status(400).json({ error: 'password (min 10 chars) is required' });
+    return fail(res, { status: 400, message: 'password (min 10 chars) is required', code: 'VALIDATION_ERROR' });
   }
   const userRef = db.collection('users').doc(uid);
   const userDoc = await userRef.get();
-  if (!userDoc.exists) return res.status(404).json({ error: 'User not found' });
+  if (!userDoc.exists) return fail(res, { status: 404, message: 'User not found', code: 'NOT_FOUND' });
 
   await auth.updateUser(uid, { password });
   await logAudit({
@@ -285,14 +289,14 @@ async function resetUserPassword(req, res) {
     target: { type: 'user', id: uid, email: userDoc.data().email },
   });
 
-  res.json({ id: uid, reset: true });
+  ok(res, { id: uid, reset: true }, { message: 'Password reset successfully' });
 }
 
 // GET /api/founder/audit-logs?limit=100
 async function getAuditLogs(req, res) {
   const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
   const snap = await AUDIT_LOGS.orderBy('created_at', 'desc').limit(limit).get();
-  res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  ok(res, snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
 module.exports = {

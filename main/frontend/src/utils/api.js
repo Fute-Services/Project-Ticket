@@ -2,31 +2,107 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? 'http://localhost:5000' : ''),
+  // The session lives in an httpOnly cookie now (backend/controllers/authController.js) —
+  // without this, the browser won't send it on cross-origin requests
+  // (frontend and backend are separate Vercel domains), and won't store the
+  // Set-Cookie from a login/register response either.
+  withCredentials: true,
 });
 
-// Attach the JWT to every request automatically. "Remember me" decides which
-// store AuthContext wrote it to, so check both.
+function readCookie(name) {
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// The CSRF cookie is deliberately NOT httpOnly (backend/utils/cookies.js) —
+// this is what lets it be echoed back as a header. See
+// backend/middleware/csrfMiddleware.js for why that pair proves the request
+// came from our own frontend, not a forged cross-site one.
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('fute_token') || sessionStorage.getItem('fute_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const csrf = readCookie('fute_csrf');
+  if (csrf) config.headers['X-CSRF-Token'] = csrf;
   return config;
 });
 
-// A 401 means the token is expired, invalid, or was revoked server-side (an
-// admin's "force logout"/"revoke session" in the Security Center) — without
-// this, the SPA kept showing protected pages with a dead token until the
-// user happened to hit a page that reloaded /api/auth/me. Skip login/register
-// itself so a wrong-password response doesn't bounce the user off the page
-// they're trying to log in from.
+function isAuthEndpoint(url) {
+  return /\/api\/auth\/(login|register|refresh)(\?|$)/.test(url || '');
+}
+
+function flattenErrorBody(err) {
+  // Flatten {success:false, message, error:{code,details}} down to a plain
+  // `.error` string, matching what every existing catch block
+  // (`e.response?.data?.error || e.message`) already reads.
+  const body = err.response?.data;
+  if (body && typeof body === 'object' && body.success === false) {
+    err.response.data = { ...body, error: body.message || body.error?.details || body.error?.code || 'Request failed' };
+  }
+  return err;
+}
+
+function redirectToLogin() {
+  if (window.location.pathname !== '/login') window.location.href = '/login';
+}
+
+// The access token is short-lived (15 min — backend/utils/jwt.js) by design;
+// this is what makes that invisible to the user instead of logging them out
+// every 15 minutes. One in-flight refresh call is shared by every request
+// that hits a 401 around the same time (several widgets polling at once,
+// say) — without this, each would independently call /refresh, and the
+// second one to land would find the first had already rotated the refresh
+// token out from under it and get treated as reuse (utils/sessions.js).
+let refreshPromise = null;
+function refreshOnce() {
+  if (!refreshPromise) {
+    refreshPromise = api.post('/api/auth/refresh').finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+// The backend wraps every response in a standard envelope —
+// {success:true, message, data} on success, {success:false, message, error:{code,details}}
+// on failure (backend/utils/respond.js). Every context/component in this app
+// was written against the OLD bare-payload shape (`response.data` being the
+// complaint/array/whatever directly, and `err.response.data.error` being a
+// plain string) — rather than rewrite every one of those ~40 call sites,
+// this single interceptor pair unwraps the envelope right here so the rest
+// of the frontend keeps working unchanged.
 api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err.response?.status === 401 && !err.config?.url?.includes('/api/auth/login') && !err.config?.url?.includes('/api/auth/register')) {
-      localStorage.removeItem('fute_token');
-      sessionStorage.removeItem('fute_token');
-      if (window.location.pathname !== '/login') window.location.href = '/login';
+  (res) => {
+    // CSV export etc. — a blob has no envelope to unwrap.
+    if (res.config?.responseType === 'blob') return res;
+    const body = res.data;
+    if (body && typeof body === 'object' && typeof body.success === 'boolean') {
+      res.data = body.data;
     }
-    return Promise.reject(err);
+    return res;
+  },
+  async (err) => {
+    const original = err.config;
+    const status = err.response?.status;
+
+    if (status === 401 && original && !isAuthEndpoint(original.url) && !original._retriedAfterRefresh) {
+      original._retriedAfterRefresh = true;
+      try {
+        await refreshOnce();
+        return api(original); // new access cookie is already set — replay the original call
+      } catch (refreshErr) {
+        redirectToLogin();
+        return Promise.reject(flattenErrorBody(refreshErr));
+      }
+    }
+
+    // A 401 that's already been through a refresh attempt (or came from
+    // /me, /refresh itself, etc. with no session to recover) really does
+    // mean logged out. Login/register 401s are excluded — that's just a
+    // wrong password, not a reason to bounce someone off the form they're
+    // filling in.
+    if (status === 401 && !isAuthEndpoint(original?.url)) {
+      redirectToLogin();
+    }
+
+    return Promise.reject(flattenErrorBody(err));
   }
 );
 
@@ -117,6 +193,16 @@ export const updateItFields = (id, fields) => api.patch(`/api/it/complaints/${id
 // Delete — only the employee who raised the ticket can delete it
 export const deleteHrComplaint = (id) => api.delete(`/api/hr/complaints/${id}`);
 export const deleteItComplaint = (id) => api.delete(`/api/it/complaints/${id}`);
+
+// Reopen — only the employee who raised the ticket can reopen it, and only
+// once it's resolved
+export const reopenHrComplaint = (id) => api.patch(`/api/hr/complaints/${id}/reopen`);
+export const reopenItComplaint = (id) => api.patch(`/api/it/complaints/${id}/reopen`);
+
+// Active staff for a department's queue, for the "Resolved By" dropdown —
+// HR/IT staff and founders only
+export const getHrStaff = () => api.get('/api/hr/staff');
+export const getItStaff = () => api.get('/api/it/staff');
 
 // Approvals — IT/HR desks submit and read, founder decides
 export const getApprovals = (after) => api.get('/api/approvals', { params: after ? { after } : {} });

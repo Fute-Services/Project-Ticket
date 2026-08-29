@@ -8,7 +8,7 @@ import NewHrTicketModal from '../components/NewHrTicketModal';
 import { issueTitle } from '../components/TicketsQueueView';
 import DataTable from '../components/DataTable';
 import { Card, SectionHeader, StatCard, Badge, Drawer, RefreshBar } from '../components/ui';
-import { Plus, UserPlus, Search, X, Eye, Trash2, Clock } from 'lucide-react';
+import { Plus, UserPlus, Search, X, Eye, Trash2, Clock, RotateCcw } from 'lucide-react';
 import TaskRow from '../components/tasks/TaskRow';
 import TaskDetailPane from '../components/tasks/TaskDetailPane';
 import CheckInWidget from '../components/CheckInWidget';
@@ -27,7 +27,7 @@ const TICKET_STATUS_BADGE = {
 
 const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
-function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onDelete, onRefresh, lastUpdated, loading }) {
+function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onDelete, onReopen, onRefresh, lastUpdated, loading }) {
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [detailsTicket, setDetailsTicket] = useState(null);
@@ -245,7 +245,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
             {
               key: 'actions',
               label: 'Actions',
-              width: '90px',
+              width: '125px',
               sortable: false,
               render: (t) => (
                 <div className="flex items-center gap-1.5">
@@ -261,6 +261,22 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
                   >
                     <Eye size={15} />
                   </button>
+                  {(t.status === 'Resolved' || t.status === 'Closed') && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReopen(t.id)
+                          .then(() => toast.success('Ticket reopened', { description: 'Back in the queue as Open.' }))
+                          .catch(() => toast.error('Could not reopen ticket'));
+                      }}
+                      title="Not satisfied? Reopen this ticket"
+                      aria-label={`Reopen ticket ${t.token || t.id}`}
+                      className="p-1.5 rounded-lg bg-warning/10 hover:bg-warning/20 text-warning border border-warning/30 transition-colors cursor-pointer flex items-center justify-center"
+                    >
+                      <RotateCcw size={15} />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -477,7 +493,7 @@ function MyTasksView({ tasks, projects, onToggle, onOpen, onRefresh, lastUpdated
 
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
-  const { tickets, addTicket, updateTicketField, deleteTicket, refresh: refreshTickets, lastUpdated: ticketsUpdated, loading: ticketsLoading } = useTickets();
+  const { tickets, addTicket, updateTicketField, deleteTicket, reopenTicket, refresh: refreshTickets, lastUpdated: ticketsUpdated, loading: ticketsLoading } = useTickets();
   const { tasks, projects, toggleComplete, refresh: refreshTasks, lastUpdated: tasksUpdated, loading: tasksLoading } = useTaskProject();
   const [openTaskId, setOpenTaskId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -775,6 +791,7 @@ export default function EmployeeDashboardPage() {
           onNewTicket={() => setIsTicketModalOpen(true)}
           onNewHrTicket={() => setIsHrTicketModalOpen(true)}
           onDelete={deleteTicket}
+          onReopen={reopenTicket}
           onRefresh={refreshTickets}
           lastUpdated={ticketsUpdated}
           loading={ticketsLoading}
