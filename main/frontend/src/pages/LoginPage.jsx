@@ -38,17 +38,13 @@ export default function LoginPage() {
   }
 
   function signInWithSession(data) {
-    login(
-      {
-        id: data.id,
-        email: data.email,
-        role: data.role,
-        full_name: data.full_name,
-        department: data.department,
-      },
-      data.token,
-      remember
-    );
+    login({
+      id: data.id,
+      email: data.email,
+      role: data.role,
+      full_name: data.full_name,
+      department: data.department,
+    });
     navigate(homeFor(data.role));
   }
 
@@ -57,7 +53,10 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await loginUser(form);
+      // `remember` decides the session cookie's own lifetime server-side now
+      // (authController.js) — it no longer picks between two Web Storage
+      // areas on this end.
+      const { data } = await loginUser({ ...form, remember });
       signInWithSession(data);
     } catch (err) {
       setError(

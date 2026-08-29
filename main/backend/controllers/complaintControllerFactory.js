@@ -3,6 +3,7 @@ const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { sendMail, newComplaintEmail, statusUpdateEmail } = require('../utils/mailer');
 const { loadNotificationRules } = require('../utils/notificationRules');
 const { paginatedQuery } = require('../utils/pagination');
+const { ok, created, fail } = require('../utils/respond');
 require('dotenv').config();
 
 // hrController.js and itController.js used to be a hand-copied pair —
@@ -96,10 +97,10 @@ function createComplaintController(opts) {
   async function createComplaint(req, res) {
     const { name, role, department, description, complaint_date, priority, employeeId } = req.body;
     if (!name || !department || !description || !complaint_date || !priority) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return fail(res, { status: 400, message: 'All fields are required', code: 'VALIDATION_ERROR' });
     }
     for (const field of opts.requiredFields || []) {
-      if (!req.body[field]) return res.status(400).json({ error: 'All fields are required' });
+      if (!req.body[field]) return fail(res, { status: 400, message: 'All fields are required', code: 'VALIDATION_ERROR' });
     }
 
     const token = generateToken(opts.tokenPrefix);
@@ -166,7 +167,7 @@ function createComplaintController(opts) {
       console.error('Mail error:', e.message);
     }
 
-    res.status(201).json({ complaint: data, token });
+    created(res, { complaint: data, token }, 'Complaint submitted successfully');
   }
 
   // GET .../complaints?after=<cursor> — staff/founder sees all, 20 at a time.
@@ -174,7 +175,7 @@ function createComplaintController(opts) {
     const { docs, nextCursor } = await paginatedQuery(collection, 'submitted_at', req.query.after);
     const data = docs.map((d) => ({ id: d.id, ...d.data() }));
     const enriched = await enrichWithUserRole(data);
-    res.json({ items: sortByRecent(enriched), nextCursor });
+    ok(res, { items: sortByRecent(enriched), nextCursor });
   }
 
   // GET .../complaints/my — employee sees own complaints. No
@@ -185,16 +186,16 @@ function createComplaintController(opts) {
     const snap = await collection.where('user_id', '==', req.user.id).limit(UNPAGINATED_READ_LIMIT).get();
     const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     const enriched = await enrichWithUserRole(data);
-    res.json(sortByRecent(enriched));
+    ok(res, sortByRecent(enriched));
   }
 
   async function searchByToken(req, res) {
     const { token } = req.query;
-    if (!token) return res.status(400).json({ error: 'token query param required' });
+    if (!token) return fail(res, { status: 400, message: 'token query param required', code: 'VALIDATION_ERROR' });
     const snap = await collection.where('token', '==', token.toUpperCase()).limit(1).get();
-    if (snap.empty) return res.status(404).json({ error: 'Complaint not found' });
+    if (snap.empty) return fail(res, { status: 404, message: 'Complaint not found', code: 'NOT_FOUND' });
     const doc = snap.docs[0];
-    res.json({ id: doc.id, ...doc.data() });
+    ok(res, { id: doc.id, ...doc.data() });
   }
 
   // PATCH .../complaints/:id/status — staff/founder updates status. The
@@ -204,7 +205,7 @@ function createComplaintController(opts) {
   async function updateStatus(req, res) {
     const { id } = req.params;
     const { status } = req.body;
-    if (!VALID_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+    if (!VALID_STATUSES.includes(status)) return fail(res, { status: 400, message: 'Invalid status', code: 'VALIDATION_ERROR' });
 
     const docRef = collection.doc(id);
     const updated_at = new Date().toISOString();
@@ -232,7 +233,7 @@ function createComplaintController(opts) {
         }
       })
       .catch((err) => {
-        if (err.status) return res.status(err.status).json({ error: err.message });
+        if (err.status) return fail(res, { status: err.status, message: err.message, code: err.status === 404 ? 'NOT_FOUND' : 'REQUEST_FAILED' });
         throw err;
       });
     if (res.headersSent) return;
@@ -256,7 +257,7 @@ function createComplaintController(opts) {
       console.error('Mail error:', e.message);
     }
 
-    res.json(data);
+    ok(res, data, { message: 'Status updated successfully' });
   }
 
   async function updateFields(req, res) {
@@ -266,23 +267,27 @@ function createComplaintController(opts) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
     if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ error: `No editable fields provided (allowed: ${opts.editableFields.join(', ')})` });
+      return fail(res, {
+        status: 400,
+        message: `No editable fields provided (allowed: ${opts.editableFields.join(', ')})`,
+        code: 'VALIDATION_ERROR',
+      });
     }
 
     const docRef = collection.doc(id);
     const doc = await docRef.get();
-    if (!doc.exists) return res.status(404).json({ error: 'Complaint not found' });
+    if (!doc.exists) return fail(res, { status: 404, message: 'Complaint not found', code: 'NOT_FOUND' });
 
     const docData = doc.data();
     const isOwner = docData.user_id === req.user?.id;
     const isStaff = [opts.staffRole, 'founder', 'superadmin'].includes(req.user?.role);
     if (!isOwner && !isStaff) {
-      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+      return fail(res, { status: 403, message: 'Forbidden: Insufficient permissions', code: 'FORBIDDEN' });
     }
 
     updates.updated_at = new Date().toISOString();
     await docRef.update(updates);
-    res.json({ id, ...docData, ...updates });
+    ok(res, { id, ...docData, ...updates }, { message: 'Ticket updated successfully' });
   }
 
   // DELETE .../complaints/:id — only the employee who raised it can delete it
@@ -292,10 +297,10 @@ function createComplaintController(opts) {
     const { id } = req.params;
     const docRef = collection.doc(id);
     const doc = await docRef.get();
-    if (!doc.exists) return res.status(404).json({ error: 'Complaint not found' });
+    if (!doc.exists) return fail(res, { status: 404, message: 'Complaint not found', code: 'NOT_FOUND' });
 
     if (doc.data().user_id !== req.user?.id) {
-      return res.status(403).json({ error: 'Forbidden: you can only delete your own ticket' });
+      return fail(res, { status: 403, message: 'Forbidden: you can only delete your own ticket', code: 'FORBIDDEN' });
     }
 
     const batch = db.batch();
@@ -313,10 +318,35 @@ function createComplaintController(opts) {
     linkedApprovals.docs.forEach((d) => batch.delete(d.ref));
 
     await batch.commit();
-    res.json({ id, deleted: true });
+    ok(res, { id, deleted: true }, { message: 'Ticket deleted successfully' });
   }
 
-  return { createComplaint, getAllComplaints, getMyComplaints, searchByToken, updateStatus, updateFields, deleteComplaint };
+  // PATCH .../complaints/:id/reopen — the requester's own escape hatch when
+  // they're not satisfied with a resolution, without loosening the
+  // status-route's staff-only role gate (which would otherwise let any
+  // employee set a ticket to any status, not just send a resolved one back
+  // to the queue). Owner-only, and only from 'Completed' — reopening an
+  // already-active ticket makes no sense.
+  async function reopenComplaint(req, res) {
+    const { id } = req.params;
+    const docRef = collection.doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists) return fail(res, { status: 404, message: 'Complaint not found', code: 'NOT_FOUND' });
+
+    const docData = doc.data();
+    if (docData.user_id !== req.user?.id) {
+      return fail(res, { status: 403, message: 'Forbidden: you can only reopen your own ticket', code: 'FORBIDDEN' });
+    }
+    if (docData.status !== 'Completed') {
+      return fail(res, { status: 400, message: 'Only a resolved ticket can be reopened', code: 'VALIDATION_ERROR' });
+    }
+
+    const updates = { status: 'Pending', employeeStatus: 'Active', updated_at: new Date().toISOString() };
+    await docRef.update(updates);
+    ok(res, { id, ...docData, ...updates }, { message: 'Ticket reopened successfully' });
+  }
+
+  return { createComplaint, getAllComplaints, getMyComplaints, searchByToken, updateStatus, updateFields, deleteComplaint, reopenComplaint };
 }
 
 module.exports = { createComplaintController };

@@ -18,6 +18,7 @@ router.get('/employees', auth, role('hr', 'founder', 'coordinator'), resources.e
 // Employee only (not IT/Production/Coordinator), and each of these only ever
 // touches the calling user's own record (see findTodayDoc in the controller).
 router.get('/attendance/me/today', auth, role('hr', 'founder', 'employee'), resources.myTodayAttendance);
+router.get('/attendance/me', auth, role('hr', 'founder', 'employee'), resources.myAttendanceHistory);
 router.post('/attendance/check-in', auth, role('hr', 'founder', 'employee'), resources.checkIn);
 router.post('/attendance/check-out', auth, role('hr', 'founder', 'employee'), resources.checkOut);
 

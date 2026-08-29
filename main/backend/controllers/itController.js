@@ -9,6 +9,7 @@ module.exports = createComplaintController({
   notifyStatusUpdateRuleKey: 'it_status_update',
   editableFields: ['employeeStatus', 'solver', 'remarks', 'vpnNo', 'employeeId'],
   staffRole: 'it',
+  defaultSolver: 'Unassigned',
   buildDocData: (body, ctx) => {
     let resolvedDepartment = body.department || '';
     if (!resolvedDepartment || resolvedDepartment === 'General') {

@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { fail } = require('../utils/respond');
 
 const ACTION_PERMISSIONS_DOC = db.collection('settings').doc('action_permissions');
 
@@ -30,15 +31,15 @@ function clearActionPermissionsCache() {
 // restricts something via the Action Permissions panel.
 function requirePermission(resource, action) {
   return async (req, res, next) => {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!req.user) return fail(res, { status: 401, message: 'Unauthorized', code: 'UNAUTHORIZED' });
     if (req.user.role === 'superadmin') return next();
     try {
       const matrix = await getActionPermissionsMatrix();
       const allowedActions = matrix[req.user.role]?.[resource];
       if (!allowedActions || allowedActions.includes(action)) return next();
-      return res.status(403).json({ error: `Missing permission: ${resource}.${action}` });
+      return fail(res, { status: 403, message: `Missing permission: ${resource}.${action}`, code: 'FORBIDDEN' });
     } catch (e) {
-      return res.status(500).json({ error: 'Permission check failed' });
+      return fail(res, { status: 500, message: 'Permission check failed', code: 'INTERNAL_ERROR' });
     }
   };
 }

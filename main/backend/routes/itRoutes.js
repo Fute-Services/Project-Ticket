@@ -11,8 +11,10 @@ const {
   updateStatus,
   updateFields,
   deleteComplaint,
+  reopenComplaint,
 } = require('../controllers/itController');
 const { createAsset, getAllAssets, updateAsset, deleteAsset } = require('../controllers/assetController');
+const { listStaffByRole } = require('../controllers/staffController');
 
 router.post('/complaints', auth, createComplaint);
 router.get('/complaints', auth, role('it', 'founder'), getAllComplaints);
@@ -21,6 +23,13 @@ router.get('/complaints/search', auth, searchByToken);
 router.patch('/complaints/:id/status', auth, role('it', 'founder'), updateStatus);
 router.patch('/complaints/:id/fields', auth, updateFields);
 router.delete('/complaints/:id', auth, deleteComplaint);
+
+// Only the submitter employee can reopen their own resolved ticket
+router.patch('/complaints/:id/reopen', auth, reopenComplaint);
+
+// Names of active IT staff, for the queue's "Resolved By" dropdown — same
+// audience as the queue itself.
+router.get('/staff', auth, role('it', 'founder'), listStaffByRole('it'));
 
 // Asset writes are also gated by the granular action-permission matrix
 // (Super Admin → Action Permissions), on top of the coarser role check —

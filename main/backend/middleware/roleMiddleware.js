@@ -1,8 +1,10 @@
+const { fail } = require('../utils/respond');
+
 // Returns middleware that only allows specified roles
 function roleMiddleware(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Access denied' });
+      return fail(res, { status: 403, message: 'Access denied', code: 'FORBIDDEN' });
     }
     next();
   };

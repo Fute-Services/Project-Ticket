@@ -1,6 +1,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { register, login, getMe, verifyPassword, logout } = require('../controllers/authController');
+const { register, login, refresh, getMe, verifyPassword, logout } = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
 const router = express.Router();
 
@@ -14,11 +14,15 @@ const authLimiter = rateLimit({
   limit: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many attempts, please try again later' },
+  message: { success: false, message: 'Too many attempts, please try again later', error: { code: 'RATE_LIMITED', details: null } },
 });
 
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
+// No authMiddleware here on purpose — the whole point of this endpoint is to
+// work once the access token has already expired. It authenticates itself
+// off the refresh cookie instead (authController.js).
+router.post('/refresh', authLimiter, refresh);
 router.get('/me', authMiddleware, getMe);
 // Rate-limited like login/register — otherwise a stolen JWT lets an attacker
 // brute-force the account's real password here with no throttle at all.

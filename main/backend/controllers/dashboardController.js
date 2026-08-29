@@ -4,6 +4,7 @@ const { AUDIT_LOGS } = require('../utils/auditLog');
 const { SESSIONS } = require('../utils/sessions');
 const { SLA_POLICIES_DOC, DEFAULT_SLA_POLICIES } = require('./slaController');
 const { DEPARTMENTS } = require('./departmentController');
+const { ok, fail } = require('../utils/respond');
 
 // Ticket age vs. its priority's SLA policy decides "overdue" — reads the
 // same per-priority resolutionMinutes the SLA Management page configures
@@ -136,7 +137,7 @@ async function computeDashboardOverview() {
 }
 
 async function getDashboardOverview(req, res) {
-  res.json(await computeDashboardOverview());
+  ok(res, await computeDashboardOverview(), { message: 'Dashboard overview fetched successfully' });
 }
 
 // GET /api/founder/search?q=term — in-memory substring match over bounded
@@ -146,7 +147,7 @@ async function getDashboardOverview(req, res) {
 // into the thousands this needs real indexed search instead.
 async function search(req, res) {
   const q = (req.query.q || '').trim().toLowerCase();
-  if (!q) return res.json({ users: [], tickets: [], assets: [], departments: [] });
+  if (!q) return ok(res, { users: [], tickets: [], assets: [], departments: [] });
 
   // No `.orderBy(...)` on any of these — Firestore silently drops any
   // document missing the ordered field from the result set entirely, which
@@ -185,7 +186,7 @@ async function search(req, res) {
     .slice(0, 10)
     .map((d) => ({ type: 'department', id: d.id, label: d.data().name, sublabel: d.data().active === false ? 'Inactive' : 'Active' }));
 
-  res.json({ users, tickets, assets, departments });
+  ok(res, { users, tickets, assets, departments });
 }
 
 // GET /api/founder/activity-timeline?limit=100 — merges admin actions
@@ -255,7 +256,7 @@ async function getActivityTimeline(req, res) {
   });
 
   events.sort((a, b) => new Date(b.at) - new Date(a.at));
-  res.json(events.slice(0, limit));
+  ok(res, events.slice(0, limit));
 }
 
 // PATCH /api/founder/dashboard-layout — { widgets: [id, ...] } persisted on
@@ -265,9 +266,9 @@ async function getActivityTimeline(req, res) {
 // in their own profile from GET /api/auth/me.
 async function updateDashboardLayout(req, res) {
   const { widgets } = req.body;
-  if (!Array.isArray(widgets)) return res.status(400).json({ error: 'widgets array is required' });
+  if (!Array.isArray(widgets)) return fail(res, { status: 400, message: 'widgets array is required', code: 'VALIDATION_ERROR' });
   await db.collection('users').doc(req.user.id).set({ dashboardLayout: widgets }, { merge: true });
-  res.json({ widgets });
+  ok(res, { widgets }, { message: 'Dashboard layout updated successfully' });
 }
 
 module.exports = { getDashboardOverview, search, getActivityTimeline, updateDashboardLayout };

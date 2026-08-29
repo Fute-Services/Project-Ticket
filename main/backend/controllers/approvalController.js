@@ -1,6 +1,7 @@
 const { db } = require('../config/firebase');
 const { paginatedQuery } = require('../utils/pagination');
 const { sendMail, escapeHtml } = require('../utils/mailer');
+const { ok, created, fail } = require('../utils/respond');
 
 const collection = db.collection('approvals');
 
@@ -31,7 +32,7 @@ function sortByRecent(docs) {
 // automatic ones itController/hrController create on 'Waiting Approval'.
 async function createApproval(req, res) {
   const { title, sub, requestedBy, priority, category, source, assetIdRef } = req.body;
-  if (!title) return res.status(400).json({ error: 'title is required' });
+  if (!title) return fail(res, { status: 400, message: 'title is required', code: 'VALIDATION_ERROR' });
 
   const docData = {
     source: source || 'IT',
@@ -46,7 +47,7 @@ async function createApproval(req, res) {
   };
 
   const docRef = await collection.add(docData);
-  res.status(201).json({ id: docRef.id, ...docData });
+  created(res, { id: docRef.id, ...docData }, 'Approval request created successfully');
 }
 
 // GET /api/approvals?after=<cursor> — IT/HR desks and the founder all read
@@ -55,7 +56,7 @@ async function createApproval(req, res) {
 async function listApprovals(req, res) {
   const { docs, nextCursor } = await paginatedQuery(collection, 'createdAt', req.query.after);
   const data = docs.map((d) => ({ id: d.id, ...d.data() }));
-  res.json({ items: sortByRecent(data), nextCursor });
+  ok(res, { items: sortByRecent(data), nextCursor });
 }
 
 const DECISIONS = ['approved', 'rejected'];
@@ -76,7 +77,7 @@ const DECISIONS = ['approved', 'rejected'];
 async function decideApproval(req, res) {
   const { id } = req.params;
   const { status } = req.body;
-  if (!DECISIONS.includes(status)) return res.status(400).json({ error: 'status must be approved or rejected' });
+  if (!DECISIONS.includes(status)) return fail(res, { status: 400, message: 'status must be approved or rejected', code: 'VALIDATION_ERROR' });
 
   const docRef = collection.doc(id);
   const decidedAt = new Date().toISOString();
@@ -125,7 +126,10 @@ async function decideApproval(req, res) {
       tx.update(extraHoursRef, { status, decidedAt, decidedBy: req.user.full_name });
     }
   }).catch((err) => {
-    if (err.status) return res.status(err.status).json({ error: err.message });
+    if (err.status) {
+      const codeByStatus = { 404: 'NOT_FOUND', 409: 'CONFLICT', 403: 'FORBIDDEN' };
+      return fail(res, { status: err.status, message: err.message, code: codeByStatus[err.status] || 'REQUEST_FAILED' });
+    }
     throw err;
   });
 
@@ -140,7 +144,7 @@ async function decideApproval(req, res) {
     );
   }
 
-  res.json({ id, ...(await docRef.get()).data() });
+  ok(res, { id, ...(await docRef.get()).data() }, { message: 'Approval decided successfully' });
 }
 
 // POST /api/approvals/:id/remarks — a remark on any approval (documents,
@@ -149,11 +153,11 @@ async function decideApproval(req, res) {
 async function addRemark(req, res) {
   const { id } = req.params;
   const { text } = req.body;
-  if (!text || !text.trim()) return res.status(400).json({ error: 'Remark text is required' });
+  if (!text || !text.trim()) return fail(res, { status: 400, message: 'Remark text is required', code: 'VALIDATION_ERROR' });
 
   const docRef = collection.doc(id);
   const doc = await docRef.get();
-  if (!doc.exists) return res.status(404).json({ error: 'Approval not found' });
+  if (!doc.exists) return fail(res, { status: 404, message: 'Approval not found', code: 'NOT_FOUND' });
 
   const remark = { text: text.trim(), by: req.user.full_name, at: new Date().toISOString() };
   const remarks = [...(doc.data().remarks || []), remark];
@@ -164,7 +168,7 @@ async function addRemark(req, res) {
     `<p><strong>${escapeHtml(req.user.full_name)}</strong> left a remark on "${escapeHtml(doc.data().title)}": ${escapeHtml(text.trim())}</p>`
   );
 
-  res.json({ id, remarks });
+  ok(res, { id, remarks }, { message: 'Remark added successfully' });
 }
 
 module.exports = { createApproval, listApprovals, decideApproval, addRemark };

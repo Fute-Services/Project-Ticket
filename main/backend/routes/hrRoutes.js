@@ -10,7 +10,9 @@ const {
   updateStatus,
   updateFields,
   deleteComplaint,
+  reopenComplaint,
 } = require('../controllers/hrController');
+const { listStaffByRole } = require('../controllers/staffController');
 
 // Any logged-in user can submit an HR complaint
 router.post('/complaints', auth, createComplaint);
@@ -32,5 +34,12 @@ router.patch('/complaints/:id/fields', auth, updateFields);
 
 // Only the submitter employee can delete their own ticket
 router.delete('/complaints/:id', auth, deleteComplaint);
+
+// Only the submitter employee can reopen their own resolved ticket
+router.patch('/complaints/:id/reopen', auth, reopenComplaint);
+
+// Names of active HR staff, for the queue's "Resolved By" dropdown — same
+// audience as the queue itself.
+router.get('/staff', auth, role('hr', 'founder'), listStaffByRole('hr'));
 
 module.exports = router;

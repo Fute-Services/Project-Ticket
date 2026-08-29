@@ -1,7 +1,8 @@
-const jwt = require('jsonwebtoken');
 const { db } = require('../config/firebase');
 const { isSessionRevoked } = require('../utils/sessions');
-require('dotenv').config();
+const { fail } = require('../utils/respond');
+const { AUTH_COOKIE } = require('../utils/cookies');
+const { verifyAccessToken } = require('../utils/jwt');
 
 // Re-checking every request against Firestore (no caching at all) blew
 // through the project's Firestore read quota within minutes under normal
@@ -25,32 +26,45 @@ async function getProfile(uid) {
   return data;
 }
 
-// Verifies the JWT token sent in Authorization header, then re-checks the
-// account against Firestore (via the cache above) so a role change or a
-// deleted account takes effect within a minute instead of waiting out the
-// token's full lifetime.
+// Verifies the JWT, then re-checks the account against Firestore (via the
+// cache above) so a role change or a deleted account takes effect within a
+// minute instead of waiting out the token's full lifetime.
+//
+// The token now lives in an httpOnly cookie the browser attaches
+// automatically. The Authorization-header path stays as a fallback — it's
+// free to support (a valid signed JWT is equally trustworthy either way) and
+// covers any non-browser API client that isn't cookie-based.
 async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided' });
+  const token = req.cookies?.[AUTH_COOKIE] || (authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null);
+  if (!token) {
+    return fail(res, { status: 401, message: 'No token provided', code: 'UNAUTHORIZED' });
   }
-  const token = authHeader.split(' ')[1];
   let decoded;
   try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
+    decoded = verifyAccessToken(token);
   } catch {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    // Covers a genuinely invalid/tampered token AND the expected, frequent
+    // case of a naturally-expired 15-minute access token — either way the
+    // frontend's response interceptor (utils/api.js) is what's supposed to
+    // catch this 401 and silently call /api/auth/refresh before the user
+    // ever notices.
+    return fail(res, { status: 401, message: 'Invalid or expired token', code: 'INVALID_TOKEN' });
   }
 
   const data = await getProfile(decoded.id);
   if (!data) {
-    return res.status(401).json({ error: 'Account no longer exists' });
+    return fail(res, { status: 401, message: 'Account no longer exists', code: 'ACCOUNT_NOT_FOUND' });
   }
   if (data.active === false) {
-    return res.status(403).json({ error: 'This account has been deactivated' });
+    return fail(res, { status: 403, message: 'This account has been deactivated', code: 'ACCOUNT_DEACTIVATED' });
   }
   if (await isSessionRevoked(decoded.sid)) {
-    return res.status(401).json({ error: 'This session has been signed out remotely — please log in again' });
+    return fail(res, {
+      status: 401,
+      message: 'This session has been signed out remotely — please log in again',
+      code: 'SESSION_REVOKED',
+    });
   }
 
   req.user = {

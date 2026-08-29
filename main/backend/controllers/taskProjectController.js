@@ -1,6 +1,7 @@
 const { db } = require('../config/firebase');
 const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { paginatedQuery } = require('../utils/pagination');
+const { ok, created, fail } = require('../utils/respond');
 
 const tasksCollection = db.collection('tasks');
 const projectsCollection = db.collection('projects');
@@ -14,7 +15,7 @@ async function getProjects(req, res) {
   // the current arbitrary-200 issue. Left unordered until projects gain a
   // real create path with a guaranteed timestamp field.
   const snap = await projectsCollection.limit(UNPAGINATED_READ_LIMIT).get();
-  res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  ok(res, snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
 // GET /api/coordinator/tasks?after=<cursor> — Coordinator/Founder get the
@@ -27,14 +28,14 @@ async function getProjects(req, res) {
 async function getTasks(req, res) {
   const query = req.user.role === 'employee' ? tasksCollection.where('assignee', '==', req.user.full_name) : tasksCollection;
   const { docs, nextCursor } = await paginatedQuery(query, 'created_at', req.query.after);
-  res.json({ items: docs.map((d) => ({ id: d.id, ...d.data() })), nextCursor });
+  ok(res, { items: docs.map((d) => ({ id: d.id, ...d.data() })), nextCursor });
 }
 
 // POST /api/coordinator/tasks — coordinator/founder assign a new task.
 async function createTask(req, res) {
   const { projectId, title, assignee } = req.body;
   if (!projectId || !title || !assignee) {
-    return res.status(400).json({ error: 'projectId, title and assignee are required' });
+    return fail(res, { status: 400, message: 'projectId, title and assignee are required', code: 'VALIDATION_ERROR' });
   }
 
   const docData = {
@@ -53,7 +54,7 @@ async function createTask(req, res) {
   };
 
   const docRef = await tasksCollection.add(docData);
-  res.status(201).json({ id: docRef.id, ...docData });
+  created(res, { id: docRef.id, ...docData }, 'Task created successfully');
 }
 
 // PATCH /api/coordinator/tasks/:id/status — open to any logged-in user so
@@ -65,21 +66,21 @@ async function createTask(req, res) {
 async function updateTaskStatus(req, res) {
   const { id } = req.params;
   const { status } = req.body;
-  if (!status) return res.status(400).json({ error: 'status is required' });
+  if (!status) return fail(res, { status: 400, message: 'status is required', code: 'VALIDATION_ERROR' });
 
   const docRef = tasksCollection.doc(id);
   const doc = await docRef.get();
-  if (!doc.exists) return res.status(404).json({ error: 'Task not found' });
+  if (!doc.exists) return fail(res, { status: 404, message: 'Task not found', code: 'NOT_FOUND' });
 
   const isOwnerOrManager =
     req.user.role === 'coordinator' ||
     req.user.role === 'founder' ||
     doc.data().assignee === req.user.full_name;
-  if (!isOwnerOrManager) return res.status(403).json({ error: 'Access denied' });
+  if (!isOwnerOrManager) return fail(res, { status: 403, message: 'Access denied', code: 'FORBIDDEN' });
 
   const updated_at = new Date().toISOString();
   await docRef.update({ status, updated_at });
-  res.json({ id, ...doc.data(), status, updated_at });
+  ok(res, { id, ...doc.data(), status, updated_at }, { message: 'Task status updated successfully' });
 }
 
 const EDITABLE_FIELDS = ['title', 'assignee', 'priority', 'dueDate', 'duration', 'comments', 'attachments', 'figma', 'pr'];
@@ -93,15 +94,15 @@ async function updateTask(req, res) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
   }
   if (req.body.status !== undefined) updates.status = req.body.status;
-  if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No editable fields provided' });
+  if (Object.keys(updates).length === 0) return fail(res, { status: 400, message: 'No editable fields provided', code: 'VALIDATION_ERROR' });
 
   const docRef = tasksCollection.doc(id);
   const doc = await docRef.get();
-  if (!doc.exists) return res.status(404).json({ error: 'Task not found' });
+  if (!doc.exists) return fail(res, { status: 404, message: 'Task not found', code: 'NOT_FOUND' });
 
   updates.updated_at = new Date().toISOString();
   await docRef.update(updates);
-  res.json({ id, ...doc.data(), ...updates });
+  ok(res, { id, ...doc.data(), ...updates }, { message: 'Task updated successfully' });
 }
 
 module.exports = { getProjects, getTasks, createTask, updateTaskStatus, updateTask };

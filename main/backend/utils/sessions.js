@@ -1,18 +1,36 @@
+const crypto = require('crypto');
 const { db } = require('../config/firebase');
 
 const SESSIONS = db.collection('sessions');
+const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-// One doc per successful login. `sid` is embedded in the JWT so a revoke can
-// take effect immediately instead of waiting out the token's 7-day life —
-// without this, "force logout" would be cosmetic (the token would still work
-// everywhere until it expired on its own).
-async function createSession({ uid, ip, userAgent }) {
+// Refresh tokens are opaque random values, not JWTs — there's nothing to
+// decode, their only job is "does this match what we stored." Only the hash
+// is ever persisted, same principle as a password: if the sessions
+// collection were ever read by someone who shouldn't, a hash alone can't be
+// replayed as a cookie value.
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+// One doc per successful login/register. `sid` is embedded in the access
+// JWT so a revoke can take effect immediately instead of waiting out the
+// token's life — without this, "force logout" would be cosmetic.
+// `remember` is stored here (not just used once at login) so a later
+// rotation in consumeRefreshToken() knows whether to keep re-issuing a
+// persistent or a browser-session refresh cookie without the client having
+// to resend the original checkbox state.
+async function createSession({ uid, ip, userAgent, refreshToken, remember }) {
   const doc = {
     uid,
     ip: ip || null,
     userAgent: userAgent || null,
     loginAt: new Date().toISOString(),
     revoked: false,
+    remember: remember !== false,
+    refreshTokenHash: hashToken(refreshToken),
+    previousRefreshTokenHash: null,
+    refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS).toISOString(),
   };
   const ref = await SESSIONS.add(doc);
   return { id: ref.id, ...doc };
@@ -43,4 +61,58 @@ function clearRevokedCache(sessionId) {
   revokedCache.delete(sessionId);
 }
 
-module.exports = { SESSIONS, createSession, isSessionRevoked, clearRevokedCache };
+// Rotates a session's refresh token if `presentedHash` matches its CURRENT
+// one — the normal case, every refresh call. If it instead matches the
+// PREVIOUS (already-rotated-out) hash, that token was reused: the
+// legitimate client already moved past it via an earlier rotation, so
+// whoever just presented it again is working from a copied/stolen value —
+// the whole session is revoked outright rather than issuing yet another
+// token to an attacker. Wrapped in a transaction so two refresh calls
+// racing for the same session can't both "succeed" off the same stale read.
+async function consumeRefreshToken(presentedHash, { ip, userAgent } = {}) {
+  const result = await db.runTransaction(async (tx) => {
+    const currentSnap = await tx.get(SESSIONS.where('refreshTokenHash', '==', presentedHash).limit(1));
+    if (!currentSnap.empty) {
+      const doc = currentSnap.docs[0];
+      const data = doc.data();
+      if (data.revoked) return { ok: false, reason: 'revoked' };
+      if (new Date(data.refreshExpiresAt).getTime() < Date.now()) return { ok: false, reason: 'expired' };
+
+      const newRawToken = crypto.randomBytes(32).toString('hex');
+      tx.set(
+        doc.ref,
+        {
+          refreshTokenHash: hashToken(newRawToken),
+          previousRefreshTokenHash: presentedHash,
+          refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS).toISOString(),
+          rotatedAt: new Date().toISOString(),
+          ip: ip || data.ip,
+          userAgent: userAgent || data.userAgent,
+        },
+        { merge: true }
+      );
+
+      return {
+        ok: true,
+        uid: data.uid,
+        newRawRefreshToken: newRawToken,
+        session: { id: doc.id, remember: data.remember },
+      };
+    }
+
+    const reuseSnap = await tx.get(SESSIONS.where('previousRefreshTokenHash', '==', presentedHash).limit(1));
+    if (!reuseSnap.empty) {
+      const doc = reuseSnap.docs[0];
+      tx.set(doc.ref, { revoked: true, revokedAt: new Date().toISOString(), revokedReason: 'refresh_token_reuse' }, { merge: true });
+      return { ok: false, reason: 'reused', sessionId: doc.id };
+    }
+
+    return { ok: false, reason: 'not_found' };
+  });
+
+  const affectedId = result.session?.id || result.sessionId;
+  if (affectedId) clearRevokedCache(affectedId);
+  return result;
+}
+
+module.exports = { SESSIONS, createSession, isSessionRevoked, clearRevokedCache, consumeRefreshToken, hashToken };

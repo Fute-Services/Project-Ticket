@@ -60,16 +60,13 @@ export default function SignupPage() {
     };
     try {
       const { data } = await registerUser(payload);
-      login(
-        {
-          id: data.id,
-          email: data.email,
-          role: data.role,
-          full_name: data.full_name,
-          department: form.department || null,
-        },
-        data.token
-      );
+      login({
+        id: data.id,
+        email: data.email,
+        role: data.role,
+        full_name: data.full_name,
+        department: form.department || null,
+      });
       navigate(homeFor(data.role));
     } catch (err) {
       const raw = err.response?.data?.error || '';

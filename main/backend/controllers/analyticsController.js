@@ -1,4 +1,5 @@
 const { db } = require('../config/firebase');
+const { ok } = require('../utils/respond');
 
 // GET /api/founder/analytics — cross-department snapshot for the Super
 // Admin dashboard. Reads counts only (no PII beyond what's already exposed
@@ -108,7 +109,7 @@ async function computeAnalytics({ from, to } = {}) {
 // GET /api/founder/analytics?from=&to= — ISO date strings, optional.
 async function getAnalytics(req, res) {
   const { from, to } = req.query;
-  res.json(await computeAnalytics({ from, to }));
+  ok(res, await computeAnalytics({ from, to }), { message: 'Analytics fetched successfully' });
 }
 
 function csvEscape(value) {

@@ -17,6 +17,8 @@ import {
   updateHrFields,
   deleteItComplaint,
   deleteHrComplaint,
+  reopenItComplaint,
+  reopenHrComplaint,
 } from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 import { useCursorPagination } from '../hooks/useCursorPagination';
@@ -280,8 +282,30 @@ export function TicketProvider({ children }) {
     }
   }
 
+  // The employee's own "not satisfied" escape hatch — backend only allows
+  // this on the ticket's own requester and only from a resolved status
+  // (complaintControllerFactory.js reopenComplaint), so no client-side
+  // gating is load-bearing here, just the optimistic update.
+  async function reopenTicket(id) {
+    const ticket = tickets.find((t) => t.id === id);
+    if (!ticket) return;
+
+    setTickets((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, status: 'Open', statusColor: TICKET_STATUS_COLOR.Open, employeeStatus: 'Active' } : t))
+    );
+
+    try {
+      const reopenFn = ticket._collection === 'hr' ? reopenHrComplaint : reopenItComplaint;
+      await reopenFn(id);
+    } catch (e) {
+      console.error('Failed to reopen ticket:', e.response?.data?.error || e.message);
+      refresh();
+      throw e;
+    }
+  }
+
   return (
-    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, deleteTicket, refresh, hasMoreTickets: hasMore, loadMoreTickets, loadingMore, lastUpdated, isSharedQueue }}>
+    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, deleteTicket, reopenTicket, refresh, hasMoreTickets: hasMore, loadMoreTickets, loadingMore, lastUpdated, isSharedQueue }}>
       {children}
     </TicketContext.Provider>
   );
