@@ -174,6 +174,7 @@ attendanceApi.checkOut = () => api.post('/api/hr-desk/attendance/check-out');
 export const feedbackApi = hrDeskResource('feedback');
 export const jobsApi = hrDeskResource('jobs');
 export const performanceApi = hrDeskResource('performance');
+export const leaveEntriesApi = hrDeskResource('leave-entries');
 
 export const extraHoursApi = {
   submit: (data) => api.post('/api/hr-desk/extra-hours', data),

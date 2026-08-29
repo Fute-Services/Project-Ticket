@@ -52,6 +52,7 @@ for (const [path, handlers] of Object.entries({
   feedback: resources.feedback,
   jobs: resources.jobs,
   performance: resources.performance,
+  'leave-entries': resources.leaveEntries,
 })) {
   if (path !== 'employees') router.get(`/${path}`, auth, role('hr', 'founder'), handlers.list);
   // Attendance is written exclusively through /attendance/check-in and

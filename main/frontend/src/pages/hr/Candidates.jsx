@@ -1,19 +1,14 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search,
   MapPin,
-  Briefcase,
-  GraduationCap,
-  Wallet,
-  Link as LinkIcon,
   FileText,
   Upload,
-  Mail,
-  Phone,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import HrLayout from '../../components/hr/HrLayout';
-import { Card, SectionHeader, Badge, Pill, Drawer, Modal, Field, inputClass, EmptyState } from '../../components/ui';
+import { Card, SectionHeader, Badge, Pill, Modal, Field, inputClass, EmptyState } from '../../components/ui';
 import { CANDIDATE_STAGES, RESUME_SOURCES, REJECTION_REASONS } from '../../data/hrMockData';
 import { candidatesApi } from '../../utils/api';
 import { useHrDesk } from '../../context/HrDeskContext';
@@ -21,12 +16,71 @@ import { useAuth } from '../../context/AuthContext';
 
 const REJECTABLE_STAGES = ['Rejected', 'Offer Declined'];
 
-const formatLPA = (v) => (v || v === 0 ? `₹${v} LPA` : 'Not specified');
+function Detail({ label, value, wrap }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground/80">{label}</div>
+      <div className={`text-sm text-foreground font-medium ${wrap ? 'break-words' : 'truncate'}`}>{value || value === 0 ? value : '—'}</div>
+    </div>
+  );
+}
+
+function SectionCard({ title, children }) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/20 p-4">
+      <div className="text-xs font-bold uppercase tracking-wider text-primary mb-3">{title}</div>
+      <div className="grid grid-cols-4 gap-x-4 gap-y-3">{children}</div>
+    </div>
+  );
+}
+
+// Compact edit-mode field — same footprint as Detail (not the roomier
+// shared `Field`/`inputClass`, whose gap-1.5 + h-9 input roughly doubles
+// each row's height) so toggling a candidate into edit mode doesn't blow
+// the popup past no-scroll height.
+const compactInputClass =
+  'w-full bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
+function EF({ label, children }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground/80 mb-0.5">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+// Older/seeded candidate rows may already carry the unit in the raw value
+// ("6 yrs", "24 LPA") — strip it before re-appending so the read view never
+// doubles up into "6 yrs yrs" / "₹24 LPA LPA".
+const yrs = (v) => (v || v === 0 ? `${String(v).replace(/\s*yrs?\.?$/i, '')} yrs` : null);
+const lpa = (v) => (v || v === 0 ? `₹${String(v).replace(/^₹\s*/, '').replace(/\s*lpa$/i, '')} LPA` : null);
 
 const EMPTY_UPLOAD_FORM = {
   name: '', email: '', phone: '', appliedFor: '', location: '',
   experience: '', currentCTC: '', expectedSalary: '', noticePeriod: '',
   skills: '', education: '', currentCompany: '', portfolio: '',
+};
+
+const WORK_MODE_OPTIONS = ['Work From Home', 'Office', 'Hybrid'];
+const SHORTLISTED_OPTIONS = ['Pending', 'Yes', 'No'];
+const HR_SCREENING_OPTIONS = ['Pending', 'Shortlisted', 'On Hold', 'Rejected'];
+const TECHNICAL_ROUND_STATUS_OPTIONS = ['Pending', 'Pass', 'Fail', 'No Show'];
+const FINAL_DECISION_OPTIONS = ['Pending', 'Selected', 'Rejected', 'On Hold'];
+
+// Full tracking-sheet field set (Resume Date, Relevant Exp., Primary/
+// Secondary Skills, Resume link, HR Screening Status, interviewer feedback,
+// Shortlisted?, Technical Round date/status, Final Decision, Work Mode,
+// Remarks, Last Follow-up Date, Output Path) — matches the columns HR
+// already tracks in their spreadsheet, so the candidate popup can fully
+// replace it instead of just showing a read-only subset.
+const EMPTY_CANDIDATE_FORM = {
+  name: '', email: '', phone: '', location: '', skills: '', secondarySkills: '',
+  experience: '', relevantExperience: '', education: '', currentCompany: '',
+  currentCTC: '', expectedSalary: '', noticePeriod: '', portfolio: '',
+  resumeDate: '', resumeLink: '',
+  hrScreeningStatus: 'Pending', payelFeedback: '', shortlisted: 'Pending',
+  technicalRoundDate: '', technicalRoundStatus: 'Pending', finalDecision: 'Pending',
+  workMode: 'Office', remarks: '', lastFollowUpDate: '', outputPath: '',
 };
 
 export default function Candidates() {
@@ -40,6 +94,61 @@ export default function Candidates() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploadForm, setUploadForm] = useState(EMPTY_UPLOAD_FORM);
   const [uploadSubmitting, setUploadSubmitting] = useState(false);
+  const [candidateForm, setCandidateForm] = useState(EMPTY_CANDIDATE_FORM);
+  const [candidateSaving, setCandidateSaving] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+
+  function syncCandidateForm(c) {
+    setCandidateForm({
+      ...EMPTY_CANDIDATE_FORM,
+      ...Object.fromEntries(
+        Object.keys(EMPTY_CANDIDATE_FORM).map((key) => [
+          key,
+          key === 'skills' ? (c.skills || []).join(', ')
+            : key === 'secondarySkills' && Array.isArray(c.secondarySkills) ? c.secondarySkills.join(', ')
+            : c[key] ?? EMPTY_CANDIDATE_FORM[key],
+        ])
+      ),
+    });
+  }
+
+  // Re-sync the editable form whenever a different candidate is opened, so
+  // it doesn't keep showing the previous candidate's values.
+  useEffect(() => {
+    if (!selected) return;
+    syncCandidateForm(selected);
+    setEditOpen(false);
+  }, [selected?.id]);
+
+  function cancelEdit() {
+    if (selected) syncCandidateForm(selected);
+    setEditOpen(false);
+  }
+
+  async function saveCandidateDetails() {
+    if (!selected) return;
+    setCandidateSaving(true);
+    const payload = {
+      ...candidateForm,
+      skills: candidateForm.skills ? candidateForm.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
+      secondarySkills: candidateForm.secondarySkills ? candidateForm.secondarySkills.split(',').map((s) => s.trim()).filter(Boolean) : [],
+      experience: candidateForm.experience ? Number(candidateForm.experience) : 0,
+      relevantExperience: candidateForm.relevantExperience ? Number(candidateForm.relevantExperience) : 0,
+      currentCTC: candidateForm.currentCTC ? Number(candidateForm.currentCTC) : null,
+      expectedSalary: candidateForm.expectedSalary ? Number(candidateForm.expectedSalary) : null,
+    };
+    try {
+      const { data } = await candidatesApi.update(selected.id, payload);
+      setCandidates((rows) => rows.map((c) => (c.id === selected.id ? { ...c, ...data } : c)));
+      setSelected((cur) => (cur && cur.id === selected.id ? { ...cur, ...data } : cur));
+      toast.success('Candidate details updated');
+      setEditOpen(false);
+    } catch (e) {
+      toast.error('Could not update candidate', { description: e.response?.data?.error || e.message });
+    } finally {
+      setCandidateSaving(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -221,99 +330,254 @@ export default function Candidates() {
         </Card>
       </div>
 
-      <Drawer open={!!selected} onClose={() => setSelected(null)} title="Candidate Profile" wide>
+      <Modal
+        open={!!selected}
+        onClose={() => { setSelected(null); setEditOpen(false); }}
+        title="Candidate Profile"
+        className="max-w-6xl max-h-[88vh] overflow-y-auto"
+      >
         {selected && (
-          <div className="flex flex-col gap-5">
-            <div>
-              <div className="text-lg font-semibold text-foreground">{selected.name}</div>
-              <div className="text-xs text-muted-foreground">{selected.appliedFor}</div>
-              <div className="mt-2"><Badge value={selected.stage} /></div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2.5 text-xs">
-              <div className="flex items-center gap-2 text-muted-foreground"><Mail size={13} className="text-primary" /> {selected.email}</div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Phone size={13} className="text-primary" /> {selected.phone}</div>
-              <div className="flex items-center gap-2 text-muted-foreground"><MapPin size={13} className="text-primary" /> {selected.location}</div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Briefcase size={13} className="text-primary" /> {selected.currentCompany} · {selected.experience} yrs</div>
-              <div className="flex items-center gap-2 text-muted-foreground"><GraduationCap size={13} className="text-primary" /> {selected.education}</div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Wallet size={13} className="text-primary" /> Current CTC: {formatLPA(selected.currentCTC)} · Expected: {formatLPA(selected.expectedSalary)}</div>
-              <div className="flex items-center gap-2 text-muted-foreground">Notice Period: {selected.noticePeriod || 'Not specified'}</div>
-              {selected.portfolio && (
-                <div className="flex items-center gap-2 text-muted-foreground"><LinkIcon size={13} className="text-primary" /> {selected.portfolio}</div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 gap-1.5 text-xs text-muted-foreground border-t border-border pt-3">
-              <div>Assigned recruiter: {selected.assignedRecruiter || 'Unassigned'}</div>
-              {selected.lastUpdatedBy && <div>Last updated by: {selected.lastUpdatedBy}</div>}
-              {selected.nextInterview && (
-                <div>Next interview: {selected.nextInterview.type} on {selected.nextInterview.date} with {selected.nextInterview.interviewer}</div>
-              )}
-            </div>
-
-            <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Skills</div>
-              <div className="flex flex-wrap gap-1.5">
-                {selected.skills.map((s) => (
-                  <span key={s} className="text-xs px-2 py-1 rounded-lg bg-muted text-muted-foreground border border-border">{s}</span>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Resume</div>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <FileText size={14} className="text-primary" />
-                  {selected.resumeFileName || `${selected.name.replace(' ', '_')}_Resume.pdf`}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2 pb-3 border-b border-border">
+              <div className="min-w-0">
+                <div className="text-xl font-semibold text-foreground truncate">{selected.name}</div>
+                <div className="text-sm text-muted-foreground truncate">
+                  {selected.appliedFor} · Applied {String(selected.appliedOn || '').slice(0, 10) || 'date not specified'}
                 </div>
-                <span className="text-xs px-2 py-1 rounded-lg bg-muted text-muted-foreground border border-border">Source: {selected.source}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge value={selected.stage} />
+                {editOpen ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={cancelEdit}
+                      className="px-3 py-1.5 rounded-lg bg-muted hover:bg-accent border border-border text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveCandidateDetails}
+                      disabled={candidateSaving}
+                      className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {candidateSaving ? 'Saving…' : 'Save'}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditOpen(true)}
+                    title="Edit candidate"
+                    aria-label="Edit candidate"
+                    className="p-1.5 rounded-lg bg-muted hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                )}
               </div>
             </div>
 
-            <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Move Stage</div>
-              <select
-                value={selected.stage}
-                onChange={(e) => updateStage(selected.id, e.target.value)}
-                className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-              >
-                {CANDIDATE_STAGES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-
-            {REJECTABLE_STAGES.includes(selected.stage) && (
+            <div className="grid grid-cols-2 gap-3 max-w-xl">
               <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Reason</div>
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">Move Stage</div>
                 <select
-                  value={selected.rejectionReason || ''}
-                  onChange={(e) => updateRejectionReason(selected.id, e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                  value={selected.stage}
+                  onChange={(e) => updateStage(selected.id, e.target.value)}
+                  className="w-full bg-muted border border-border rounded-xl px-3 py-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
                 >
-                  <option value="">Select a reason</option>
-                  {REJECTION_REASONS.map((r) => (
-                    <option key={r} value={r}>{r}</option>
+                  {CANDIDATE_STAGES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
               </div>
+              {REJECTABLE_STAGES.includes(selected.stage) ? (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">Reason</div>
+                  <select
+                    value={selected.rejectionReason || ''}
+                    onChange={(e) => updateRejectionReason(selected.id, e.target.value)}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                  >
+                    <option value="">Select a reason</option>
+                    {REJECTION_REASONS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <Detail label="Assigned Recruiter" value={selected.assignedRecruiter || 'Unassigned'} />
+              )}
+            </div>
+
+            {selected.nextInterview && (
+              <div className="text-xs text-primary bg-primary/10 border border-primary/20 rounded-xl px-3 py-2">
+                Next interview: {selected.nextInterview.type} on {selected.nextInterview.date} with {selected.nextInterview.interviewer}
+              </div>
             )}
 
-            <div>
-              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Timeline</div>
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" /> Applied on {String(selected.appliedOn || '').slice(0, 10)}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" /> Currently in {selected.stage}
-                </div>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <SectionCard title="Contact">
+                {editOpen ? (
+                  <>
+                    <EF label="Email"><input value={candidateForm.email} onChange={(e) => setCandidateForm((f) => ({ ...f, email: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Contact No."><input value={candidateForm.phone} onChange={(e) => setCandidateForm((f) => ({ ...f, phone: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Location"><input value={candidateForm.location} onChange={(e) => setCandidateForm((f) => ({ ...f, location: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Company"><input value={candidateForm.currentCompany} onChange={(e) => setCandidateForm((f) => ({ ...f, currentCompany: e.target.value }))} className={compactInputClass} /></EF>
+                  </>
+                ) : (
+                  <>
+                    <Detail label="Email" value={selected.email} />
+                    <Detail label="Contact No." value={selected.phone} />
+                    <Detail label="Location" value={selected.location} />
+                    <Detail label="Company" value={selected.currentCompany} />
+                  </>
+                )}
+              </SectionCard>
+
+              <SectionCard title="Experience & Skills">
+                {editOpen ? (
+                  <>
+                    <EF label="Total Exp. (yrs)"><input type="number" min="0" step="0.5" value={candidateForm.experience} onChange={(e) => setCandidateForm((f) => ({ ...f, experience: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Relevant Exp. (yrs)"><input type="number" min="0" step="0.5" value={candidateForm.relevantExperience} onChange={(e) => setCandidateForm((f) => ({ ...f, relevantExperience: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Education"><input value={candidateForm.education} onChange={(e) => setCandidateForm((f) => ({ ...f, education: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Work Mode">
+                      <select value={candidateForm.workMode} onChange={(e) => setCandidateForm((f) => ({ ...f, workMode: e.target.value }))} className={compactInputClass}>
+                        {WORK_MODE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </EF>
+                    <div className="col-span-2">
+                      <EF label="Primary Skill(s)"><input value={candidateForm.skills} onChange={(e) => setCandidateForm((f) => ({ ...f, skills: e.target.value }))} className={compactInputClass} placeholder="Comma separated" /></EF>
+                    </div>
+                    <div className="col-span-2">
+                      <EF label="Secondary Skills"><input value={candidateForm.secondarySkills} onChange={(e) => setCandidateForm((f) => ({ ...f, secondarySkills: e.target.value }))} className={compactInputClass} placeholder="Comma separated" /></EF>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Detail label="Total Exp." value={yrs(selected.experience)} />
+                    <Detail label="Relevant Exp." value={yrs(selected.relevantExperience)} />
+                    <Detail label="Education" value={selected.education} />
+                    <Detail label="Work Mode" value={selected.workMode} />
+                    <div className="col-span-2">
+                      <Detail label="Primary Skill(s)" value={(selected.skills || []).join(', ')} />
+                    </div>
+                    <div className="col-span-2">
+                      <Detail label="Secondary Skills" value={(selected.secondarySkills || []).join(', ')} />
+                    </div>
+                  </>
+                )}
+              </SectionCard>
+
+              <SectionCard title="Resume & Compensation">
+                {editOpen ? (
+                  <>
+                    <EF label="Resume Date"><input type="date" value={candidateForm.resumeDate} onChange={(e) => setCandidateForm((f) => ({ ...f, resumeDate: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Current CTC (LPA)"><input type="number" min="0" step="0.5" value={candidateForm.currentCTC} onChange={(e) => setCandidateForm((f) => ({ ...f, currentCTC: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Expected CTC (LPA)"><input type="number" min="0" step="0.5" value={candidateForm.expectedSalary} onChange={(e) => setCandidateForm((f) => ({ ...f, expectedSalary: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Notice Period"><input value={candidateForm.noticePeriod} onChange={(e) => setCandidateForm((f) => ({ ...f, noticePeriod: e.target.value }))} className={compactInputClass} /></EF>
+                    <div className="col-span-2">
+                      <EF label="Resume (Google Drive link)"><input type="url" value={candidateForm.resumeLink} onChange={(e) => setCandidateForm((f) => ({ ...f, resumeLink: e.target.value }))} className={compactInputClass} placeholder="https://drive.google.com/..." /></EF>
+                    </div>
+                    <div className="col-span-2">
+                      <EF label="Portfolio Link"><input value={candidateForm.portfolio} onChange={(e) => setCandidateForm((f) => ({ ...f, portfolio: e.target.value }))} className={compactInputClass} /></EF>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Detail label="Source" value={selected.source} />
+                    <Detail label="Resume Date" value={selected.resumeDate} />
+                    <Detail label="Current CTC" value={lpa(selected.currentCTC)} />
+                    <Detail label="Expected CTC" value={lpa(selected.expectedSalary)} />
+                    <Detail label="Notice Period" value={selected.noticePeriod} />
+                    <div className="col-span-3">
+                      <Detail label="Resume (Drive link)" value={selected.resumeLink} wrap />
+                    </div>
+                    <div className="col-span-4">
+                      <Detail label="Portfolio Link" value={selected.portfolio} wrap />
+                    </div>
+                  </>
+                )}
+                {selected.resumeFileName && (
+                  <div className="col-span-4 flex items-center gap-2 mt-1 p-2 rounded-lg bg-background border border-border text-xs text-muted-foreground">
+                    <FileText size={13} className="text-primary shrink-0" />
+                    <span className="truncate">{selected.resumeFileName}</span>
+                  </div>
+                )}
+              </SectionCard>
+
+              <SectionCard title="Screening & Interview">
+                {editOpen ? (
+                  <>
+                    <EF label="HR Screening Status">
+                      <select value={candidateForm.hrScreeningStatus} onChange={(e) => setCandidateForm((f) => ({ ...f, hrScreeningStatus: e.target.value }))} className={compactInputClass}>
+                        {HR_SCREENING_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </EF>
+                    <EF label="Shortlisted?">
+                      <select value={candidateForm.shortlisted} onChange={(e) => setCandidateForm((f) => ({ ...f, shortlisted: e.target.value }))} className={compactInputClass}>
+                        {SHORTLISTED_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </EF>
+                    <EF label="Tech. Round Date"><input type="date" value={candidateForm.technicalRoundDate} onChange={(e) => setCandidateForm((f) => ({ ...f, technicalRoundDate: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Tech. Round Status">
+                      <select value={candidateForm.technicalRoundStatus} onChange={(e) => setCandidateForm((f) => ({ ...f, technicalRoundStatus: e.target.value }))} className={compactInputClass}>
+                        {TECHNICAL_ROUND_STATUS_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </EF>
+                    <EF label="Final Decision">
+                      <select value={candidateForm.finalDecision} onChange={(e) => setCandidateForm((f) => ({ ...f, finalDecision: e.target.value }))} className={compactInputClass}>
+                        {FINAL_DECISION_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </EF>
+                    <EF label="Last Follow-up Date"><input type="date" value={candidateForm.lastFollowUpDate} onChange={(e) => setCandidateForm((f) => ({ ...f, lastFollowUpDate: e.target.value }))} className={compactInputClass} /></EF>
+                    <div className="col-span-2">
+                      <EF label="Output Path"><input value={candidateForm.outputPath} onChange={(e) => setCandidateForm((f) => ({ ...f, outputPath: e.target.value }))} className={compactInputClass} placeholder="e.g. server path or folder" /></EF>
+                    </div>
+                    <div className="col-span-4">
+                      <EF label="Payel Feedback"><input value={candidateForm.payelFeedback} onChange={(e) => setCandidateForm((f) => ({ ...f, payelFeedback: e.target.value }))} className={compactInputClass} /></EF>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Detail label="HR Screening" value={selected.hrScreeningStatus} />
+                    <Detail label="Shortlisted?" value={selected.shortlisted} />
+                    <Detail label="Tech. Round Date" value={selected.technicalRoundDate} />
+                    <Detail label="Tech. Round Status" value={selected.technicalRoundStatus} />
+                    <Detail label="Final Decision" value={selected.finalDecision} />
+                    <Detail label="Last Follow-up" value={selected.lastFollowUpDate} />
+                    <div className="col-span-2">
+                      <Detail label="Output Path" value={selected.outputPath} wrap />
+                    </div>
+                    <div className="col-span-4">
+                      <Detail label="Payel Feedback" value={selected.payelFeedback} wrap />
+                    </div>
+                  </>
+                )}
+              </SectionCard>
             </div>
+
+            {editOpen ? (
+              <div className="rounded-xl border border-border bg-muted/20 p-3">
+                <EF label="Remarks">
+                  <textarea rows={2} value={candidateForm.remarks} onChange={(e) => setCandidateForm((f) => ({ ...f, remarks: e.target.value }))} className={compactInputClass} />
+                </EF>
+              </div>
+            ) : (
+              selected.remarks && (
+                <div className="rounded-xl border border-border bg-muted/20 p-3">
+                  <Detail label="Remarks" value={selected.remarks} wrap />
+                </div>
+              )
+            )}
+
+            {selected.lastUpdatedBy && (
+              <div className="text-[10px] text-muted-foreground">Last updated by {selected.lastUpdatedBy}</div>
+            )}
           </div>
         )}
-      </Drawer>
+      </Modal>
 
       <Modal
         open={!!uploadedFile}

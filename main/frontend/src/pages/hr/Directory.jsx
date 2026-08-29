@@ -4,7 +4,7 @@ import { Search, Mail, Phone, Calendar, Landmark, Plus, Pencil, Trash2, Upload, 
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, Pill, EmptyState, Modal, Field, inputClass } from '../../components/ui';
 import { bankDetails } from '../../data/hrMockData';
-import { employeesApi, performanceApi } from '../../utils/api';
+import { employeesApi, performanceApi, leaveEntriesApi } from '../../utils/api';
 import { useHrDesk } from '../../context/HrDeskContext';
 import { useApprovals } from '../../context/ApprovalContext';
 
@@ -187,7 +187,7 @@ function initialsOf(name) {
 }
 
 export default function Directory() {
-  const { employees, setEmployees, attendanceRecords, performanceEntries, setPerformanceEntries, extraHours } = useHrDesk();
+  const { employees, setEmployees, attendanceRecords, performanceEntries, setPerformanceEntries, leaveEntries, setLeaveEntries, extraHours } = useHrDesk();
   const { approvals, decide: decideApprovalAction } = useApprovals();
   const [query, setQuery] = useState('');
   const [dept, setDept] = useState('All');
@@ -200,6 +200,9 @@ export default function Directory() {
   // The doc.key currently uploading, so only that row's button shows
   // "Uploading…" instead of the whole Documents list locking up.
   const [uploadingDoc, setUploadingDoc] = useState(null);
+  const [leavePeriod, setLeavePeriod] = useState('Monthly');
+  const [leaveMonth, setLeaveMonth] = useState(() => new Date().getMonth());
+  const [leaveQuarter, setLeaveQuarter] = useState(() => Math.floor(new Date().getMonth() / 3));
   const [leaveTakenInput, setLeaveTakenInput] = useState('0');
   const [leaveSaving, setLeaveSaving] = useState(false);
   const [payslipForm, setPayslipForm] = useState(null);
@@ -333,22 +336,36 @@ export default function Directory() {
     );
   }
 
-  // "Taken" is a number HR sets directly (selected.leaveTaken) rather than
-  // counted from attendance rows — the Leave option was pulled out of the
-  // employee's own Check-in widget, so nothing auto-populates this anymore.
-  // Remaining is always just entitlement minus whatever HR last saved here.
+  // "Taken" is stored one row per (employeeId, periodKey) in leave_entries —
+  // same shape/pattern as performance_entries below — so HR can set a
+  // different taken count per month/quarter. Total is always the employee's
+  // leaveEntitlement; Remaining is entitlement minus the sum of taken across
+  // every period on file (not just whichever one the dropdown is showing).
+  const leaveYear = new Date().getFullYear();
+  const leavePeriodKey =
+    leavePeriod === 'Monthly' ? `${leaveYear}-${String(leaveMonth + 1).padStart(2, '0')}` : `${leaveYear}-Q${leaveQuarter + 1}`;
+  const leaveEntry = selected
+    ? leaveEntries.find((l) => l.employeeId === selected.id && l.periodKey === leavePeriodKey)
+    : null;
+
   const leaveStats = useMemo(() => {
     if (!selected) return null;
     const entitlement = Number(selected.leaveEntitlement) || DEFAULT_LEAVE_ENTITLEMENT;
-    const takenYear = Number(selected.leaveTaken) || 0;
-    return { entitlement, takenYear, remaining: Math.max(0, entitlement - takenYear) };
-  }, [selected]);
+    const takenAllTime = leaveEntries
+      .filter((l) => l.employeeId === selected.id)
+      .reduce((s, l) => s + (Number(l.taken) || 0), 0);
+    return { entitlement, remaining: Math.max(0, entitlement - takenAllTime) };
+  }, [selected, leaveEntries]);
 
-  // Re-sync the editable "Taken" input whenever the selected employee
-  // changes, so it doesn't keep showing the previous employee's number.
+  // Re-sync the editable "Taken" input whenever the employee, period type,
+  // or the specific month/quarter changes — pulls the existing entry for
+  // that exact period if one exists, otherwise resets to 0.
   useEffect(() => {
-    setLeaveTakenInput(String(Number(selected?.leaveTaken) || 0));
-  }, [selected?.id]);
+    setLeaveTakenInput(String(leaveEntry?.taken ?? 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- leaveEntry is
+    // re-derived from leaveEntries/selected/leavePeriodKey every render;
+    // keying off those avoids re-running this on every keystroke below.
+  }, [selected?.id, leavePeriodKey, leaveEntries]);
 
   function openPayslip(employee) {
     setPayslipForm(defaultPayslipForm(employee, attendanceRecords));
@@ -381,10 +398,20 @@ export default function Directory() {
   async function saveLeaveTaken() {
     if (!selected) return;
     setLeaveSaving(true);
+    const payload = {
+      employeeId: selected.id,
+      period: leavePeriod,
+      periodKey: leavePeriodKey,
+      taken: Number(leaveTakenInput) || 0,
+    };
     try {
-      const { data } = await employeesApi.update(selected.id, { leaveTaken: leaveTakenInput });
-      setEmployees((rows) => rows.map((r) => (r.id === selected.id ? { ...r, ...data } : r)));
-      setSelected((cur) => (cur && cur.id === selected.id ? { ...cur, ...data } : cur));
+      if (leaveEntry) {
+        const { data } = await leaveEntriesApi.update(leaveEntry.id, payload);
+        setLeaveEntries((rows) => rows.map((r) => (r.id === leaveEntry.id ? { ...r, ...data } : r)));
+      } else {
+        const { data } = await leaveEntriesApi.create(payload);
+        setLeaveEntries((rows) => [...rows, data]);
+      }
       toast.success('Leave taken updated');
     } catch (e) {
       toast.error('Could not update leave taken', { description: e.response?.data?.error || e.message });
@@ -735,7 +762,40 @@ export default function Directory() {
                 </div>
 
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Leave</div>
+                  <div className="flex items-center justify-between mb-1.5 gap-2">
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground shrink-0">Leave</div>
+                    <div className="flex gap-1.5">
+                      <select
+                        value={leavePeriod}
+                        onChange={(e) => setLeavePeriod(e.target.value)}
+                        className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
+                      >
+                        <option value="Monthly">Monthly</option>
+                        <option value="Quarterly">Quarterly</option>
+                      </select>
+                      {leavePeriod === 'Monthly' ? (
+                        <select
+                          value={leaveMonth}
+                          onChange={(e) => setLeaveMonth(Number(e.target.value))}
+                          className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
+                        >
+                          {MONTH_NAMES.map((m, i) => (
+                            <option key={m} value={i}>{m}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <select
+                          value={leaveQuarter}
+                          onChange={(e) => setLeaveQuarter(Number(e.target.value))}
+                          className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
+                        >
+                          {QUARTER_NAMES.map((q, i) => (
+                            <option key={q} value={i}>{q}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-1.5 mb-1.5">
                     <div className="rounded-xl bg-muted border border-border p-2 text-center">
                       <div className="text-base font-bold text-foreground">{leaveStats.entitlement}</div>
@@ -749,7 +809,9 @@ export default function Directory() {
                         onChange={(e) => setLeaveTakenInput(e.target.value)}
                         className="w-full bg-background border border-border rounded-md text-center py-0.5 text-sm font-bold text-primary"
                       />
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide mt-1">Taken</div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide mt-1">
+                        Taken ({leavePeriod === 'Monthly' ? MONTH_NAMES[leaveMonth] : `Q${leaveQuarter + 1}`})
+                      </div>
                     </div>
                     <div className="rounded-xl bg-muted border border-border p-2 text-center">
                       <div className="text-base font-bold text-foreground">{leaveStats.remaining}</div>
@@ -762,7 +824,7 @@ export default function Directory() {
                     disabled={leaveSaving}
                     className="w-full bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    {leaveSaving ? 'Saving…' : 'Save leave taken'}
+                    {leaveSaving ? 'Saving…' : `Save ${leavePeriod === 'Monthly' ? MONTH_NAMES[leaveMonth] : `Q${leaveQuarter + 1}`} leave taken`}
                   </button>
                 </div>
 
@@ -1127,35 +1189,79 @@ export default function Directory() {
                 <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Income Details</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-border overflow-hidden">
-                    <div className="bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">Earnings</div>
-                    <div className="flex flex-col gap-1.5 p-2">
+                    <div className="flex items-center justify-between bg-muted px-3 py-2 text-xs font-semibold text-foreground">
+                      <span>Earnings</span>
+                      <span>Amount</span>
+                    </div>
+                    <div className="flex flex-col gap-2.5 p-3">
                       {payslipForm.earnings.map((r) => (
-                        <div key={r.id} className="flex items-center gap-1.5">
-                          <input value={r.label} onChange={(e) => updateEarning(r.id, 'label', e.target.value)} className={`${inputClass} flex-1 min-w-0`} placeholder="Label" />
-                          <input type="number" min="0" value={r.amount} onChange={(e) => updateEarning(r.id, 'amount', e.target.value)} className={`${inputClass} w-20 text-right`} />
-                          <button type="button" onClick={() => removeEarning(r.id)} className="text-destructive text-xs px-1 cursor-pointer">✕</button>
+                        <div key={r.id} className="flex items-center justify-between gap-2 group">
+                          <input
+                            value={r.label}
+                            onChange={(e) => updateEarning(r.id, 'label', e.target.value)}
+                            placeholder="Label"
+                            className="flex-1 min-w-0 bg-transparent text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            value={r.amount}
+                            onChange={(e) => updateEarning(r.id, 'amount', e.target.value)}
+                            className="w-16 shrink-0 bg-transparent text-xs text-foreground text-right border-b border-dashed border-border focus-visible:outline-none focus-visible:border-primary"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeEarning(r.id)}
+                            className="text-destructive text-xs opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          >
+                            ✕
+                          </button>
                         </div>
                       ))}
-                      <button type="button" onClick={addEarning} className="text-xs text-primary font-semibold hover:underline text-left cursor-pointer">+ Add Earnings</button>
+                      <button type="button" onClick={addEarning} className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline w-fit cursor-pointer">
+                        <Plus size={12} /> Add Earnings
+                      </button>
                     </div>
-                    <div className="flex items-center justify-between px-3 py-1.5 bg-muted border-t border-border text-xs font-bold text-foreground">
+                    <div className="flex items-center justify-between px-3 py-2 bg-muted border-t border-border text-xs font-bold text-foreground">
                       <span>Gross Earnings</span>
                       <span>₹{totals.gross.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                   <div className="rounded-xl border border-border overflow-hidden">
-                    <div className="bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">Deductions</div>
-                    <div className="flex flex-col gap-1.5 p-2">
+                    <div className="flex items-center justify-between bg-muted px-3 py-2 text-xs font-semibold text-foreground">
+                      <span>Deductions</span>
+                      <span>Amount</span>
+                    </div>
+                    <div className="flex flex-col gap-2.5 p-3">
                       {payslipForm.deductions.map((r) => (
-                        <div key={r.id} className="flex items-center gap-1.5">
-                          <input value={r.label} onChange={(e) => updateDeduction(r.id, 'label', e.target.value)} className={`${inputClass} flex-1 min-w-0`} placeholder="Label" />
-                          <input type="number" min="0" value={r.amount} onChange={(e) => updateDeduction(r.id, 'amount', e.target.value)} className={`${inputClass} w-20 text-right`} />
-                          <button type="button" onClick={() => removeDeduction(r.id)} className="text-destructive text-xs px-1 cursor-pointer">✕</button>
+                        <div key={r.id} className="flex items-center justify-between gap-2 group">
+                          <input
+                            value={r.label}
+                            onChange={(e) => updateDeduction(r.id, 'label', e.target.value)}
+                            placeholder="Label"
+                            className="flex-1 min-w-0 bg-transparent text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            value={r.amount}
+                            onChange={(e) => updateDeduction(r.id, 'amount', e.target.value)}
+                            className="w-16 shrink-0 bg-transparent text-xs text-foreground text-right border-b border-dashed border-border focus-visible:outline-none focus-visible:border-primary"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeDeduction(r.id)}
+                            className="text-destructive text-xs opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          >
+                            ✕
+                          </button>
                         </div>
                       ))}
-                      <button type="button" onClick={addDeduction} className="text-xs text-primary font-semibold hover:underline text-left cursor-pointer">+ Add Deductions</button>
+                      <button type="button" onClick={addDeduction} className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline w-fit cursor-pointer">
+                        <Plus size={12} /> Add Deductions
+                      </button>
                     </div>
-                    <div className="flex items-center justify-between px-3 py-1.5 bg-muted border-t border-border text-xs font-bold text-foreground">
+                    <div className="flex items-center justify-between px-3 py-2 bg-muted border-t border-border text-xs font-bold text-foreground">
                       <span>Total Deductions</span>
                       <span>₹{totals.totalDeductions.toLocaleString('en-IN')}</span>
                     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, ArrowRight, CheckCircle2, ShieldAlert, Paperclip, FileText, AlertCircle } from 'lucide-react';
+import { X, UserPlus, ArrowRight, CheckCircle2, ShieldAlert, Link2, FileText, AlertCircle } from 'lucide-react';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
 import { useAuth } from '../context/AuthContext';
 
@@ -49,7 +49,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   const [priority, setPriority] = useState('Medium');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [attachment, setAttachment] = useState(null);
+  const [attachment, setAttachment] = useState('');
   const [isConfidential, setIsConfidential] = useState(false);
   const [employeeId, setEmployeeId] = useState(user?.employeeId || user?.employee_id || '');
   const [submitted, setSubmitted] = useState(false);
@@ -71,17 +71,17 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
     setSubcategory(HR_TICKET_CATEGORIES[cat][0]);
   }
 
-  function handleFileChange(e) {
-    if (e.target.files && e.target.files[0]) {
-      setAttachment(e.target.files[0].name);
-    }
-  }
+  const isValidDriveLink = /^https:\/\/(drive|docs)\.google\.com\//.test(attachment?.trim() || '');
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!onSubmitSuccess) return;
     const userRole = user?.department || user?.designation || (user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Employee');
     setError('');
+    if (attachment.trim() && !isValidDriveLink) {
+      setError('Document Attachment must be a Google Drive link (drive.google.com or docs.google.com).');
+      return;
+    }
     setSubmitting(true);
     try {
       await onSubmitSuccess({
@@ -274,25 +274,27 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
             </div>
 
             {/* Attachment & Confidential */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                  Document Attachment (Optional)
-                </label>
-                <div className="relative border border-dashed border-border rounded-xl p-2.5 text-center bg-muted/30 hover:bg-accent transition-colors cursor-pointer flex flex-col items-center justify-center gap-1 h-[72px]">
+            <div className="grid grid-cols-2 gap-3 items-stretch">
+              <div className={`relative border rounded-xl p-2.5 bg-muted/30 flex items-start gap-2 ${attachment.trim() && !isValidDriveLink ? 'border-destructive' : 'border-border'}`}>
+                <Link2 size={14} className="text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <strong className="text-foreground font-bold text-[11px] block mb-0.5">Document Attachment (Optional)</strong>
                   <input
-                    type="file"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    type="url"
+                    value={attachment}
+                    onChange={(e) => setAttachment(e.target.value)}
+                    placeholder="Paste Google Drive link (with access)"
+                    className="w-full bg-transparent text-[11px] text-foreground placeholder-gray-500 focus-visible:outline-none border-b border-dashed border-border pb-0.5 mb-0.5"
                   />
-                  <Paperclip size={14} className="text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground leading-tight px-1">
-                    {attachment ? <strong className="text-primary">{attachment}</strong> : 'Click to attach proof (Receipts, Medical bills, PDFs)'}
+                  <span className="text-[10px] text-muted-foreground leading-tight block">
+                    {attachment.trim() && !isValidDriveLink
+                      ? <span className="text-destructive">Must be a drive.google.com link</span>
+                      : 'Share the file via Google Drive and make sure link access is on'}
                   </span>
                 </div>
               </div>
 
-              <div className="bg-warning/10 border border-warning/20 rounded-xl p-2.5 flex items-start gap-2 h-[72px]">
+              <div className="bg-warning/10 border border-warning/20 rounded-xl p-2.5 flex items-start gap-2">
                 <input
                   type="checkbox"
                   id="confidential-check"

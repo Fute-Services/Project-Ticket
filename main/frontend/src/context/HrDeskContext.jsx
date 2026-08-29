@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { employeesApi, candidatesApi, interviewsApi, attendanceApi, performanceApi, extraHoursApi } from '../utils/api';
+import { employeesApi, candidatesApi, interviewsApi, attendanceApi, performanceApi, extraHoursApi, leaveEntriesApi } from '../utils/api';
 
 const HrDeskContext = createContext(null);
 
@@ -20,6 +20,7 @@ export function HrDeskProvider({ children }) {
   const [interviews, setInterviews] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [performanceEntries, setPerformanceEntries] = useState([]);
+  const [leaveEntries, setLeaveEntries] = useState([]);
   const [extraHours, setExtraHours] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -84,6 +85,17 @@ export function HrDeskProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canSeeHrDesk]);
 
+  const refreshLeaveEntries = useCallback(async () => {
+    if (!canSeeHrDesk) return setLeaveEntries([]);
+    try {
+      const { data } = await leaveEntriesApi.list();
+      setLeaveEntries(data);
+    } catch (e) {
+      console.error('Failed to load leave entries:', e.message);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSeeHrDesk]);
+
   const refreshExtraHours = useCallback(async () => {
     if (!canSeeHrDesk) return setExtraHours([]);
     try {
@@ -103,9 +115,10 @@ export function HrDeskProvider({ children }) {
       refreshInterviews(),
       refreshAttendance(),
       refreshPerformance(),
+      refreshLeaveEntries(),
       refreshExtraHours(),
     ]).finally(() => setLoading(false));
-  }, [refreshEmployees, refreshCandidates, refreshInterviews, refreshAttendance, refreshPerformance, refreshExtraHours]);
+  }, [refreshEmployees, refreshCandidates, refreshInterviews, refreshAttendance, refreshPerformance, refreshLeaveEntries, refreshExtraHours]);
 
   return (
     <HrDeskContext.Provider
@@ -125,6 +138,9 @@ export function HrDeskProvider({ children }) {
         performanceEntries,
         setPerformanceEntries,
         refreshPerformance,
+        leaveEntries,
+        setLeaveEntries,
+        refreshLeaveEntries,
         extraHours,
         setExtraHours,
         refreshExtraHours,

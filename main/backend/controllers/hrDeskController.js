@@ -435,18 +435,26 @@ async function listExtraHours(req, res) {
   res.json(rows);
 }
 
+// "Taken" is stored one row per (employeeId, periodKey) in leave_entries —
+// same shape as performance_entries — so HR can set a different taken count
+// per month/quarter (mirrors Directory.jsx's Performance card). Total always
+// stays the employee's leaveEntitlement; Remaining is entitlement minus the
+// sum of taken across every period on file, not just the one being viewed.
+const leaveEntriesCollection = db.collection('leave_entries');
+
 // GET /api/hr-desk/leave/me — self-scoped leave summary (Employee's Own
-// Leave & Performance gap). "Taken" is a number HR sets directly on the
-// employee doc (leaveTaken — see employees' editableFields below) rather
-// than counted from attendance rows, so it stays in sync with whatever HR
-// tracks leave through outside this app; "Remaining" is just derived from it.
+// Leave & Performance gap), plus the raw per-period entries so the employee
+// can also pick a month/quarter and see that period's taken count.
 async function myLeaveSummary(req, res) {
-  if (!req.user.employeeId) return res.json({ entitlement: 0, takenYear: 0, remaining: 0 });
-  const empDoc = await db.collection('employees').doc(req.user.employeeId).get();
-  const data = empDoc.exists ? empDoc.data() : {};
-  const entitlement = Number(data.leaveEntitlement) || DEFAULT_LEAVE_ENTITLEMENT;
-  const takenYear = Number(data.leaveTaken) || 0;
-  res.json({ entitlement, takenYear, remaining: Math.max(0, entitlement - takenYear) });
+  if (!req.user.employeeId) return res.json({ entitlement: 0, takenYear: 0, remaining: 0, entries: [] });
+  const [empDoc, entriesSnap] = await Promise.all([
+    db.collection('employees').doc(req.user.employeeId).get(),
+    leaveEntriesCollection.where('employeeId', '==', req.user.employeeId).limit(UNPAGINATED_READ_LIMIT).get(),
+  ]);
+  const entitlement = Number(empDoc.exists ? empDoc.data().leaveEntitlement : 0) || DEFAULT_LEAVE_ENTITLEMENT;
+  const entries = entriesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const takenYear = entries.reduce((s, e) => s + (Number(e.taken) || 0), 0);
+  res.json({ entitlement, takenYear, remaining: Math.max(0, entitlement - takenYear), entries });
 }
 
 // GET /api/hr-desk/performance/me — self-scoped, mirrors myLeaveSummary.
@@ -474,13 +482,16 @@ module.exports = {
       'empCode', 'biometricVpnNumber', 'accountNumber', 'salary', 'emergencyContact',
       'emergencyContactRelation', 'personalEmail', 'dob', 'bloodGroup', 'permanentAddress',
       'presentAddress', 'aadharNumber', 'panDetails', 'voterId', 'driveLink', 'bgVerification',
-      'leaveEntitlement', 'leaveTaken', 'uan',
+      'leaveEntitlement', 'uan',
       ...Object.values(DOCUMENT_TYPES).flatMap((d) => [d.urlField, d.fileNameField])]),
   uploadEmployeeDocument,
   candidates: makeCrud('candidates', ['name', 'email'],
-    ['name', 'email', 'phone', 'location', 'skills', 'experience', 'education', 'currentCTC', 'expectedSalary',
-      'noticePeriod', 'currentCompany', 'portfolio', 'source', 'stage', 'appliedFor', 'appliedOn',
-      'resumeFileName', 'resumeUrl', 'rejectionReason', 'assignedRecruiter', 'nextInterview'],
+    ['name', 'email', 'phone', 'location', 'skills', 'secondarySkills', 'experience', 'relevantExperience',
+      'education', 'currentCTC', 'expectedSalary', 'noticePeriod', 'currentCompany', 'portfolio', 'source',
+      'stage', 'appliedFor', 'appliedOn', 'resumeFileName', 'resumeUrl', 'resumeLink', 'resumeDate',
+      'rejectionReason', 'assignedRecruiter', 'nextInterview',
+      'hrScreeningStatus', 'payelFeedback', 'shortlisted', 'technicalRoundDate', 'technicalRoundStatus',
+      'finalDecision', 'workMode', 'remarks', 'lastFollowUpDate', 'outputPath'],
     { transforms: { appliedOn: (v) => (v ? Timestamp.fromDate(new Date(v)) : v) }, trackUpdatedBy: true }),
   interviews: makeCrud('interviews', ['candidate', 'type', 'date'],
     ['candidateId', 'candidate', 'type', 'interviewer', 'date', 'time', 'link', 'location', 'notes', 'status'],
@@ -504,4 +515,6 @@ module.exports = {
   // (employeeId, periodKey, category) before deciding create vs. update.
   performance: makeCrud('performance_entries', ['employeeId', 'periodKey', 'category'],
     ['employeeId', 'period', 'periodKey', 'category', 'target', 'delivered']),
+  leaveEntries: makeCrud('leave_entries', ['employeeId', 'periodKey'],
+    ['employeeId', 'period', 'periodKey', 'taken']),
 };
