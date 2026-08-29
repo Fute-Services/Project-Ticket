@@ -1,5 +1,5 @@
 const { db, bucket } = require('../config/firebase');
-const { Timestamp } = require('firebase-admin').firestore;
+const { Timestamp } = require('firebase-admin/firestore');
 const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { sendMail, escapeHtml } = require('../utils/mailer');
 const { ok, created, fail } = require('../utils/respond');
