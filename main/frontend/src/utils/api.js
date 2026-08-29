@@ -169,10 +169,20 @@ export const interviewsApi = hrDeskResource('interviews');
 export const meetingsApi = hrDeskResource('meetings');
 export const attendanceApi = hrDeskResource('attendance');
 attendanceApi.myToday = () => api.get('/api/hr-desk/attendance/me/today');
-attendanceApi.checkIn = (workMode) => api.post('/api/hr-desk/attendance/check-in', { workMode });
+attendanceApi.checkIn = (workMode, extra = {}) => api.post('/api/hr-desk/attendance/check-in', { workMode, ...extra });
 attendanceApi.checkOut = () => api.post('/api/hr-desk/attendance/check-out');
 export const feedbackApi = hrDeskResource('feedback');
 export const jobsApi = hrDeskResource('jobs');
+export const performanceApi = hrDeskResource('performance');
+
+export const extraHoursApi = {
+  submit: (data) => api.post('/api/hr-desk/extra-hours', data),
+  myList: () => api.get('/api/hr-desk/extra-hours/me'),
+  list: () => api.get('/api/hr-desk/extra-hours'),
+};
+
+export const getMyLeaveSummary = () => api.get('/api/hr-desk/leave/me');
+export const getMyPerformance = () => api.get('/api/hr-desk/performance/me');
 
 // HR Email — real SMTP send via the backend's mailer, Sent folder persists across sessions
 export const sendHrEmail = (data) => api.post('/api/hr-desk/send-email', data);

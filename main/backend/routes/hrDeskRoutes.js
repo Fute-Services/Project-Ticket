@@ -31,6 +31,18 @@ router.post(
   resources.uploadEmployeeDocument
 );
 
+// Employee's Own Leave & Performance — self-scoped, employeeId always from
+// the authenticated session (see myLeaveSummary/myPerformance), never a
+// client-supplied id.
+router.get('/leave/me', auth, role('hr', 'founder', 'employee'), resources.myLeaveSummary);
+router.get('/performance/me', auth, role('hr', 'founder', 'employee'), resources.myPerformance);
+
+// Extra Hours Logging — self-service submit, mirrors Attendance's pattern
+// (own employeeId only, never client-supplied). HR/founder see everyone's.
+router.get('/extra-hours/me', auth, role('hr', 'founder', 'employee'), resources.myExtraHours);
+router.post('/extra-hours', auth, role('hr', 'founder', 'employee'), resources.submitExtraHours);
+router.get('/extra-hours', auth, role('hr', 'founder'), resources.listExtraHours);
+
 for (const [path, handlers] of Object.entries({
   employees: resources.employees,
   candidates: resources.candidates,
@@ -39,6 +51,7 @@ for (const [path, handlers] of Object.entries({
   attendance: resources.attendance,
   feedback: resources.feedback,
   jobs: resources.jobs,
+  performance: resources.performance,
 })) {
   if (path !== 'employees') router.get(`/${path}`, auth, role('hr', 'founder'), handlers.list);
   // Attendance is written exclusively through /attendance/check-in and

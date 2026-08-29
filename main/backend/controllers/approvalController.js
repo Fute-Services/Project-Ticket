@@ -1,7 +1,26 @@
 const { db } = require('../config/firebase');
 const { paginatedQuery } = require('../utils/pagination');
+const { sendMail, escapeHtml } = require('../utils/mailer');
 
 const collection = db.collection('approvals');
+
+// 'document' approvals are HR's own call (Payel/Soma, in the original
+// notes — modeled as the 'hr' role, not named accounts, see
+// hrDeskController.js). 'extra-hours' is explicitly founder-only (decided
+// later — HR cannot decide these even though it can decide documents).
+// Every other category (ticket-linked "Waiting Approval" escalations,
+// asset/data requests) stays founder-only too, same as before either
+// category existed.
+const HR_DECIDABLE_CATEGORIES = ['document'];
+
+async function notifyFounder(subject, html) {
+  try {
+    const snap = await db.collection('users').where('role', '==', 'founder').limit(5).get();
+    await Promise.all(snap.docs.map((d) => sendMail(d.data().email, subject, html).catch(() => {})));
+  } catch (e) {
+    console.error('Failed to notify founder:', e.message);
+  }
+}
 
 function sortByRecent(docs) {
   return docs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -41,7 +60,11 @@ async function listApprovals(req, res) {
 
 const DECISIONS = ['approved', 'rejected'];
 
-// PATCH /api/approvals/:id/decide — founder only.
+// PATCH /api/approvals/:id/decide — founder-only for every category except
+// 'document'/'extra-hours', which HR may also decide (see
+// HR_DECIDABLE_CATEGORIES above). The role check for those two categories
+// happens inside the transaction (after the category is known), not at the
+// route, so the route stays a single shared endpoint for every category.
 //
 // Runs as a single Firestore transaction so the approval doc and its linked
 // ticket either both update or neither does — previously these were two
@@ -57,6 +80,7 @@ async function decideApproval(req, res) {
 
   const docRef = collection.doc(id);
   const decidedAt = new Date().toISOString();
+  let approvalForNotify = null;
 
   await db.runTransaction(async (tx) => {
     const doc = await tx.get(docRef);
@@ -65,6 +89,10 @@ async function decideApproval(req, res) {
     if (approval.status !== 'pending_founder') {
       throw Object.assign(new Error('This approval has already been decided'), { status: 409 });
     }
+    if (req.user.role !== 'founder' && !(req.user.role === 'hr' && HR_DECIDABLE_CATEGORIES.includes(approval.category))) {
+      throw Object.assign(new Error('Only the founder can decide this approval'), { status: 403 });
+    }
+    approvalForNotify = approval;
 
     let ticketRef = null;
     if (approval.complaintRef) {
@@ -72,6 +100,15 @@ async function decideApproval(req, res) {
       ticketRef = db.collection(refCollection).doc(refId);
       // Firestore transactions require all reads before any writes.
       await tx.get(ticketRef);
+    }
+
+    // Extra Hours only counts toward Directory's "Extra Hours: Xh logged"
+    // once approved (see Directory.jsx) — the extra_hours doc's own status
+    // has to mirror the approval's decision, not just the approvals doc.
+    let extraHoursRef = null;
+    if (approval.extraHoursId) {
+      extraHoursRef = db.collection('extra_hours').doc(approval.extraHoursId);
+      await tx.get(extraHoursRef);
     }
 
     tx.update(docRef, { status, decidedAt, decidedBy: req.user.full_name });
@@ -83,13 +120,51 @@ async function decideApproval(req, res) {
       const nextStatus = status === 'approved' ? 'In Progress' : (approval.previousStatus || 'Pending');
       tx.update(ticketRef, { status: nextStatus, updated_at: decidedAt });
     }
+
+    if (extraHoursRef) {
+      tx.update(extraHoursRef, { status, decidedAt, decidedBy: req.user.full_name });
+    }
   }).catch((err) => {
     if (err.status) return res.status(err.status).json({ error: err.message });
     throw err;
   });
 
   if (res.headersSent) return;
+
+  // Only for the two categories HR can decide without the Founder — if the
+  // Founder just decided it themselves, they don't need an email about it.
+  if (approvalForNotify && HR_DECIDABLE_CATEGORIES.includes(approvalForNotify.category) && req.user.role !== 'founder') {
+    await notifyFounder(
+      `${status === 'approved' ? 'Approved' : 'Rejected'} by ${req.user.full_name} — ${approvalForNotify.title}`,
+      `<p><strong>${escapeHtml(req.user.full_name)}</strong> ${status} "${escapeHtml(approvalForNotify.title)}".</p>`
+    );
+  }
+
   res.json({ id, ...(await docRef.get()).data() });
 }
 
-module.exports = { createApproval, listApprovals, decideApproval };
+// POST /api/approvals/:id/remarks — a remark on any approval (documents,
+// extra-hours, etc.) always emails the Founder, same as a decision does —
+// per the "Founder is copied on approvals and remarks alike" requirement.
+async function addRemark(req, res) {
+  const { id } = req.params;
+  const { text } = req.body;
+  if (!text || !text.trim()) return res.status(400).json({ error: 'Remark text is required' });
+
+  const docRef = collection.doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) return res.status(404).json({ error: 'Approval not found' });
+
+  const remark = { text: text.trim(), by: req.user.full_name, at: new Date().toISOString() };
+  const remarks = [...(doc.data().remarks || []), remark];
+  await docRef.update({ remarks });
+
+  await notifyFounder(
+    `New remark — ${doc.data().title}`,
+    `<p><strong>${escapeHtml(req.user.full_name)}</strong> left a remark on "${escapeHtml(doc.data().title)}": ${escapeHtml(text.trim())}</p>`
+  );
+
+  res.json({ id, remarks });
+}
+
+module.exports = { createApproval, listApprovals, decideApproval, addRemark };

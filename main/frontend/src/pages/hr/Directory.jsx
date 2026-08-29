@@ -1,16 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Search, Mail, Phone, Calendar, Landmark, Plus, Pencil, Trash2, Upload, FileText } from 'lucide-react';
+import { Search, Mail, Phone, Calendar, Landmark, Plus, Pencil, Trash2, Upload, FileText, Receipt } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, Pill, EmptyState, Modal, Field, inputClass } from '../../components/ui';
 import { bankDetails } from '../../data/hrMockData';
-import { employeesApi } from '../../utils/api';
+import { employeesApi, performanceApi } from '../../utils/api';
 import { useHrDesk } from '../../context/HrDeskContext';
+import { useApprovals } from '../../context/ApprovalContext';
 
 const EMPTY_FORM = {
   name: '', department: '', designation: '', email: '', phone: '', manager: '', status: 'Active', joiningDate: '',
   employmentType: 'Full time', probationCompletionDate: '',
-  empCode: '', biometricVpnNumber: '',
+  empCode: '', biometricVpnNumber: '', uan: '',
   accountNumber: '', salary: '',
   emergencyContact: '', emergencyContactRelation: '', personalEmail: '', dob: '', bloodGroup: '',
   permanentAddress: '', presentAddress: '',
@@ -18,6 +19,14 @@ const EMPTY_FORM = {
   driveLink: '', bgVerification: 'Pending', leaveEntitlement: '24',
 };
 const DEFAULT_LEAVE_ENTITLEMENT = 24;
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const QUARTER_NAMES = ['Q1 (Jan-Mar)', 'Q2 (Apr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Oct-Dec)'];
+const PERFORMANCE_CATEGORIES = [
+  { key: 'walkthrough', label: '3D Walkthrough Sequence' },
+  { key: 'floorPlan', label: '3D Floor Plan' },
+  { key: 'masterplan', label: 'Masterplan' },
+  { key: 'views3d', label: '3D Views' },
+];
 const STATUS_OPTIONS = ['Active', 'On Leave', 'Inactive'];
 const EMPLOYMENT_TYPE_OPTIONS = ['Full time'];
 const BG_VERIFICATION_OPTIONS = ['Pending', 'Verified', 'Not Verified'];
@@ -40,6 +49,133 @@ const DOCUMENT_TYPES = [
 ];
 const DOCUMENT_ACCEPT = '.pdf,.jpg,.jpeg,.doc,.docx';
 
+// Payslip — Indian numbering (Lakh/Crore), matching how Zoho's free payslip
+// generator (zoho.com/in/payroll/free-payslip-generator) renders "amount in
+// words" on the template this is deliberately matching, not integrating with.
+const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+  'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+function twoDigitWords(n) {
+  if (n < 20) return ONES[n];
+  return TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : '');
+}
+function threeDigitWords(n) {
+  if (n < 100) return twoDigitWords(n);
+  return ONES[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + twoDigitWords(n % 100) : '');
+}
+function numberToWordsINR(amount) {
+  const n = Math.round(amount);
+  if (n === 0) return 'Zero Rupees Only';
+  const crore = Math.floor(n / 10000000);
+  const lakh = Math.floor((n % 10000000) / 100000);
+  const thousand = Math.floor((n % 100000) / 1000);
+  const rest = n % 1000;
+  const parts = [];
+  if (crore) parts.push(threeDigitWords(crore) + ' Crore');
+  if (lakh) parts.push(threeDigitWords(lakh) + ' Lakh');
+  if (thousand) parts.push(threeDigitWords(thousand) + ' Thousand');
+  if (rest) parts.push(threeDigitWords(rest));
+  return parts.join(' ') + ' Rupees Only';
+}
+
+// Generate Payslip — HR now edits an Employee Pay Summary + Income Details
+// form (pre-filled from the employee record/attendance, matching Zoho's free
+// payslip generator's edit step — see docs/HR-Portal-Build-Plan.pdf, §07: that
+// tool has no account/API, it's a template to match, not a service to call)
+// before the final payslip document is generated from whatever HR edited.
+function defaultPayslipForm(employee, attendanceRecords) {
+  const now = new Date();
+  const monthPrefix = now.toISOString().slice(0, 7);
+  const monthRows = attendanceRecords.filter((a) => a.employeeId === employee.id && a.date?.startsWith(monthPrefix));
+  const paidDays = monthRows.filter((a) => a.checkIn && a.checkIn !== '-').length;
+  const lopDays = monthRows.filter((a) => a.status === 'Leave').length;
+  const basic = Number(employee.salary) || 0;
+
+  return {
+    companyName: 'Fute Services',
+    companyAddress: '',
+    cityPincode: '',
+    country: 'India',
+    employeeName: employee.name || '',
+    employeeId: employee.empCode || '',
+    payPeriod: monthPrefix,
+    paidDays: String(paidDays),
+    lopDays: String(lopDays),
+    payDate: now.toISOString().slice(0, 10),
+    earnings: [
+      { id: 'basic', label: 'Basic', amount: String(basic) },
+      { id: 'hra', label: 'House Rent Allowance', amount: '0' },
+    ],
+    deductions: [
+      { id: 'incomeTax', label: 'Income Tax', amount: '0' },
+      { id: 'pf', label: 'Provident Fund', amount: '0' },
+    ],
+  };
+}
+
+function payslipTotals(payslipForm) {
+  const sum = (rows) => rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const gross = sum(payslipForm.earnings);
+  const totalDeductions = sum(payslipForm.deductions);
+  return { gross, totalDeductions, net: Math.max(0, gross - totalDeductions) };
+}
+
+function printPayslip(payslipForm) {
+  const { gross, totalDeductions, net } = payslipTotals(payslipForm);
+  const [year, month] = payslipForm.payPeriod.split('-').map(Number);
+  const monthLabel = new Date(year, (month || 1) - 1, 1).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+
+  const row = (label, value) =>
+    `<tr><td style="padding:5px 10px;color:#555;">${label}</td><td style="padding:5px 10px;text-align:right;font-weight:600;">₹${(Number(value) || 0).toLocaleString('en-IN')}</td></tr>`;
+
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.write(`
+    <html>
+      <head><title>Payslip — ${payslipForm.employeeName} — ${monthLabel}</title></head>
+      <body style="font-family:sans-serif;padding:28px;color:#1a1a1a;">
+        <div style="max-width:640px;margin:auto;border:1px solid #ddd;border-radius:10px;padding:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
+            <div>
+              <h2 style="margin:0 0 2px;">${payslipForm.companyName || 'Company'}</h2>
+              ${payslipForm.companyAddress ? `<p style="margin:0;color:#777;font-size:12px;">${payslipForm.companyAddress}</p>` : ''}
+              ${payslipForm.cityPincode ? `<p style="margin:0;color:#777;font-size:12px;">${payslipForm.cityPincode}</p>` : ''}
+              ${payslipForm.country ? `<p style="margin:0;color:#777;font-size:12px;">${payslipForm.country}</p>` : ''}
+            </div>
+            <div style="text-align:right;">
+              <p style="margin:0;color:#777;font-size:12px;">Payslip For the Month</p>
+              <p style="margin:0;font-weight:700;">${monthLabel}</p>
+            </div>
+          </div>
+          <table style="width:100%;font-size:13px;margin-bottom:14px;">
+            <tr><td style="padding:3px 0;color:#777;">Employee Name</td><td style="text-align:right;font-weight:600;">${payslipForm.employeeName}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Employee ID</td><td style="text-align:right;">${payslipForm.employeeId || '—'}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Pay Period</td><td style="text-align:right;">${monthLabel}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Paid Days</td><td style="text-align:right;">${payslipForm.paidDays}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Loss of Pay Days</td><td style="text-align:right;">${payslipForm.lopDays}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Pay Date</td><td style="text-align:right;">${payslipForm.payDate}</td></tr>
+          </table>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;border-top:1px solid #eee;">
+            <tr style="background:#f6f6f6;"><td style="padding:6px 10px;font-weight:700;">Earnings</td><td></td></tr>
+            ${payslipForm.earnings.map((r) => row(r.label, r.amount)).join('')}
+            <tr style="background:#f6f6f6;"><td style="padding:6px 10px;font-weight:700;">Deductions</td><td></td></tr>
+            ${payslipForm.deductions.length ? payslipForm.deductions.map((r) => row(r.label, r.amount)).join('') : '<tr><td style="padding:5px 10px;color:#999;">None</td><td></td></tr>'}
+          </table>
+          <table style="width:100%;font-size:13px;margin-top:10px;border-top:2px solid #333;">
+            <tr><td style="padding:6px 10px;font-weight:700;">Gross Earnings</td><td style="text-align:right;font-weight:700;">₹${gross.toLocaleString('en-IN')}</td></tr>
+            <tr><td style="padding:6px 10px;font-weight:700;">Total Deductions</td><td style="text-align:right;font-weight:700;">₹${totalDeductions.toLocaleString('en-IN')}</td></tr>
+            <tr><td style="padding:8px 10px;font-weight:800;font-size:15px;">Net Payable</td><td style="text-align:right;font-weight:800;font-size:15px;">₹${net.toLocaleString('en-IN')}</td></tr>
+          </table>
+          <p style="margin-top:14px;font-size:12px;color:#777;">Amount in words: ${numberToWordsINR(net)}</p>
+        </div>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
 // Real employees created through this form have no `photo` field (the
 // backend only stores what's in editableFields, and "photo" here is just
 // initials, not an actual image) — legacy/seeded records that do have one
@@ -51,7 +187,8 @@ function initialsOf(name) {
 }
 
 export default function Directory() {
-  const { employees, setEmployees, attendanceRecords } = useHrDesk();
+  const { employees, setEmployees, attendanceRecords, performanceEntries, setPerformanceEntries, extraHours } = useHrDesk();
+  const { approvals, decide: decideApprovalAction } = useApprovals();
   const [query, setQuery] = useState('');
   const [dept, setDept] = useState('All');
   const [selected, setSelected] = useState(null);
@@ -63,6 +200,15 @@ export default function Directory() {
   // The doc.key currently uploading, so only that row's button shows
   // "Uploading…" instead of the whole Documents list locking up.
   const [uploadingDoc, setUploadingDoc] = useState(null);
+  const [leaveTakenInput, setLeaveTakenInput] = useState('0');
+  const [leaveSaving, setLeaveSaving] = useState(false);
+  const [payslipForm, setPayslipForm] = useState(null);
+  const [perfCategory, setPerfCategory] = useState(PERFORMANCE_CATEGORIES[0].key);
+  const [perfPeriod, setPerfPeriod] = useState('Monthly');
+  const [perfMonth, setPerfMonth] = useState(() => new Date().getMonth());
+  const [perfQuarter, setPerfQuarter] = useState(() => Math.floor(new Date().getMonth() / 3));
+  const [perfForm, setPerfForm] = useState({ target: 0, delivered: 0 });
+  const [perfSaving, setPerfSaving] = useState(false);
 
   async function uploadDocument(doc, file) {
     setUploadingDoc(doc.key);
@@ -171,17 +317,137 @@ export default function Directory() {
 
   const bank = selected ? bankDetails[selected.id] : null;
 
-  // Leave taken is counted straight from attendance rows this employee
-  // marked as 'Leave' via their own Check-in/Check-out widget (see
-  // CheckInWidget.jsx + checkIn() in hrDeskController.js) — that's the one
-  // and only place a day becomes 'Leave', so no separate leave-request
-  // approval flow needs to feed this number.
+  // Document approval status — the most recent 'document' approval for this
+  // employee+docType (ApprovalContext already loads a shared, paginated
+  // feed; this just filters what's already in memory, no extra fetch).
+  function approvalFor(docKey) {
+    if (!selected) return null;
+    return approvals
+      .filter((a) => a.category === 'document' && a.employeeId === selected.id && a.docType === docKey)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] || null;
+  }
+
+  function decideDocument(approvalId, status) {
+    decideApprovalAction(approvalId, status).catch((e) =>
+      toast.error('Could not update approval', { description: e.response?.data?.error || e.message })
+    );
+  }
+
+  // "Taken" is a number HR sets directly (selected.leaveTaken) rather than
+  // counted from attendance rows — the Leave option was pulled out of the
+  // employee's own Check-in widget, so nothing auto-populates this anymore.
+  // Remaining is always just entitlement minus whatever HR last saved here.
   const leaveStats = useMemo(() => {
     if (!selected) return null;
-    const taken = attendanceRecords.filter((a) => a.employeeId === selected.id && a.status === 'Leave').length;
     const entitlement = Number(selected.leaveEntitlement) || DEFAULT_LEAVE_ENTITLEMENT;
-    return { taken, entitlement, remaining: Math.max(0, entitlement - taken) };
-  }, [attendanceRecords, selected]);
+    const takenYear = Number(selected.leaveTaken) || 0;
+    return { entitlement, takenYear, remaining: Math.max(0, entitlement - takenYear) };
+  }, [selected]);
+
+  // Re-sync the editable "Taken" input whenever the selected employee
+  // changes, so it doesn't keep showing the previous employee's number.
+  useEffect(() => {
+    setLeaveTakenInput(String(Number(selected?.leaveTaken) || 0));
+  }, [selected?.id]);
+
+  function openPayslip(employee) {
+    setPayslipForm(defaultPayslipForm(employee, attendanceRecords));
+  }
+  function closePayslip() {
+    setPayslipForm(null);
+  }
+  function updatePayslipField(key, value) {
+    setPayslipForm((f) => ({ ...f, [key]: value }));
+  }
+  function updateEarning(id, field, value) {
+    setPayslipForm((f) => ({ ...f, earnings: f.earnings.map((r) => (r.id === id ? { ...r, [field]: value } : r)) }));
+  }
+  function addEarning() {
+    setPayslipForm((f) => ({ ...f, earnings: [...f.earnings, { id: `e${Date.now()}`, label: '', amount: '0' }] }));
+  }
+  function removeEarning(id) {
+    setPayslipForm((f) => ({ ...f, earnings: f.earnings.filter((r) => r.id !== id) }));
+  }
+  function updateDeduction(id, field, value) {
+    setPayslipForm((f) => ({ ...f, deductions: f.deductions.map((r) => (r.id === id ? { ...r, [field]: value } : r)) }));
+  }
+  function addDeduction() {
+    setPayslipForm((f) => ({ ...f, deductions: [...f.deductions, { id: `d${Date.now()}`, label: '', amount: '0' }] }));
+  }
+  function removeDeduction(id) {
+    setPayslipForm((f) => ({ ...f, deductions: f.deductions.filter((r) => r.id !== id) }));
+  }
+
+  async function saveLeaveTaken() {
+    if (!selected) return;
+    setLeaveSaving(true);
+    try {
+      const { data } = await employeesApi.update(selected.id, { leaveTaken: leaveTakenInput });
+      setEmployees((rows) => rows.map((r) => (r.id === selected.id ? { ...r, ...data } : r)));
+      setSelected((cur) => (cur && cur.id === selected.id ? { ...cur, ...data } : cur));
+      toast.success('Leave taken updated');
+    } catch (e) {
+      toast.error('Could not update leave taken', { description: e.response?.data?.error || e.message });
+    } finally {
+      setLeaveSaving(false);
+    }
+  }
+
+  // Performance is manual entry (decided: not derived from the Production
+  // render-job tracker) — one performance_entries doc per (employeeId,
+  // periodKey, category), so Walkthrough/Floor Plan/Masterplan/3D Views each
+  // carry their own independent Target/Delivered for the same period.
+  // "YYYY-MM" for Monthly, "YYYY-Q<n>" for Quarterly.
+  const perfYear = new Date().getFullYear();
+  const perfPeriodKey =
+    perfPeriod === 'Monthly' ? `${perfYear}-${String(perfMonth + 1).padStart(2, '0')}` : `${perfYear}-Q${perfQuarter + 1}`;
+  const perfEntry = selected
+    ? performanceEntries.find(
+        (p) => p.employeeId === selected.id && p.periodKey === perfPeriodKey && p.category === perfCategory
+      )
+    : null;
+
+  // Re-sync the editable form whenever the employee, category, period type,
+  // or the specific month/quarter changes — pulls the existing entry for
+  // that exact (category, period) if one exists, otherwise resets to zeros
+  // rather than leaving the previous selection's numbers on screen.
+  useEffect(() => {
+    setPerfForm({
+      target: perfEntry?.target ?? 0,
+      delivered: perfEntry?.delivered ?? 0,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- perfEntry is
+    // re-derived from performanceEntries/selected/perfCategory/perfPeriodKey
+    // every render; keying off those (+ performanceEntries) avoids
+    // re-running this on every keystroke below.
+  }, [selected?.id, perfCategory, perfPeriodKey, performanceEntries]);
+
+  async function savePerformance() {
+    if (!selected) return;
+    setPerfSaving(true);
+    const payload = {
+      employeeId: selected.id,
+      period: perfPeriod,
+      periodKey: perfPeriodKey,
+      category: perfCategory,
+      target: Number(perfForm.target) || 0,
+      delivered: Number(perfForm.delivered) || 0,
+    };
+    try {
+      if (perfEntry) {
+        const { data } = await performanceApi.update(perfEntry.id, payload);
+        setPerformanceEntries((rows) => rows.map((r) => (r.id === perfEntry.id ? { ...r, ...data } : r)));
+      } else {
+        const { data } = await performanceApi.create(payload);
+        setPerformanceEntries((rows) => [...rows, data]);
+      }
+      toast.success('Performance saved');
+    } catch (e) {
+      toast.error('Could not save performance', { description: e.response?.data?.error || e.message });
+    } finally {
+      setPerfSaving(false);
+    }
+  }
 
   return (
     <HrLayout>
@@ -289,6 +555,15 @@ export default function Directory() {
               >
                 <Trash2 size={13} />
               </button>
+              <button
+                type="button"
+                onClick={() => openPayslip(selected)}
+                title="Generate payslip"
+                aria-label="Generate payslip"
+                className="p-1.5 rounded-lg bg-muted hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
+              >
+                <Receipt size={13} />
+              </button>
             </div>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pb-2 border-b border-border">
@@ -297,7 +572,7 @@ export default function Directory() {
               <span className="flex items-center gap-1.5"><Calendar size={12} className="text-primary" /> Joined {selected.joiningDate}</span>
               <span>{selected.department} · Reports to {selected.manager} · {selected.employmentType || 'Full time'}</span>
               <span className="ml-auto font-semibold text-foreground">
-                Leave: <span className="text-primary">{leaveStats.taken}</span> taken · <span className="text-primary">{leaveStats.remaining}</span> left of {leaveStats.entitlement}
+                Extra Hours: {extraHours.filter((e) => e.employeeId === selected.id && e.status === 'approved').reduce((sum, e) => sum + (e.hours || 0), 0)}h approved
               </span>
             </div>
 
@@ -368,15 +643,19 @@ export default function Directory() {
                 </div>
               </div>
 
-              <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Documents</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              <div className="flex flex-col gap-3">
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Documents</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                   {DOCUMENT_TYPES.map((doc) => {
                     const url = selected[doc.urlField];
                     const fileName = selected[doc.fileNameField];
                     const busy = uploadingDoc === doc.key;
+                    const approval = approvalFor(doc.key);
+                    const pending = approval?.status === 'pending_founder';
                     return (
-                      <div key={doc.key} className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-muted border border-border">
+                      <div key={doc.key} className="flex flex-col gap-1 p-2 rounded-lg bg-muted border border-border">
+                        <div className="flex items-center justify-between gap-1.5">
                         <div className="min-w-0 flex items-center gap-1.5">
                           <FileText size={12} className={url ? 'text-primary shrink-0' : 'text-muted-foreground shrink-0'} />
                           <div className="min-w-0">
@@ -411,13 +690,160 @@ export default function Directory() {
                             }}
                           />
                         </label>
+                        </div>
+                        {approval && (
+                          <div className="flex items-center justify-between gap-1.5 pl-[18px]">
+                            <span
+                              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                approval.status === 'approved'
+                                  ? 'bg-primary/10 text-primary'
+                                  : approval.status === 'rejected'
+                                  ? 'bg-destructive/10 text-destructive'
+                                  : 'bg-warning/10 text-warning'
+                              }`}
+                            >
+                              {approval.status === 'pending_founder' ? 'Pending sign-off' : approval.status === 'approved' ? 'Approved' : 'Rejected'}
+                            </span>
+                            {pending && (
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => decideDocument(approval.id, 'approved')}
+                                  className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => decideDocument(approval.id, 'rejected')}
+                                  className="text-[10px] font-semibold text-destructive hover:underline cursor-pointer"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
-                  <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-muted border border-border">
-                    <span className="text-xs font-medium text-foreground">BG Verification</span>
-                    <span className="text-[10px] text-muted-foreground">{selected.bgVerification || 'Pending'}</span>
+                    <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-muted border border-border">
+                      <span className="text-xs font-medium text-foreground">BG Verification</span>
+                      <span className="text-[10px] text-muted-foreground">{selected.bgVerification || 'Pending'}</span>
+                    </div>
                   </div>
+                </div>
+
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Leave</div>
+                  <div className="grid grid-cols-3 gap-1.5 mb-1.5">
+                    <div className="rounded-xl bg-muted border border-border p-2 text-center">
+                      <div className="text-base font-bold text-foreground">{leaveStats.entitlement}</div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</div>
+                    </div>
+                    <div className="rounded-xl bg-muted border border-border p-2 text-center">
+                      <input
+                        type="number"
+                        min="0"
+                        value={leaveTakenInput}
+                        onChange={(e) => setLeaveTakenInput(e.target.value)}
+                        className="w-full bg-background border border-border rounded-md text-center py-0.5 text-sm font-bold text-primary"
+                      />
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide mt-1">Taken</div>
+                    </div>
+                    <div className="rounded-xl bg-muted border border-border p-2 text-center">
+                      <div className="text-base font-bold text-foreground">{leaveStats.remaining}</div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Remaining</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={saveLeaveTaken}
+                    disabled={leaveSaving}
+                    className="w-full bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {leaveSaving ? 'Saving…' : 'Save leave taken'}
+                  </button>
+                </div>
+
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Performance</div>
+                  <div className="flex gap-1.5 mb-1.5">
+                    <select
+                      value={perfCategory}
+                      onChange={(e) => setPerfCategory(e.target.value)}
+                      className="flex-1 min-w-0 bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
+                    >
+                      {PERFORMANCE_CATEGORIES.map((cat) => (
+                        <option key={cat.key} value={cat.key}>{cat.label}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={perfPeriod}
+                      onChange={(e) => setPerfPeriod(e.target.value)}
+                      className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
+                    >
+                      <option value="Monthly">Monthly</option>
+                      <option value="Quarterly">Quarterly</option>
+                    </select>
+                    {perfPeriod === 'Monthly' ? (
+                      <select
+                        value={perfMonth}
+                        onChange={(e) => setPerfMonth(Number(e.target.value))}
+                        className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
+                      >
+                        {MONTH_NAMES.map((m, i) => (
+                          <option key={m} value={i}>{m}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <select
+                        value={perfQuarter}
+                        onChange={(e) => setPerfQuarter(Number(e.target.value))}
+                        className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
+                      >
+                        {QUARTER_NAMES.map((q, i) => (
+                          <option key={q} value={i}>{q}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 mb-1.5">
+                    <div className="rounded-xl bg-muted border border-border p-2 text-center">
+                      <input
+                        type="number"
+                        min="0"
+                        value={perfForm.target}
+                        onChange={(e) => setPerfForm((f) => ({ ...f, target: e.target.value }))}
+                        className="w-full bg-background border border-border rounded-md text-center py-0.5 text-sm font-bold text-foreground"
+                      />
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide mt-1">Total</div>
+                    </div>
+                    <div className="rounded-xl bg-muted border border-border p-2 text-center">
+                      <input
+                        type="number"
+                        min="0"
+                        value={perfForm.delivered}
+                        onChange={(e) => setPerfForm((f) => ({ ...f, delivered: e.target.value }))}
+                        className="w-full bg-background border border-border rounded-md text-center py-0.5 text-sm font-bold text-foreground"
+                      />
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide mt-1">Delivered</div>
+                    </div>
+                    <div className="rounded-xl bg-muted border border-border p-2 text-center">
+                      <div className="text-base font-bold text-primary">
+                        {Math.max(0, (Number(perfForm.target) || 0) - (Number(perfForm.delivered) || 0))}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Remaining</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={savePerformance}
+                    disabled={perfSaving}
+                    className="w-full bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {perfSaving ? 'Saving…' : `Save ${perfPeriod === 'Monthly' ? MONTH_NAMES[perfMonth] : `Q${perfQuarter + 1}`} numbers`}
+                  </button>
                 </div>
               </div>
             </div>
@@ -555,6 +981,9 @@ export default function Directory() {
               <input value={form.biometricVpnNumber} onChange={(e) => setForm((f) => ({ ...f, biometricVpnNumber: e.target.value }))} className={inputClass} />
             </Field>
           </div>
+          <Field label="UAN (for payslip)">
+            <input value={form.uan} onChange={(e) => setForm((f) => ({ ...f, uan: e.target.value }))} className={inputClass} />
+          </Field>
 
           <div className="text-xs uppercase tracking-wide text-muted-foreground mt-2 mb-1">Banking &amp; Salary</div>
           <div className="grid grid-cols-2 gap-3">
@@ -640,6 +1069,128 @@ export default function Directory() {
             {saving ? 'Saving…' : formMode === 'add' ? 'Add Employee' : 'Save Changes'}
           </button>
         </form>
+      </Modal>
+
+      <Modal
+        open={!!payslipForm}
+        onClose={closePayslip}
+        title="Generate Payslip"
+        className="max-w-2xl max-h-[85vh] overflow-y-auto"
+      >
+        {payslipForm && (() => {
+          const totals = payslipTotals(payslipForm);
+          return (
+            <div className="flex flex-col gap-4">
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Company Details</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Company Name">
+                    <input value={payslipForm.companyName} onChange={(e) => updatePayslipField('companyName', e.target.value)} className={inputClass} />
+                  </Field>
+                  <Field label="Company Address">
+                    <input value={payslipForm.companyAddress} onChange={(e) => updatePayslipField('companyAddress', e.target.value)} className={inputClass} placeholder="Street, area" />
+                  </Field>
+                  <Field label="City, Pincode">
+                    <input value={payslipForm.cityPincode} onChange={(e) => updatePayslipField('cityPincode', e.target.value)} className={inputClass} />
+                  </Field>
+                  <Field label="Country">
+                    <input value={payslipForm.country} onChange={(e) => updatePayslipField('country', e.target.value)} className={inputClass} />
+                  </Field>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Employee Pay Summary</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Employee Name">
+                    <input value={payslipForm.employeeName} onChange={(e) => updatePayslipField('employeeName', e.target.value)} className={inputClass} />
+                  </Field>
+                  <Field label="Employee ID">
+                    <input value={payslipForm.employeeId} onChange={(e) => updatePayslipField('employeeId', e.target.value)} className={inputClass} />
+                  </Field>
+                  <Field label="Pay Period">
+                    <input type="month" value={payslipForm.payPeriod} onChange={(e) => updatePayslipField('payPeriod', e.target.value)} className={inputClass} />
+                  </Field>
+                  <Field label="Paid Days">
+                    <input type="number" min="0" value={payslipForm.paidDays} onChange={(e) => updatePayslipField('paidDays', e.target.value)} className={inputClass} />
+                  </Field>
+                  <Field label="Loss of Pay Days">
+                    <input type="number" min="0" value={payslipForm.lopDays} onChange={(e) => updatePayslipField('lopDays', e.target.value)} className={inputClass} />
+                  </Field>
+                  <Field label="Pay Date">
+                    <input type="date" value={payslipForm.payDate} onChange={(e) => updatePayslipField('payDate', e.target.value)} className={inputClass} />
+                  </Field>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Income Details</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-border overflow-hidden">
+                    <div className="bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">Earnings</div>
+                    <div className="flex flex-col gap-1.5 p-2">
+                      {payslipForm.earnings.map((r) => (
+                        <div key={r.id} className="flex items-center gap-1.5">
+                          <input value={r.label} onChange={(e) => updateEarning(r.id, 'label', e.target.value)} className={`${inputClass} flex-1 min-w-0`} placeholder="Label" />
+                          <input type="number" min="0" value={r.amount} onChange={(e) => updateEarning(r.id, 'amount', e.target.value)} className={`${inputClass} w-20 text-right`} />
+                          <button type="button" onClick={() => removeEarning(r.id)} className="text-destructive text-xs px-1 cursor-pointer">✕</button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={addEarning} className="text-xs text-primary font-semibold hover:underline text-left cursor-pointer">+ Add Earnings</button>
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-1.5 bg-muted border-t border-border text-xs font-bold text-foreground">
+                      <span>Gross Earnings</span>
+                      <span>₹{totals.gross.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-border overflow-hidden">
+                    <div className="bg-muted px-3 py-1.5 text-xs font-semibold text-foreground">Deductions</div>
+                    <div className="flex flex-col gap-1.5 p-2">
+                      {payslipForm.deductions.map((r) => (
+                        <div key={r.id} className="flex items-center gap-1.5">
+                          <input value={r.label} onChange={(e) => updateDeduction(r.id, 'label', e.target.value)} className={`${inputClass} flex-1 min-w-0`} placeholder="Label" />
+                          <input type="number" min="0" value={r.amount} onChange={(e) => updateDeduction(r.id, 'amount', e.target.value)} className={`${inputClass} w-20 text-right`} />
+                          <button type="button" onClick={() => removeDeduction(r.id)} className="text-destructive text-xs px-1 cursor-pointer">✕</button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={addDeduction} className="text-xs text-primary font-semibold hover:underline text-left cursor-pointer">+ Add Deductions</button>
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-1.5 bg-muted border-t border-border text-xs font-bold text-foreground">
+                      <span>Total Deductions</span>
+                      <span>₹{totals.totalDeductions.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-muted p-3 flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-bold text-foreground">Total Net Payable</div>
+                  <div className="text-[10px] text-muted-foreground">Gross Earnings − Total Deductions</div>
+                </div>
+                <div className="text-lg font-bold text-primary">₹{totals.net.toLocaleString('en-IN')}</div>
+              </div>
+              <p className="text-xs text-muted-foreground -mt-2">Amount in words: {numberToWordsINR(totals.net)}</p>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPayslipForm(defaultPayslipForm(selected, attendanceRecords))}
+                  className="px-4 py-2 bg-muted border border-border rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => printPayslip(payslipForm)}
+                  className="px-5 py-2 bg-primary hover:bg-primary-hover text-primary-foreground font-bold text-xs rounded-xl transition-all cursor-pointer"
+                >
+                  Generate Payslip
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
     </HrLayout>
   );

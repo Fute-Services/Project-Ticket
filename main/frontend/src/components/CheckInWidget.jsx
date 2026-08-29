@@ -34,6 +34,11 @@ function formatElapsed(ms) {
 // (backend resolves it from the authenticated user, not a client-supplied
 // id — see checkIn/checkOut in hrDeskController.js), so this is safe to drop
 // onto the Employee/HR/Founder dashboards without any per-employee wiring.
+//
+// Dropdown intentionally offers only Office/WFH — "Leave" was pulled back
+// out of this widget on request, even though the backend/Directory/Founder
+// side of Leave tracking is still fully in place (see checkIn()'s workMode
+// === 'Leave' branch in hrDeskController.js) for whenever it comes back.
 export default function CheckInWidget() {
   const { user } = useAuth();
   const [record, setRecord] = useState(null);
@@ -51,7 +56,6 @@ export default function CheckInWidget() {
   }, []);
 
   const isCheckedIn = Boolean(record?.checkIn && record.checkIn !== '-' && (!record.checkOut || record.checkOut === '-'));
-  const isOnLeave = record?.status === 'Leave';
 
   // Only tick the clock while actually checked in — no point re-rendering
   // every second for a widget that's just showing a static "Check in" button.
@@ -117,8 +121,6 @@ export default function CheckInWidget() {
             {busy ? 'Checking out…' : 'Check-out'}
           </button>
         </>
-      ) : isOnLeave ? (
-        <div className="text-xs font-semibold text-warning mt-2 mb-1">On Leave today</div>
       ) : (
         <>
           <div className="text-xs text-muted-foreground mt-1 mb-2">
@@ -131,7 +133,6 @@ export default function CheckInWidget() {
           >
             <option value="Office">Office</option>
             <option value="WFH">Work From Home</option>
-            <option value="Leave">Leave</option>
           </select>
           <button
             type="button"
@@ -139,7 +140,7 @@ export default function CheckInWidget() {
             disabled={busy || (record?.checkOut && record.checkOut !== '-')}
             className="px-4 py-1.5 rounded-full bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
           >
-            {busy ? (workMode === 'Leave' ? 'Marking…' : 'Checking in…') : workMode === 'Leave' ? 'Mark Leave' : 'Check-in'}
+            {busy ? 'Checking in…' : 'Check-in'}
           </button>
         </>
       )}

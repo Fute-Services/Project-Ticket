@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApprovals } from '../context/ApprovalContext';
 import { useLeave } from '../context/LeaveContext';
+import { useHrDesk } from '../context/HrDeskContext';
 import { useTaskProject } from '../context/TaskProjectContext';
 import {
   Bell,
@@ -262,6 +263,19 @@ export default function FounderDashboardPage() {
 
   const { tasks: allTasks, projects: allProjects } = useTaskProject();
 
+  // Founder's own rollup (Founder's Own View gap) — real data, same
+  // HrDeskContext every HR page already shares (founder is already granted
+  // read access there), just not surfaced on this dashboard until now.
+  const { employees: hrEmployees, attendanceRecords: hrAttendance, extraHours: hrExtraHours } = useHrDesk();
+  const pendingDocsAndHours = approvals.filter(
+    (a) => a.status === 'pending_founder' && ['document', 'extra-hours'].includes(a.category)
+  );
+  const thisMonthPrefix = new Date().toISOString().slice(0, 7);
+  const leaveTakenThisMonth = hrAttendance.filter((a) => a.status === 'Leave' && a.date?.startsWith(thisMonthPrefix)).length;
+  const extraHoursThisMonth = hrExtraHours
+    .filter((e) => e.date?.startsWith(thisMonthPrefix))
+    .reduce((sum, e) => sum + (e.hours || 0), 0);
+
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans selection:bg-primary/30 selection:text-primary">
       {/* Sidebar — same fixed-height, collapsible, mobile-drawer pattern as
@@ -510,6 +524,30 @@ export default function FounderDashboardPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+
+            {/* HR Portal Rollup — Founder's own view into Employee Details,
+                Leave, Performance, Documents, Attendance/Extra Hours */}
+            <div className="w-full">
+              <h2 className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider">HR Portal</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-card border border-border rounded-2xl p-3.5">
+                  <div className="text-2xl font-extrabold text-foreground">{hrEmployees.length}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Employees</div>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-3.5">
+                  <div className="text-2xl font-extrabold text-foreground">{pendingDocsAndHours.length}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Pending sign-off<br />(docs + extra hours)</div>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-3.5">
+                  <div className="text-2xl font-extrabold text-foreground">{leaveTakenThisMonth}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Leave days taken<br />this month, org-wide</div>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-3.5">
+                  <div className="text-2xl font-extrabold text-foreground">{extraHoursThisMonth}h</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Extra hours logged<br />this month, org-wide</div>
                 </div>
               </div>
             </div>

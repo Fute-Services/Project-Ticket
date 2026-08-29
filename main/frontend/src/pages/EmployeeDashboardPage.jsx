@@ -8,10 +8,13 @@ import NewHrTicketModal from '../components/NewHrTicketModal';
 import { issueTitle } from '../components/TicketsQueueView';
 import DataTable from '../components/DataTable';
 import { Card, SectionHeader, StatCard, Badge, Drawer, RefreshBar } from '../components/ui';
-import { Plus, UserPlus, Search, X, Eye, Trash2 } from 'lucide-react';
+import { Plus, UserPlus, Search, X, Eye, Trash2, Clock } from 'lucide-react';
 import TaskRow from '../components/tasks/TaskRow';
 import TaskDetailPane from '../components/tasks/TaskDetailPane';
 import CheckInWidget from '../components/CheckInWidget';
+import ExtraHoursModal from '../components/ExtraHoursModal';
+import HolidaysCard from '../components/HolidaysCard';
+import MyLeavePerformanceCard from '../components/MyLeavePerformanceCard';
 import { toast } from 'sonner';
 
 const TICKET_STATUS_BADGE = {
@@ -480,6 +483,7 @@ export default function EmployeeDashboardPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isHrTicketModalOpen, setIsHrTicketModalOpen] = useState(false);
+  const [isExtraHoursOpen, setIsExtraHoursOpen] = useState(false);
   const [detailsTicket, setDetailsTicket] = useState(null);
 
   // Every employee shares the same underlying ticket list as IT's queue —
@@ -564,8 +568,8 @@ export default function EmployeeDashboardPage() {
       projectChannels={myProjectChannels}
     >
       {activeTab === 'dashboard' && (
-        <div className="w-full flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="w-full flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <h1 className="text-xl font-semibold text-foreground tracking-tight leading-none mb-1">
                 Welcome, {user?.full_name || 'there'}
@@ -589,6 +593,14 @@ export default function EmployeeDashboardPage() {
                 <UserPlus size={15} />
                 <span>Raise HR Ticket</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setIsExtraHoursOpen(true)}
+                className="bg-muted hover:bg-accent border border-border text-foreground font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <Clock size={15} />
+                <span>Log Extra Hours</span>
+              </button>
             </div>
           </div>
 
@@ -607,8 +619,13 @@ export default function EmployeeDashboardPage() {
             />
           </div>
 
-          <div className="bg-card border border-border rounded-lg p-5">
-            <div className="flex items-center justify-between mb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+            <MyLeavePerformanceCard />
+            <HolidaysCard />
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-sm text-foreground">Recent Tickets Queue</h3>
               <button
                 type="button"
@@ -798,6 +815,8 @@ export default function EmployeeDashboardPage() {
         onClose={() => setIsHrTicketModalOpen(false)}
         onSubmitSuccess={handleNewHrTicket}
       />
+
+      <ExtraHoursModal open={isExtraHoursOpen} onClose={() => setIsExtraHoursOpen(false)} />
 
       <Drawer
         open={!!detailsTicket}

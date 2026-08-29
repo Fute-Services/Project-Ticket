@@ -4,6 +4,22 @@ const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { sendMail, escapeHtml } = require('../utils/mailer');
 
 const sentCollection = db.collection('sent_emails');
+const approvalsCollection = db.collection('approvals');
+
+// Decision (documented, not silently assumed): Payel/Soma/Ratish are
+// modeled as roles, not named accounts — the app has no named-approver
+// concept, and building one is materially bigger than this feature.
+// Any 'hr' user can decide a 'document'/'extra-hours' approval; the
+// Founder is always emailed on both creation and decision either way, so
+// nothing HR does here is invisible to them.
+async function notifyFounder(subject, html) {
+  try {
+    const snap = await db.collection('users').where('role', '==', 'founder').limit(5).get();
+    await Promise.all(snap.docs.map((d) => sendMail(d.data().email, subject, html).catch(() => {})));
+  } catch (e) {
+    console.error('Failed to notify founder:', e.message);
+  }
+}
 
 // POST /api/hr-desk/send-email — { to, subject, body } — actually sends via
 // the same SMTP transport complaint notifications use, then keeps a record
@@ -171,17 +187,57 @@ async function uploadEmployeeDocument(req, res) {
   const safeName = req.file.originalname.replace(/[^\w.\-]/g, '_');
   const storagePath = `employee-documents/${id}/${docType}-${Date.now()}-${safeName}`;
   const blob = bucket.file(storagePath);
-  await blob.save(req.file.buffer, { contentType: req.file.mimetype });
-  // 50-year expiry — internal HR documents behind an unguessable signed URL,
-  // not meant to be re-signed on every view like a short-lived download link.
-  const [url] = await blob.getSignedUrl({ action: 'read', expires: '01-01-2075' });
+  let url;
+  try {
+    await blob.save(req.file.buffer, { contentType: req.file.mimetype });
+    // 50-year expiry — internal HR documents behind an unguessable signed
+    // URL, not meant to be re-signed on every view like a short-lived link.
+    [url] = await blob.getSignedUrl({ action: 'read', expires: '01-01-2075' });
+  } catch (e) {
+    // The Google Cloud Storage client sets its own `.status`/`.message` on
+    // this error (often the raw API error body as a JSON string) — without
+    // catching it here, server.js's global handler trusts that `.status`
+    // as if it were our own intentional one and shows that raw JSON
+    // straight to the user instead of a readable message.
+    console.error('Storage upload failed:', e.message);
+    throw Object.assign(new Error('Could not upload the file — file storage is not configured correctly. Ask an admin to check the Storage bucket setup.'), { status: 502 });
+  }
 
   const updates = { [doc.urlField]: url, [doc.fileNameField]: req.file.originalname };
   await employeeRef.update(updates);
-  res.json({ id, ...updates });
+
+  // Approval record — the document is already live (see the security-tier
+  // note in the build plan: gating the live field itself on approval would
+  // block HR from working with a doc while sign-off is pending, which is a
+  // worse trade for an internal tool). This is the sign-off/visibility
+  // trail: any 'hr' or 'founder' user can decide it, and the Founder is
+  // emailed on both creation and decision either way.
+  const employeeData = (await employeeRef.get()).data();
+  const approvalDoc = {
+    source: 'HR',
+    category: 'document',
+    title: `${doc.label} — ${employeeData.name}`,
+    sub: req.file.originalname,
+    requestedBy: req.user.full_name,
+    priority: 'medium',
+    status: 'pending_founder',
+    employeeId: id,
+    docType,
+    remarks: [],
+    createdAt: new Date().toISOString(),
+  };
+  const approvalRef = await approvalsCollection.add(approvalDoc);
+
+  await notifyFounder(
+    `Document uploaded — ${doc.label} for ${employeeData.name}`,
+    `<p>${escapeHtml(req.user.full_name)} uploaded <strong>${escapeHtml(doc.label)}</strong> for <strong>${escapeHtml(employeeData.name)}</strong>. Awaiting sign-off.</p>`
+  );
+
+  res.json({ id, ...updates, approvalId: approvalRef.id });
 }
 
 const attendanceCollection = db.collection('attendance');
+const DEFAULT_LEAVE_ENTITLEMENT = 24; // matches Directory.jsx's default (kept in sync manually — same value, different file)
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -193,13 +249,28 @@ function todayStr() {
 // even though the underlying `attendance` collection is otherwise HR/founder
 // -only to write. A single-doc lookup (employeeId + today), not a collection
 // scan, so this stays cheap however large `attendance` grows.
-async function findTodayDoc(employeeId) {
+async function findDocForDate(employeeId, date) {
   const snap = await attendanceCollection
     .where('employeeId', '==', employeeId)
-    .where('date', '==', todayStr())
+    .where('date', '==', date)
     .limit(1)
     .get();
   return snap.empty ? null : snap.docs[0];
+}
+const findTodayDoc = (employeeId) => findDocForDate(employeeId, todayStr());
+
+// Inclusive list of "YYYY-MM-DD" strings from `from` to `to` — used to turn
+// a Leave date range into one attendance row per day. Capped at 60 days so
+// a typo'd year in the "To" field can't silently create thousands of rows.
+function dateRange(from, to) {
+  const dates = [];
+  let cur = new Date(from);
+  const end = new Date(to);
+  while (cur <= end && dates.length < 60) {
+    dates.push(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return dates;
 }
 
 // GET /api/hr-desk/attendance/me/today — lets the Check-in/Check-out widget
@@ -228,13 +299,27 @@ async function checkIn(req, res) {
   }
 
   if (workMode === 'Leave') {
-    const docData = { employeeId: req.user.employeeId, date: todayStr(), status: 'Leave', checkIn: '-', checkOut: '-', hours: null, workMode: 'Leave' };
-    if (existing) {
-      await existing.ref.update(docData);
-      return res.json({ id: existing.id, ...docData });
-    }
-    const docRef = await attendanceCollection.add(docData);
-    return res.status(201).json({ id: docRef.id, ...docData });
+    // Date range + reason (decided: extend this same self-service flow
+    // rather than a separate leave_requests system) — `toDate` defaults to
+    // today for a same-day leave, matching the original single-day toggle.
+    const fromDate = todayStr();
+    const toDate = req.body.toDate && req.body.toDate >= fromDate ? req.body.toDate : fromDate;
+    const reason = (req.body.reason || '').trim();
+    const dates = dateRange(fromDate, toDate);
+
+    const rows = await Promise.all(
+      dates.map(async (date) => {
+        const docData = { employeeId: req.user.employeeId, date, status: 'Leave', checkIn: '-', checkOut: '-', hours: null, workMode: 'Leave', reason };
+        const doc = date === fromDate ? existing : await findDocForDate(req.user.employeeId, date);
+        if (doc) {
+          await doc.ref.update(docData);
+          return { id: doc.id, ...docData };
+        }
+        const docRef = await attendanceCollection.add(docData);
+        return { id: docRef.id, ...docData };
+      })
+    );
+    return res.status(201).json(rows[0]);
   }
 
   // "HH:MM" (not a full timestamp) — matches the format Attendance.jsx's
@@ -271,16 +356,125 @@ async function checkOut(req, res) {
   res.json({ id: doc.id, ...doc.data(), checkOut: checkOutTime, hours });
 }
 
+// Extra Hours Logging module — self-service submit (mirrors checkIn's
+// pattern: employeeId always comes from req.user.employeeId, never a
+// client-supplied one), approved through the same 'approvals' collection
+// as Document Template (category 'extra-hours') but — unlike documents —
+// decided by the Founder only, not HR (see HR_DECIDABLE_CATEGORIES in
+// approvalController.js). On approval, the linked extra_hours doc's status
+// is synced too, which is what Directory.jsx's "Extra Hours: Xh approved"
+// total actually counts.
+const extraHoursCollection = db.collection('extra_hours');
+
+async function submitExtraHours(req, res) {
+  if (!req.user.employeeId) {
+    return res.status(400).json({ error: 'Your account is not linked to an employee record yet — ask HR to set that up.' });
+  }
+  const { projectCode, hours, date, time, teammates } = req.body;
+  if (!projectCode || !hours || !date) {
+    return res.status(400).json({ error: 'projectCode, hours and date are required' });
+  }
+
+  const employeeDoc = await db.collection('employees').doc(req.user.employeeId).get();
+  const employeeName = employeeDoc.exists ? employeeDoc.data().name : req.user.full_name;
+
+  const docData = {
+    employeeId: req.user.employeeId,
+    projectCode,
+    hours: Number(hours) || 0,
+    date,
+    time: time || '',
+    teammates: Array.isArray(teammates) ? teammates : [],
+    status: 'pending_founder',
+    createdAt: new Date().toISOString(),
+  };
+  const docRef = await extraHoursCollection.add(docData);
+
+  const approvalDoc = {
+    source: 'HR',
+    category: 'extra-hours',
+    title: `Extra hours — ${employeeName} (${projectCode})`,
+    sub: `${docData.hours}h on ${date}`,
+    requestedBy: req.user.full_name,
+    priority: 'medium',
+    status: 'pending_founder',
+    employeeId: req.user.employeeId,
+    extraHoursId: docRef.id,
+    remarks: [],
+    createdAt: docData.createdAt,
+  };
+  const approvalRef = await approvalsCollection.add(approvalDoc);
+  await extraHoursCollection.doc(docRef.id).update({ approvalId: approvalRef.id });
+
+  await notifyFounder(
+    `Extra hours submitted — ${employeeName}`,
+    `<p><strong>${escapeHtml(employeeName)}</strong> logged <strong>${docData.hours}h</strong> on project <strong>${escapeHtml(projectCode)}</strong> (${escapeHtml(date)}). Awaiting sign-off.</p>`
+  );
+
+  res.status(201).json({ id: docRef.id, ...docData, approvalId: approvalRef.id });
+}
+
+// GET /api/hr-desk/extra-hours/me — the calling employee's own entries only.
+async function myExtraHours(req, res) {
+  if (!req.user.employeeId) return res.json([]);
+  const snap = await extraHoursCollection
+    .where('employeeId', '==', req.user.employeeId)
+    .limit(UNPAGINATED_READ_LIMIT)
+    .get();
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json(rows);
+}
+
+// GET /api/hr-desk/extra-hours — HR/founder, every employee's entries
+// (bounded, same UNPAGINATED_READ_LIMIT convention as the rest of HR desk).
+async function listExtraHours(req, res) {
+  const snap = await extraHoursCollection.limit(UNPAGINATED_READ_LIMIT).get();
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json(rows);
+}
+
+// GET /api/hr-desk/leave/me — self-scoped leave summary (Employee's Own
+// Leave & Performance gap). "Taken" is a number HR sets directly on the
+// employee doc (leaveTaken — see employees' editableFields below) rather
+// than counted from attendance rows, so it stays in sync with whatever HR
+// tracks leave through outside this app; "Remaining" is just derived from it.
+async function myLeaveSummary(req, res) {
+  if (!req.user.employeeId) return res.json({ entitlement: 0, takenYear: 0, remaining: 0 });
+  const empDoc = await db.collection('employees').doc(req.user.employeeId).get();
+  const data = empDoc.exists ? empDoc.data() : {};
+  const entitlement = Number(data.leaveEntitlement) || DEFAULT_LEAVE_ENTITLEMENT;
+  const takenYear = Number(data.leaveTaken) || 0;
+  res.json({ entitlement, takenYear, remaining: Math.max(0, entitlement - takenYear) });
+}
+
+// GET /api/hr-desk/performance/me — self-scoped, mirrors myLeaveSummary.
+async function myPerformance(req, res) {
+  if (!req.user.employeeId) return res.json([]);
+  const snap = await db
+    .collection('performance_entries')
+    .where('employeeId', '==', req.user.employeeId)
+    .limit(UNPAGINATED_READ_LIMIT)
+    .get();
+  res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+}
+
 module.exports = {
   sendEmail,
   getSentEmails,
+  myLeaveSummary,
+  myPerformance,
+  submitExtraHours,
+  myExtraHours,
+  listExtraHours,
   employees: makeCrud('employees', ['name', 'department'],
     ['name', 'department', 'designation', 'status', 'email', 'phone', 'manager', 'joiningDate',
       'employmentType', 'probationCompletionDate',
       'empCode', 'biometricVpnNumber', 'accountNumber', 'salary', 'emergencyContact',
       'emergencyContactRelation', 'personalEmail', 'dob', 'bloodGroup', 'permanentAddress',
       'presentAddress', 'aadharNumber', 'panDetails', 'voterId', 'driveLink', 'bgVerification',
-      'leaveEntitlement',
+      'leaveEntitlement', 'leaveTaken', 'uan',
       ...Object.values(DOCUMENT_TYPES).flatMap((d) => [d.urlField, d.fileNameField])]),
   uploadEmployeeDocument,
   candidates: makeCrud('candidates', ['name', 'email'],
@@ -302,4 +496,12 @@ module.exports = {
     ['candidate', 'interviewId', 'interviewer', 'rating', 'recommendation', 'comments']),
   jobs: makeCrud('open_jobs', ['title', 'department'],
     ['title', 'department', 'applicants', 'openSince']),
+  // Performance module — manual entry (not derived from the Production
+  // render-job tracker, by explicit choice), one doc per employee per period
+  // per category (Walkthrough/Floor Plan/Masterplan/3D Views) — target vs.
+  // delivered, so "remaining" is computed as target - delivered per
+  // category. Directory.jsx upserts by looking up an existing doc for
+  // (employeeId, periodKey, category) before deciding create vs. update.
+  performance: makeCrud('performance_entries', ['employeeId', 'periodKey', 'category'],
+    ['employeeId', 'period', 'periodKey', 'category', 'target', 'delivered']),
 };

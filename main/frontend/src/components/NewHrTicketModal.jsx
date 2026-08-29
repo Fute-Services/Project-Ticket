@@ -120,7 +120,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
         role="dialog"
         aria-modal="true"
         aria-label="Raise HR Support Ticket"
-        className="bg-card border border-border rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl transition-all"
+        className="bg-card border border-border rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl transition-all"
       >
         {/* Header */}
         <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-muted/40">
@@ -156,8 +156,8 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-            {/* Employee ID & Role */}
+          <form onSubmit={handleSubmit} className="p-5 space-y-3 max-h-[85vh] overflow-y-auto">
+            {/* Employee ID, Role, Category, Subcategory */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
@@ -184,42 +184,40 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                   className="w-full h-10 bg-muted border border-border rounded-xl px-3.5 text-xs text-foreground font-bold focus:outline-none cursor-not-allowed"
                 />
               </div>
-            </div>
 
-            {/* Category Select */}
-            <div>
-              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                HR Issue Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-                className="w-full h-10 bg-background border border-border rounded-xl px-3 text-xs text-foreground font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {Object.keys(HR_TICKET_CATEGORIES).map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  HR Issue Category
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="w-full h-10 bg-background border border-border rounded-xl px-3 text-xs text-foreground font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {Object.keys(HR_TICKET_CATEGORIES).map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Subcategory Select */}
-            <div>
-              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                Subcategory
-              </label>
-              <select
-                value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
-                className="w-full h-10 bg-background border border-border rounded-xl px-3 text-xs text-foreground font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {HR_TICKET_CATEGORIES[category]?.map((sub) => (
-                  <option key={sub} value={sub}>
-                    {sub}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Subcategory
+                </label>
+                <select
+                  value={subcategory}
+                  onChange={(e) => setSubcategory(e.target.value)}
+                  className="w-full h-10 bg-background border border-border rounded-xl px-3 text-xs text-foreground font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {HR_TICKET_CATEGORIES[category]?.map((sub) => (
+                    <option key={sub} value={sub}>
+                      {sub}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Priority Level */}
@@ -233,7 +231,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                     key={p.id}
                     type="button"
                     onClick={() => setPriority(p.id)}
-                    className={`px-2.5 py-2 rounded-xl border text-xs font-bold flex flex-col items-center text-center transition-all cursor-pointer ${priority === p.id
+                    className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex flex-col items-center text-center transition-all cursor-pointer ${priority === p.id
                         ? 'bg-orange-500 text-white border-orange-600 shadow-md shadow-orange-500/20'
                         : 'bg-muted border-border text-muted-foreground hover:text-foreground'
                       }`}
@@ -267,7 +265,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
               </label>
               <textarea
                 required
-                rows={3}
+                rows={2}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Please describe your query or issue in detail..."
@@ -275,37 +273,38 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
               />
             </div>
 
-            {/* Attachment */}
-            <div>
-              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                Document Attachment (Optional)
-              </label>
-              <div className="relative border border-dashed border-border rounded-xl p-3 text-center bg-muted/30 hover:bg-accent transition-colors cursor-pointer flex flex-col items-center justify-center gap-1">
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <Paperclip size={16} className="text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  {attachment ? <strong className="text-primary">{attachment}</strong> : 'Click to attach proof (Receipts, Medical bills, PDFs)'}
-                </span>
+            {/* Attachment & Confidential */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Document Attachment (Optional)
+                </label>
+                <div className="relative border border-dashed border-border rounded-xl p-2.5 text-center bg-muted/30 hover:bg-accent transition-colors cursor-pointer flex flex-col items-center justify-center gap-1 h-[72px]">
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <Paperclip size={14} className="text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground leading-tight px-1">
+                    {attachment ? <strong className="text-primary">{attachment}</strong> : 'Click to attach proof (Receipts, Medical bills, PDFs)'}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* Confidential Checkbox */}
-            <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 flex items-start gap-2.5">
-              <input
-                type="checkbox"
-                id="confidential-check"
-                checked={isConfidential}
-                onChange={(e) => setIsConfidential(e.target.checked)}
-                className="mt-0.5 rounded border-border text-orange-500 focus:ring-orange-500 cursor-pointer"
-              />
-              <label htmlFor="confidential-check" className="text-xs text-foreground cursor-pointer select-none">
-                <strong className="text-orange-500 font-bold block">Mark as Confidential</strong>
-                This ticket will be routed directly to Senior HR & Founder escalation queue.
-              </label>
+              <div className="bg-warning/10 border border-warning/20 rounded-xl p-2.5 flex items-start gap-2 h-[72px]">
+                <input
+                  type="checkbox"
+                  id="confidential-check"
+                  checked={isConfidential}
+                  onChange={(e) => setIsConfidential(e.target.checked)}
+                  className="mt-0.5 rounded border-border text-orange-500 focus:ring-orange-500 cursor-pointer"
+                />
+                <label htmlFor="confidential-check" className="text-[11px] text-foreground cursor-pointer select-none leading-tight">
+                  <strong className="text-orange-500 font-bold block">Mark as Confidential</strong>
+                  Routed directly to Senior HR & Founder escalation queue.
+                </label>
+              </div>
             </div>
 
             {error && (
@@ -315,7 +314,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
             )}
 
             {/* Submit Button */}
-            <div className="pt-2 flex justify-end gap-2">
+            <div className="pt-1 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={onClose}

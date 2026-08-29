@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { employeesApi, candidatesApi, interviewsApi, attendanceApi } from '../utils/api';
+import { employeesApi, candidatesApi, interviewsApi, attendanceApi, performanceApi, extraHoursApi } from '../utils/api';
 
 const HrDeskContext = createContext(null);
 
@@ -19,6 +19,8 @@ export function HrDeskProvider({ children }) {
   const [candidates, setCandidates] = useState([]);
   const [interviews, setInterviews] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [performanceEntries, setPerformanceEntries] = useState([]);
+  const [extraHours, setExtraHours] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Mirrors hrDeskRoutes.js's own role gates: employees is readable by
@@ -71,12 +73,39 @@ export function HrDeskProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canSeeHrDesk]);
 
+  const refreshPerformance = useCallback(async () => {
+    if (!canSeeHrDesk) return setPerformanceEntries([]);
+    try {
+      const { data } = await performanceApi.list();
+      setPerformanceEntries(data);
+    } catch (e) {
+      console.error('Failed to load performance entries:', e.message);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSeeHrDesk]);
+
+  const refreshExtraHours = useCallback(async () => {
+    if (!canSeeHrDesk) return setExtraHours([]);
+    try {
+      const { data } = await extraHoursApi.list();
+      setExtraHours(data);
+    } catch (e) {
+      console.error('Failed to load extra hours:', e.message);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSeeHrDesk]);
+
   useEffect(() => {
     setLoading(true);
-    Promise.all([refreshEmployees(), refreshCandidates(), refreshInterviews(), refreshAttendance()]).finally(() =>
-      setLoading(false)
-    );
-  }, [refreshEmployees, refreshCandidates, refreshInterviews, refreshAttendance]);
+    Promise.all([
+      refreshEmployees(),
+      refreshCandidates(),
+      refreshInterviews(),
+      refreshAttendance(),
+      refreshPerformance(),
+      refreshExtraHours(),
+    ]).finally(() => setLoading(false));
+  }, [refreshEmployees, refreshCandidates, refreshInterviews, refreshAttendance, refreshPerformance, refreshExtraHours]);
 
   return (
     <HrDeskContext.Provider
@@ -93,6 +122,12 @@ export function HrDeskProvider({ children }) {
         attendanceRecords,
         setAttendanceRecords,
         refreshAttendance,
+        performanceEntries,
+        setPerformanceEntries,
+        refreshPerformance,
+        extraHours,
+        setExtraHours,
+        refreshExtraHours,
         loading,
       }}
     >
