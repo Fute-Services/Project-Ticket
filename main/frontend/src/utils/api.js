@@ -28,6 +28,27 @@ function isAuthEndpoint(url) {
   return /\/api\/auth\/(login|register|refresh)(\?|$)/.test(url || '');
 }
 
+// GET /me is how AuthContext asks "am I logged in" on every page load,
+// including the very first one from a visitor who never logged in at all —
+// a 401 there is a normal, expected outcome, not an interrupted action, so
+// it should never force a hard navigation (AuthContext already handles it
+// by quietly setting user to null, which is what shows the login screen).
+function isMeEndpoint(url) {
+  return /\/api\/auth\/me(\?|$)/.test(url || '');
+}
+
+// The CSRF cookie is set alongside the session cookies on login/register/
+// refresh and cleared alongside them on logout or a failed refresh, so its
+// presence is a reliable "a session exists (or very recently did)" signal
+// even though the actual session cookies are httpOnly and unreadable here.
+// Skipping the refresh attempt when it's absent avoids a pointless extra
+// round trip on every single logged-out page load (GET /me 401s, then
+// POST /refresh would 401 too, for no reason — there was never anything to
+// refresh into).
+function hasSessionCookie() {
+  return readCookie('fute_csrf') !== null;
+}
+
 function flattenErrorBody(err) {
   // Flatten {success:false, message, error:{code,details}} down to a plain
   // `.error` string, matching what every existing catch block
@@ -82,23 +103,29 @@ api.interceptors.response.use(
     const original = err.config;
     const status = err.response?.status;
 
-    if (status === 401 && original && !isAuthEndpoint(original.url) && !original._retriedAfterRefresh) {
+    if (status === 401 && original && !isAuthEndpoint(original.url) && !original._retriedAfterRefresh && hasSessionCookie()) {
       original._retriedAfterRefresh = true;
       try {
         await refreshOnce();
         return api(original); // new access cookie is already set — replay the original call
       } catch (refreshErr) {
-        redirectToLogin();
+        // A failed refresh on /me just means "not logged in (any more)" —
+        // AuthContext's own .catch already handles that quietly. Forcing a
+        // hard redirect here is what caused the reload loop: /me 401s on a
+        // visitor's very first page view, this refresh attempt naturally
+        // fails too, and window.location.href='/login' fired even though
+        // there was nothing to interrupt.
+        if (!isMeEndpoint(original.url)) redirectToLogin();
         return Promise.reject(flattenErrorBody(refreshErr));
       }
     }
 
-    // A 401 that's already been through a refresh attempt (or came from
-    // /me, /refresh itself, etc. with no session to recover) really does
-    // mean logged out. Login/register 401s are excluded — that's just a
-    // wrong password, not a reason to bounce someone off the form they're
-    // filling in.
-    if (status === 401 && !isAuthEndpoint(original?.url)) {
+    // A 401 that's already been through a refresh attempt, or arrived with
+    // no session cookie at all to try refreshing, really does mean logged
+    // out. Login/register 401s are excluded (that's just a wrong password,
+    // not a reason to bounce someone off the form they're filling in) and
+    // so is /me (see above — that's the "am I logged in" probe itself).
+    if (status === 401 && !isAuthEndpoint(original?.url) && !isMeEndpoint(original?.url)) {
       redirectToLogin();
     }
 

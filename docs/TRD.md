@@ -1,24 +1,26 @@
-# TRD — Technical Requirements Document
-# Fute Services — Project Ticket Portal
+# TRD: Technical Requirements Document
+# Fute Services: Project Ticket Portal
 
-> Verified against the actual repository — folder structure, endpoints, and env vars below are read from the code, not carried forward from an earlier stack (the app moved from a Supabase/Postgres draft to Firebase; this document reflects Firebase only).
+> Verified against the actual repository. The folder structure, endpoints, and settings below are read from the code, not carried forward from an earlier plan (the app moved from an earlier database choice, Supabase/Postgres, to Firebase; this document reflects Firebase only).
+>
+> **Note (2026-08-29):** this document has not been updated since it was first written and is now out of date in places (for example, it still describes login tokens stored in the browser's local storage and a role system detected from someone's email address, both of which have since changed). Treat this as historical context for how the project started, and check `docs/SECURITY.md` and `docs/AUTH_WORKFLOW.md` for how login and permissions actually work today.
 
 ---
 
-## 1. Tech Stack
+## 1. Technology used
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18, Vite, TypeScript (`allowJs`, incremental — `.jsx` and `.tsx` coexist), React Router v6, Tailwind CSS, shadcn/ui (Radix), Framer Motion, Recharts, Lucide Icons, Sonner (toasts) |
-| Backend | Node.js, Express 4 |
-| Auth & DB | Firebase Admin SDK — Firebase Auth + Firestore |
-| Email | Nodemailer (SMTP) |
-| AI | Google Gemini (`generativelanguage.googleapis.com`), called directly from the browser — see [AI_WORKFLOW.md](./AI_WORKFLOW.md) |
-| Deployment | Vercel (frontend); backend is a separate Express app, not currently deployed alongside it — see §9 |
-| Package Manager | npm |
-| E2E Tests | Playwright (`main/frontend/tests/e2e`) |
+| Frontend (what people see and click) | React 18, Vite, TypeScript (`.jsx` and `.tsx` files coexist), React Router v6, Tailwind CSS, shadcn/ui (Radix), Framer Motion, Recharts, Lucide Icons, Sonner (toast notifications) |
+| Backend (the server that handles requests) | Node.js, Express 4 |
+| Login & database | Firebase Admin SDK: Firebase Auth (login) plus Firestore (database) |
+| Email | Nodemailer (sends email through a mail server) |
+| AI | Google Gemini (`generativelanguage.googleapis.com`), called directly from the browser; see [AI_WORKFLOW.md](./AI_WORKFLOW.md) |
+| Hosting | Vercel (frontend); the backend is a separate program, not currently hosted alongside it; see section 9 |
+| Package manager | npm |
+| End-to-end tests (automated tests that click through the app like a person would) | Playwright (`main/frontend/tests/e2e`) |
 
-## 2. Architecture at a Glance
+## 2. Architecture at a glance
 
 ```mermaid
 flowchart TB
@@ -57,9 +59,11 @@ flowchart TB
     style GEMINI fill:#1a2a3a,stroke:#4a90e8
 ```
 
-The dashed line matters: as of this document, **only login and registration** cross from the browser to the Express API. Everything else drawn inside "React Context state" is client-only — see [BACKEND_WORKFLOW.md](./BACKEND_WORKFLOW.md) §6 for why, and what wiring it up would take.
+*(Note: the diagram above reflects how the app looked when this document was first written, including "JWT in localStorage/sessionStorage" for login. That part has since changed; see the note at the top of this document.)*
 
-## 3. Folder Structure (current)
+One detail in the diagram matters: at the time this was written, **only login and registration** actually talked to the backend server. Everything else drawn inside "React Context state" was working with data held only in the browser, not saved anywhere permanent. See [BACKEND_WORKFLOW.md](./BACKEND_WORKFLOW.md) section 6 for why, and what connecting it up for real would take.
+
+## 3. Folder structure (as originally documented)
 
 ```
 Project-Ticket/
@@ -108,88 +112,92 @@ Project-Ticket/
         └── server.js
 ```
 
-## 4. Data Model
+*(This has grown considerably since this document was first written; treat it as the starting shape, not the current one.)*
 
-Firestore, not SQL — collections are schemaless; the shapes below are what the controllers actually read and write.
+## 4. Data model
 
-**`users`** (doc id = Firebase Auth UID)
+The database (Firestore) doesn't use rigid tables the way a traditional database does. Its collections (roughly, folders of records) don't enforce a fixed shape. What's below is what the code actually reads and writes for each one.
+
+**`users`** (each record's ID is the person's Firebase login ID)
 ```
 email, full_name, role ('employee'|'hr'|'it'|'coordinator'|'founder'), department, created_at
 ```
 
 **`hr_complaints`**
 ```
-token          "FT-HR-XXXXXX"
-user_id        Firebase UID of the submitter
+token          "FT-HR-XXXXXX"  (a short reference code the submitter can use to look up their complaint)
+user_id        Firebase login ID of the person who submitted it
 name, department, description, complaint_date
-duration       computed at write time from complaint_date → now
+duration       calculated automatically from complaint_date up to right now
 submitted_at, updated_at
-priority       caller-supplied string
+priority       a text value supplied by whoever created the complaint
 status         'Pending' | 'In Progress' | 'Completed'
 ```
 
-**`it_complaints`** — same shape as `hr_complaints`, plus:
+**`it_complaints`**: same shape as `hr_complaints`, plus:
 ```
 token          "FT-IT-XXXXXX"
 category, sub_category
-approval       boolean
+approval       true or false
 ```
 
-The Founder's `/api/founder/complaints` endpoint reads both collections and merges them, tagging each row `dept_tag: 'HR' | 'IT'`.
+The Founder's `/api/founder/complaints` request reads both collections and combines them into one list, marking each row `dept_tag: 'HR'` or `'IT'` so the founder can tell them apart.
 
-Everything else the UI shows — tickets (`data/itMockData.js` → `TicketContext`), leave requests, approvals, tasks/projects — has **no Firestore collection**. It's seed data held in React state. See [BACKEND_WORKFLOW.md](./BACKEND_WORKFLOW.md) §6.
+At the time this was written, everything else the app showed (tickets, leave requests, approvals, tasks and projects) had **no database collection behind it at all**. It was placeholder data held only in the browser's memory, gone the moment the page refreshed. See [BACKEND_WORKFLOW.md](./BACKEND_WORKFLOW.md) section 6 for detail on this.
 
-Two of those client-only shapes carry more fields than they used to, worth noting since they're easy to miss reading the controllers alone:
+Two of those browser-only data shapes carried more fields than you'd expect just from reading the backend code, worth noting since they're easy to miss:
 
-**Tickets** (`TicketContext`) — `id, token, title, user, dept, status, statusColor`, plus `employeeId, vpnNo, date, username`. The last four are administrative metadata the raise-ticket forms don't collect; `addTicket()` derives them (sequential IDs, current date, a slugified username) so every ticket has them regardless of which form created it.
+**Tickets** carried `id, token, title, user, dept, status, statusColor`, plus `employeeId, vpnNo, date, username`. The last four were administrative details the raise-a-ticket forms didn't actually ask for; the code filled them in automatically (a running ID number, today's date, a simplified version of the username) so every ticket had them regardless of which form created it.
 
-**Assets** (`data/itMockData.js` → `AssetsView`) — beyond the original inventory fields, each asset also carries `hardDisk` (string), `componentsList` (string array), `componentsLog` and `history` (arrays of `{ date, change|event }`). `AssetFormModal` appends to `componentsLog` when components/hard disk change and to `history` when status changes, so the audit drawer accumulates real entries rather than starting empty on every edit.
+**Assets** carried, beyond the basic inventory fields, a `hardDisk` value, a list of components, and two running logs: one for component/hard-disk changes and one for status changes. The asset editing screen adds a new entry to those logs every time something relevant changes, so the record's history builds up over time instead of starting blank on every edit.
 
-## 5. API Endpoints (as implemented)
+## 5. API endpoints (as originally implemented)
 
-### Auth — `/api/auth`
+### Login: `/api/auth`
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/register` | Creates the Firebase Auth user + `users` doc. Role is detected from the email (§ below), not chosen by the caller. |
-| POST | `/login` | Verifies the password via the Firebase Identity Toolkit REST API, then issues the app's own JWT. |
+| POST | `/register` | Creates the Firebase login account plus a matching `users` record. At the time, the person's role was guessed from their email address (see below), not chosen by them. |
+| POST | `/login` | Checks the password through Firebase's own verification service, then issues the app's own sign-in token. |
 
-### HR — `/api/hr` (all routes require a valid JWT)
-| Method | Path | Role gate |
+### HR: `/api/hr` (every route here requires the caller to already be signed in)
+| Method | Path | Who's allowed |
 |---|---|---|
-| POST | `/complaints` | any authenticated user |
-| GET | `/complaints` | `hr`, `founder` |
-| GET | `/complaints/my` | any authenticated user (own complaints only) |
-| GET | `/complaints/search?token=` | any authenticated user |
-| PATCH | `/complaints/:id/status` | `hr`, `founder` |
+| POST | `/complaints` | anyone signed in |
+| GET | `/complaints` | HR staff, founders |
+| GET | `/complaints/my` | anyone signed in (their own complaints only) |
+| GET | `/complaints/search?token=` | anyone signed in |
+| PATCH | `/complaints/:id/status` | HR staff, founders |
 
-### IT — `/api/it` — identical shape, gated to `it`/`founder` instead of `hr`/`founder`.
+### IT: `/api/it`: same shape as HR above, but restricted to IT staff and founders instead of HR and founders.
 
-### Founder — `/api/founder`
-| Method | Path | Role gate |
+### Founder: `/api/founder`
+| Method | Path | Who's allowed |
 |---|---|---|
-| GET | `/complaints` | `founder` only |
+| GET | `/complaints` | founders only |
 
-Verified with a stubbed-Firestore integration test during QA: 22/22 checks passed — no token, a garbage token, a token signed with the wrong secret, and every cross-role access attempt (e.g. `it` calling an `hr` endpoint) all correctly return 401/403, and every permitted role reaches its handler.
+This was checked with a one-off test during quality review: 22 out of 22 checks passed. No sign-in token, a fake token, a token signed with the wrong secret, and every attempt by one role to reach another role's screen (for example, IT staff trying to open an HR-only request) were all correctly refused, and every role that should have access got through.
 
-## 6. Role Detection
-
-```
-email matches /hr\.fute/i                          → hr
-email matches /system\.fute/i or /system\.futeservice/i → it
-email matches /coordinator\.fute/i                 → coordinator
-anything else                                      → employee
-founder                                            → set manually in Firestore, never self-registered
-```
-
-## 7. Token Format
+## 6. How a role used to be decided
 
 ```
-HR: FT-HR-XXXXXX   (6 random uppercase alphanumeric)
+email contains "hr.fute"                                 -> hr
+email contains "system.fute" or "system.futeservice"     -> it
+email contains "coordinator.fute"                         -> coordinator
+anything else                                              -> employee
+founder                                                     -> set manually in the database, never by self-signup
+```
+
+*(This email-pattern approach has since been replaced; see the note at the top of this document.)*
+
+## 7. Reference-code format
+
+```
+HR: FT-HR-XXXXXX   (6 random uppercase letters and digits)
 IT: FT-IT-XXXXXX
 ```
-Generated server-side in the respective controller at creation time.
+Generated by the server itself at the moment a complaint is created.
 
-## 8. Environment Variables
+## 8. Configuration values (environment variables)
 
 **`main/frontend/.env`**
 ```
@@ -211,15 +219,15 @@ HR_EMAIL=
 IT_EMAIL=
 PORT=5000
 ```
-The Gemini API key for the AI Cabinet is **not** an env var — it's supplied per-user through the Founder dashboard's Settings drawer and stored in that browser's `localStorage`, since there's no backend proxy for it (see [AI_WORKFLOW.md](./AI_WORKFLOW.md)).
+The Gemini API key used for the AI Cabinet feature is not one of these settings. It's entered per person through the Founder dashboard's Settings panel and saved in that browser only, since there's no server standing between the app and Gemini for it (see [AI_WORKFLOW.md](./AI_WORKFLOW.md)).
 
 ## 9. Deployment
 
-- **Frontend**: Vercel project `project-ticket`, root directory `main/frontend`, framework `vite`. `main/frontend/vercel.json` sets the SPA fallback rewrite.
-- **Backend**: not currently deployed. `main/backend/.env` on this machine still holds the unedited `.env.example` placeholders, so the Express app cannot start (`FirebaseAppError: Invalid PEM formatted message`) until real Firebase credentials are supplied. Until then, the frontend's login/register calls fail and fall back to the offline demo accounts by design (see [BACKEND_WORKFLOW.md](./BACKEND_WORKFLOW.md) §7).
-- A duplicate Vercel project (`project-ticket-xx63`) existed with a misconfigured build command and has been deleted.
+- **Frontend**: hosted on Vercel, project name `project-ticket`, built from the `main/frontend` folder using the Vite build tool. `main/frontend/vercel.json` handles the redirect rule single-page apps need.
+- **Backend**: at the time this was written, not hosted anywhere live. The `main/backend/.env` file on the development machine still held unfilled placeholder values, so the server couldn't even start (it failed with a "badly formatted key" error) until real Firebase credentials were supplied. Until then, sign-in and sign-up in the app would fail and quietly fall back to offline demo accounts by design (see [BACKEND_WORKFLOW.md](./BACKEND_WORKFLOW.md) section 7).
+- A duplicate Vercel project (`project-ticket-xx63`) existed with an incorrectly configured build setting and has since been deleted.
 
 ## 10. Testing
 
-- `main/frontend/tests/e2e` — Playwright, two projects (`desktop`, `mobile`/Pixel 5). Covers auth, route protection, navigation, CRUD flows, search/filter/sort, table behavior, report exports, overlay dismissal, and responsive layout. Run with `npm run test:e2e`.
-- Backend authorization was verified with a one-off stubbed-Firestore harness (not checked in as a suite) — see §5.
+- `main/frontend/tests/e2e`: automated browser tests (Playwright), run against both a desktop-sized and a mobile-sized (Pixel 5) screen. These cover signing in, making sure people can't reach pages they shouldn't, navigating around, creating/reading/updating/deleting records, search and filtering, table behavior, exporting reports, closing pop-ups, and the layout adjusting to different screen sizes. Run them with `npm run test:e2e`.
+- Backend permission checks were verified with a one-off test setup (not saved as a permanent, repeatable test suite); see section 5 above.

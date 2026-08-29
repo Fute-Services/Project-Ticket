@@ -1,13 +1,13 @@
 # AI_WORKFLOW.md
-# Fute Services — AI Agent Command Room (Founder Dashboard)
+# Fute Services: AI Agent Command Room (Founder Dashboard)
 
-> Describes the AI Cabinet feature as implemented in `src/components/FounderAiAdvisorView.jsx` and `src/utils/aiCabinet.js`.
+> This describes the AI Cabinet feature, as built in `src/components/FounderAiAdvisorView.jsx` and `src/utils/aiCabinet.js`.
 
 ---
 
 ## 1. What It Is
 
-A panel on the Founder dashboard (sidebar → "Fute AI+") where the Founder can pick a quick-operation template or type a free-form question, and watch five department personas — HR, IT, Coordinator, Employee-rep, and the Founder's own chief-of-staff persona — discuss the live dashboard data and land on an action plan.
+This is a panel on the Founder's dashboard (found in the sidebar under "Fute AI+") where the Founder can either pick a ready-made question template or type a question of their own. They then watch five "personas" (simulated characters, each standing in for a department: HR, IT, Coordinator, an Employee representative, and the Founder's own chief-of-staff persona) discuss the company's live dashboard data together and arrive at a suggested plan of action.
 
 ## 2. The Two Modes
 
@@ -22,14 +22,14 @@ flowchart TD
 
     PARSE --> ANIM["Typing animation, one turn at a time"]
     LOCAL --> ANIM
-    ANIM --> REPORT["generateExecutiveReport()\n— always computed locally from\nlive React Context data"]
+    ANIM --> REPORT["generateExecutiveReport()\n(always computed locally from\nlive React Context data)"]
 ```
 
-Cloud mode and local-simulation mode converge on the exact same downstream pipeline — the typing animation, the skip-to-end control, and the report — because both resolve to the same `{ agent, text }[]` shape before that point. Nothing downstream knows or cares which mode produced the conversation.
+Whether the AI is running in the cloud (a live call to Google's Gemini AI) or as a local simulation (no internet call, a scripted conversation instead), the two modes end up feeding the exact same downstream process: the typing animation, the "skip to the end" button, and the final report. This works because both modes end up producing the same simple list of `{ agent, text }` pairs (who's speaking and what they said) before that point. Nothing further down the pipeline knows or cares which mode actually produced the conversation.
 
-## 3. The System Prompt
+## 3. The System Prompt (the instructions given to the AI before it starts)
 
-`src/utils/aiCabinet.js` exports `CABINET_SYSTEM_PROMPT`, built around five personas:
+`src/utils/aiCabinet.js` exports `CABINET_SYSTEM_PROMPT`, the set of instructions built around five personas:
 
 | Persona | id | Domain |
 |---|---|---|
@@ -39,13 +39,13 @@ Cloud mode and local-simulation mode converge on the exact same downstream pipel
 | Employee Rep AI | `employee` | Ground-level morale and blockers |
 | Ratish (Founder AI) | `founder` | Synthesizes and decides |
 
-The prompt instructs the model to: reference real numbers and names from the supplied JSON context, let personas build on or push back on each other rather than speak in isolation, converge from problem → trade-offs → an executive decision, and reply in a natural Hinglish-English blend rather than robotic corporate English. Output must be `[agentId]: text` lines, four to six turns, followed by a line reading exactly `[REPORT_BREAK]` and then a JSON report.
+These instructions tell the AI model to: reference real numbers and names from the data it's given (formatted as JSON, a structured data format computers use to pass information around), let the personas respond to and sometimes disagree with each other instead of speaking one after another in isolation, work through the discussion from "what's the problem" to "what are the trade-offs" to "here's the decision," and reply in a natural mix of Hindi and English rather than sounding like a stiff corporate memo. The output has to follow a specific format: lines like `[agentId]: text`, somewhere between four and six of them, followed by a line that reads exactly `[REPORT_BREAK]`, and then a structured report in JSON.
 
-## 4. Why the Model's Report Half Is Discarded
+## 4. Why Half of What the AI Produces Gets Thrown Away
 
-The prompt still asks for a structured JSON report after `[REPORT_BREAK]` — but the client **only parses the chat half**. `generateExecutiveReport()` builds the report deterministically from the same live Context data instead (tickets, leave requests, approvals, projects), and its action items carry `targetTab` values (`'approvals'`, `'projects'`, `'it'`, `'hr'`) that are wired to real `onNavigate` calls. Trusting a model-generated tab value there risks a hallucinated or malformed string breaking navigation. The model's genuine value-add is the humanized, query-specific conversation — that's the only part consumed client-side.
+The instructions still ask the AI for a structured report after `[REPORT_BREAK]`, but the app **only actually uses the conversation part**, not that report. Instead, `generateExecutiveReport()` builds the report itself, directly and predictably, from the same live dashboard data (tickets, leave requests, approvals, projects). Its suggested action items point to specific tabs in the app (`'approvals'`, `'projects'`, `'it'`, `'hr'`), which are wired to real navigation actions. Trusting the AI to generate that tab name itself would be risky: if it made up or garbled a value, clicking that action item could break navigation entirely. The genuine value the AI adds is the natural, question-specific conversation, and that's the only part the app actually uses.
 
-## 5. Calling Gemini
+## 5. Calling Gemini (Google's AI model)
 
 ```mermaid
 sequenceDiagram
@@ -60,38 +60,38 @@ sequenceDiagram
         Util-->>UI: throw with a user-safe message
     else success
         Gemini-->>Util: candidates[0].content.parts[].text
-        Util->>Util: parseCabinetChat() — split on [REPORT_BREAK],\nfold multi-line replies into one turn per agent tag
+        Util->>Util: parseCabinetChat(): split on [REPORT_BREAK],\nfold multi-line replies into one turn per agent tag
         Util-->>UI: [{ agent, text }, ...]
     end
 ```
 
-- The API key is **bring-your-own**: entered in the Settings drawer, stored in that browser's `localStorage` only. There is no backend proxy for this call — the browser talks to Google directly.
-- The context sent is a trimmed snapshot (counts and a few named examples), not the full employee/candidate rosters, to keep the request small and avoid leaking more than the conversation needs.
-- `temperature: 0.8` — deliberately not deterministic; this is meant to read like a live discussion, not a fixed script.
+- Each person supplies **their own API key** (a personal access code for Google's AI service): typed into the Settings drawer, and saved only in that browser's own local storage on that device. There is no server in between relaying this. The browser talks straight to Google.
+- What gets sent to the AI is a trimmed-down snapshot (counts and a handful of named examples), not the full list of every employee or candidate, to keep the request small and avoid sharing more information than the conversation actually needs.
+- The request is sent with a "temperature" setting of 0.8 (a setting that controls how varied or predictable an AI's replies are, on a scale that typically runs from 0 to 1). This is deliberate: the goal is for it to read like a live, natural discussion rather than a fixed script that says the same thing every time.
 
-## 6. Local Simulation Fallback
+## 6. The Backup Plan When There's No Internet or No AI Key: Local Simulation
 
-Four hand-written scripts (`audit`, `onboard`, `bottlenecks`, `infra`) interpolate live counts (open tickets, pending approvals, pending leaves, slowest project) into otherwise-fixed Hinglish dialogue. A typed question that doesn't match a template button is keyword-matched to the closest script (`detectLocalTemplateType`) rather than always defaulting to the generic audit — a fix made when building this feature, since the original behavior silently ignored what was actually asked.
+Four scripts, written by hand ahead of time (`audit`, `onboard`, `bottlenecks`, `infra`), fill in live numbers (open tickets, pending approvals, pending leave requests, the slowest-moving project) into an otherwise fixed conversation written in Hindi/English. If someone types a question that doesn't match any of the ready-made template buttons, the app tries to match it by keyword to whichever script fits closest (`detectLocalTemplateType`), rather than always falling back to the generic audit script no matter what was actually asked. That keyword-matching was added during development, because the earlier version was quietly ignoring what people actually typed.
 
-## 7. Typing Animation & the Race Condition It Used to Have
+## 7. The Typing Animation, and a Timing Bug It Used to Have
 
 ```mermaid
 flowchart TD
     A["runSimulationSteps(steps)"] --> B["stepsQueueRef ← steps\nsimulationTokenRef += 1 → token"]
     B --> C["setTimeout 1000ms"]
     C --> D{"token still current?"}
-    D -->|no| STOP["No-op — this run was\nskipped or superseded"]
+    D -->|no| STOP["No-op (this run was\nskipped or superseded)"]
     D -->|yes| E["Show typing indicator,\nsetTimeout 2200ms"]
     E --> F{"token still current?"}
     F -->|no| STOP
     F -->|yes| G["Append the message,\nadvance the index, recurse"]
 ```
 
-Before this token was added, `handleSkip()` (and starting a new query while one was mid-animation) only updated state and refs — it never cancelled the `setTimeout` chain already in flight. That stale timer would fire later regardless, read the by-then-reused refs, and could wrongly terminate whatever simulation was *currently* running. Every call to `runSimulationSteps` now takes its own token; any callback whose token no longer matches `simulationTokenRef.current` is stale and does nothing. This was caught and fixed during manual browser testing of the feature, not by inspection — it reproduced reliably by skipping a conversation and issuing a new one within about a second.
+Before this fix, clicking "skip" (or starting a new question while a conversation was still mid-animation) only updated the app's internal state, it never actually stopped the delayed actions ("timers") already scheduled to run. Those old, stale timers would go off anyway a moment later, read outdated information, and could wrongly cut off whatever conversation was *currently* playing. Now, every time the animation starts, it's given its own unique tracking number ("token"). If a delayed action fires and its token no longer matches the current one, the app recognizes it's stale and ignores it. This bug was found and fixed through hands-on testing in the browser, not by reading the code. It reliably showed up by skipping a conversation and starting a new one within about a second of each other.
 
-## 8. Data Sent as Context
+## 8. What Data Gets Sent to the AI as Context
 
-`buildDashboardContext()` — deliberately small, not the full mock datasets:
+`buildDashboardContext()` builds a deliberately small snapshot, not the full sample datasets:
 
 ```json
 {

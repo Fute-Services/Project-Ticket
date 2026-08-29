@@ -1,7 +1,7 @@
 # BACKEND_WORKFLOW.md
-# Fute Services — Project Ticket Portal
+# Fute Services: Project Ticket Portal
 
-> What the Express + Firebase backend actually does, what the frontend actually calls, and — deliberately spelled out — where those two stop matching up. Written from the code in `main/backend` and `main/frontend/src`, cross-checked against a live authorization test run during QA.
+> This explains what the backend server actually does, what the website (frontend) actually calls on it, and, spelled out on purpose, where the two stop matching up. It's written from the actual code in `main/backend` and `main/frontend/src`, and checked against a real permissions test run during quality assurance (QA) testing.
 
 ---
 
@@ -34,28 +34,24 @@ sequenceDiagram
     end
 ```
 
-Every route except `/api/auth/*` requires a bearer token; every route beyond "any authenticated user" also runs `roleMiddleware(...allowedRoles)`. This was exercised directly (stubbed Firestore, real JWT signing/verification) during QA: 22/22 checks passed, covering no token, a malformed token, a token signed with the wrong secret, and every wrong-role combination across HR/IT/Founder — none of them leaked into a handler they shouldn't reach.
+Every page in the app except the login/registration pages requires a login token to be sent with the request. Any page that's restricted to specific roles (not just "any logged-in person") also runs a role check. This was directly tested during QA, using a stand-in database and real token creation/checking: 22 out of 22 checks passed. That covered a missing token, a broken token, a token signed with the wrong secret key, and every wrong-role combination across HR, IT, and Founder. None of them were able to reach a page they shouldn't have been able to.
 
 ## 2. Registration & Role Detection
 
 ```mermaid
 flowchart TD
     A["POST /api/auth/register\n{ email, password, full_name, department }"] --> B["Firebase Auth: create the user"]
-    B --> C["role = employee\n(always — self-registration can\nonly ever create a plain employee)"]
+    B --> C["role = employee\n(always: self-registration can\nonly ever create a plain employee)"]
     C --> D["Write users/{uid} doc\n{ email, full_name, role, department }"]
     D --> E["Sign app JWT (7d expiry)\n{ id, email, role, full_name }"]
     E --> F["Return { token, role, full_name, email }"]
 ```
 
-Role used to be guessed from the caller-supplied email string (`hr.fute` → `hr`, etc.), which let anyone
-grant themselves a privileged role by picking a matching email — that's been removed. `hr`/`it`/
-`coordinator`/`founder` are now only ever granted by an authenticated founder via `POST /api/founder/users`
-(or set by hand for the first founder account). Both `/register` and `/login` are now rate-limited
-per-IP (`express-rate-limit`) as well as the per-account lockout described below.
+A person's role used to be guessed from the email address they signed up with (for example, `hr.fute` in the address would grant the `hr` role), which meant anyone could grant themselves a privileged role just by picking a matching email. That has been removed. The `hr`, `it`, `coordinator`, and `founder` roles can now only be granted by an already-logged-in Founder, through a dedicated admin action (or set by hand for the very first Founder account when the system is first set up). Both the registration and login pages now also limit how many attempts can come from the same internet address in a short time, on top of the per-account lockout described below.
 
 ## 3. Login
 
-Firebase's Admin SDK can create/manage users but can't verify a password directly, so login makes a second call to Google's own REST endpoint to check the password, then re-signs the app's own JWT from the result:
+Firebase (the identity and database service this app is built on) can create and manage user accounts, but its admin tools can't check a password directly. So logging in makes a second call to Google's own service to check the password, and once that succeeds, issues the app's own login token from the result:
 
 ```mermaid
 flowchart LR
@@ -66,9 +62,9 @@ flowchart LR
     E --> F["Return { token, role, full_name, email }"]
 ```
 
-## 4. Complaint Lifecycle (HR & IT)
+## 4. Complaint Lifecycle (HR and IT)
 
-The original feature wired end to end, frontend to Firestore — since §6 below, no longer the only one:
+This was the original feature connected all the way through, from the website to the database. As section 6 below explains, it's no longer the only one that is.
 
 ```mermaid
 stateDiagram-v2
@@ -79,12 +75,12 @@ stateDiagram-v2
     Completed --> [*]
 ```
 
-- Creating a complaint emails the department mailbox (`HR_EMAIL` / `IT_EMAIL`) via Nodemailer.
-- Updating status emails the original submitter.
-- Both emails are best-effort — a mail failure is logged, not thrown, so a submission or status change still succeeds if SMTP is down.
-- `duration` is computed server-side once, at write time (`complaint_date` → now), not recalculated on read.
+- Creating a complaint sends an email to the department's mailbox (either HR's or IT's, depending which one it is).
+- Updating a complaint's status sends an email back to the person who originally submitted it.
+- Both of those emails are sent on a best-effort basis: if sending fails, it's recorded in the logs but doesn't stop the action itself, so submitting a complaint or updating its status still succeeds even if the email server happens to be down.
+- How long a complaint has been open ("duration") is calculated once on the server, at the moment it's written, from the complaint's submission date to that moment. It isn't recalculated every time someone looks at it.
 
-Who can do what:
+Who is allowed to do what:
 
 | Action | Employee | HR | IT | Founder |
 |---|:---:|:---:|:---:|:---:|
@@ -97,25 +93,22 @@ Who can do what:
 | Update IT complaint status | ❌ | ❌ | ✅ | ✅ |
 | List everything, both departments | ❌ | ❌ | ❌ | ✅ |
 
-## 5. Leave & Approval Routing
+## 5. Leave and Approval Routing
 
-Now a real backend endpoint (`routes/leaveRoutes.js`, `controllers/leaveController.js`, `leave_requests`
-collection) — the routing rule below is enforced server-side in `decide()`, not just client-side:
+Leave requests are now handled by a real feature on the backend server (not just something the website pretends to do), and the routing rule shown below is enforced by the server itself, not only suggested by the website's interface.
 
 ```mermaid
 flowchart TD
     A["Employee applies for leave\nPOST /api/leave"] --> B{"requester's profile\ndepartment is 'Admin/Ops'\nor 'IT'?"}
     B -->|no| C["HR can decide it\nPATCH /api/leave/:id/decide"]
-    B -->|yes| D["Only the Founder can decide it —\nHR gets 403 if they try"]
+    B -->|yes| D["Only the Founder can decide it.\nHR gets 403 if they try"]
 ```
 
-Mirrors `isFounderApproval()` in the frontend's `LeaveContext.jsx`, now driven by the requester's real
-profile `department` field instead of a mock lookup.
+This matches the equivalent check that already existed in the website's own code, except now it's driven by the requester's actual saved department, rather than a stand-in sample lookup.
 
-## 6. Current Wiring Status
+## 6. What's Actually Connected to the Backend Right Now
 
-As of 2026-08, this is no longer accurate to describe as "almost nothing calls the backend" — most of
-the app is wired end to end (frontend → Express → Firestore):
+As of August 2026, it would no longer be accurate to describe this app as "almost nothing talks to the backend." Most of it is now genuinely connected, from the website through to the database:
 
 ```mermaid
 flowchart LR
@@ -133,17 +126,11 @@ flowchart LR
     Live --> Backend[("Express API")]
 ```
 
-The remaining gap is the **HR Desk sub-resources** served by `hrDeskController.js`'s generic CRUD
-factory (candidates, interviews, meetings, attendance, feedback, jobs) — the `GET` endpoints are wired
-and read real data, but as of this writing only the Candidates and Interviews pages actually call
-`create`/`update`; Meetings, Attendance, Feedback and Jobs pages still don't have a write path wired up
-from their UI even though the backend endpoints exist and are ready.
+What's still missing is a handful of smaller **HR Desk features**: candidates, interviews, meetings, attendance, feedback, and job postings. Reading data for all of these already works and shows real information. But as of this writing, only the Candidates and Interviews pages can actually create or update records. The Meetings, Attendance, Feedback, and Jobs pages don't yet have that "save" path connected on the website side, even though the backend is already built and ready for them.
 
-## 7. Local Development Without a Live Backend
+## 7. Working Locally Without a Live Backend Server Running
 
-Now that most features are wired (§6), this fallback is narrower than it used to be — it only helps for
-auth, not for the now-real-backed features (tickets, approvals, leave, assets, tasks, rendering, HR
-directory):
+Now that most features are connected (see section 6), this fallback option is narrower than it used to be. It only helps with logging in, not with the features that now genuinely depend on the real backend (tickets, approvals, leave, assets, tasks, rendering, and the HR directory):
 
 ```mermaid
 flowchart TD
@@ -154,4 +141,4 @@ flowchart TD
     D --> F["Wired features load real data"]
 ```
 
-This is intentional and documented in the login page's own source comments, not an accident — it's what let the QA pass in the previous phase of this project run entirely against `npm run dev` with no backend process alive at all.
+This is a deliberate design choice, documented right in the login page's own code, not an accident. It's what allowed the QA testing in the previous phase of this project to run entirely using the local development setup, with no backend server running at all.

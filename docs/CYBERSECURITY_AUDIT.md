@@ -1,28 +1,28 @@
-# COMPLETE PROJECT & CYBERSECURITY AUDIT — Project-Ticket
+# COMPLETE PROJECT & CYBERSECURITY AUDIT: Project-Ticket
 
-**Scope:** `D:\Project-ticket\Project-Ticket` · **Date:** 2026-08-29 · **Method:** Static source/configuration review + verification of remediations applied on this date. No live exploitation, no destructive testing, no production systems touched.
+**Scope:** `D:\Project-ticket\Project-Ticket` · **Date:** 2026-08-29 · **Method:** We reviewed the actual source code and configuration files, and re-checked the fixes made earlier today. We did not attack the live system or run any destructive tests.
 
-> This report reflects the codebase **after** the fixes applied earlier today (helmet, `trust proxy`, general rate limiting, password-length floor, `/healthz` info-trim, orphaned-file cleanup) — see §51 for the full change list. It supersedes the security posture described in the earlier `docs/DEEP_AUDIT_REPORT.md`, which remains valid for architecture/data-flow/general context.
+> This report reflects the codebase after the fixes applied earlier today (a security-headers tool called helmet, a setting called `trust proxy`, general rate limiting to slow down abuse, a minimum password length rule, trimming what the `/healthz` health-check page reveals, and cleaning up leftover files). See section 51 for the full list of what changed. This report replaces the security picture described in the earlier `docs/DEEP_AUDIT_REPORT.md`, though that older report is still useful for background on the architecture and how data flows through the system.
 >
-> **Terminology note:** the platform's top-level admin account is the `superadmin` role in code — this document refers to it as **Founder** in prose. The separate `founder` role (one level below `superadmin`) is called out by that exact name wherever the distinction matters. File and function names (e.g. `superAdminUserController.js`) are left unchanged, since those are literal code references.
+> **A note on names:** the account with the highest level of access in the code is called the `superadmin` role. In this document we call that person the "Founder" instead, since that is the plain-language title people actually use. There is also a separate, lower-level `founder` role in the code, and we call that out by its exact name whenever the difference matters. File and function names in the code (like `superAdminUserController.js`) are left exactly as they are, since those are literal references to real files.
 
 ---
 
 ## 1. Executive Summary
 
-Project-Ticket's security model is unusually consistent for its size: one API, one data store, and every access decision that matters — identity, role, resource ownership — enforced server-side, verified down to the controller level across all ten backend controllers in this pass. The two open questions from the prior audit (whether an employee could alter another employee's task status; whether analytics/dashboard endpoints leaked cross-role data) were both run to ground this pass and confirmed **safe** — not gaps.
+Project-Ticket's security setup is unusually consistent for a project this size. There is one API (the backend service that the website talks to), one place data is stored, and every important access decision (who you are, what role you have, whether you own the thing you're trying to change) is checked on the server, not just hidden in the website's design. We checked this down to the level of individual code files, across all ten backend controllers (the pieces of code that handle each type of request). Two open questions from the previous audit were resolved this time: whether an employee could change another employee's task status, and whether the dashboard/reporting pages could leak information across departments. Both were checked thoroughly and confirmed safe, not gaps.
 
-What was genuinely missing has now been fixed: no security response headers → `helmet()` added; rate limiting confined to auth routes → general limiter added to every route; rate limiting silently degraded behind Vercel's proxy (no `trust proxy` set, so every visitor could share one IP bucket) → fixed; inconsistent password floor → unified at 10 characters everywhere a password is set; `/healthz` leaking build/backend topology to unauthenticated callers → trimmed.
+What was genuinely missing has now been fixed. There were no security-related response headers (small pieces of information the server sends back that tell the browser how to behave safely); a tool called `helmet()` now adds those. Rate limiting (a feature that slows down someone hammering the server with requests) only covered the login page before; it is now applied to every page. Rate limiting was also silently broken behind the hosting provider's proxy (a kind of middleman server), because a setting called `trust proxy` was missing, meaning every visitor could accidentally share one "bucket" and get blocked together; that is fixed. The password-length rule used to be inconsistent; it's now the same everywhere a password is set, at least 10 characters. And the health-check page (`/healthz`, used to confirm the server is alive) used to leak some internal details to anyone who visited it; that's been trimmed down.
 
-**SECURITY SCORE: 79/100** (see §48 for the category breakdown and calculation).
+**SECURITY SCORE: 79 out of 100** (see section 48 for how each category was scored and how this number was calculated).
 
-The single largest remaining gap is process, not code: there is no CI/CD pipeline, so nothing currently re-runs a dependency/security check before a deploy reaches production. No MFA exists. No dedicated structured/searchable logging exists for ordinary request traffic (admin actions and failed logins are the exception — those are already durably logged). None of these are exploitable vulnerabilities by themselves; they are the honest next-hardening list.
+The single biggest thing still missing is not a code problem, it's a process problem: there is no automated pipeline (commonly called CI/CD, short for Continuous Integration/Continuous Deployment) that checks for security or dependency problems before new code goes live. There's also no multi-factor authentication (MFA, an extra login step like a text-message code, on top of a password). And there's no organized, searchable logging system for ordinary day-to-day traffic (admin actions and failed logins are the exception, those are already reliably recorded). None of these three things are actual holes that someone could exploit today; they're the honest list of what to harden next.
 
 ---
 
 ## 2. Project Overview
 
-Project-Ticket is Fute Services' internal operations platform — HR/IT complaint tracking, leave, approvals, IT assets, an HR desk module (employees/candidates/interviews/attendance), coordinator tasks/projects, and a production render tracker — serving seven role types (`founder`, `superadmin` — referred to as **Founder** throughout this document — `hr`, `it`, `coordinator`, `employee`, plus non-wired demo roles).
+Project-Ticket is Fute Services' internal tool for running day-to-day operations: tracking HR and IT complaints, managing leave requests and approvals, keeping an inventory of IT equipment, an HR desk module (covering employees, job candidates, interviews, and attendance), coordinator tasks and projects, and a tracker for production renders (video/graphics jobs). It serves seven types of user accounts: `founder`, `superadmin` (which we call "Founder" throughout this document), `hr`, `it`, `coordinator`, `employee`, plus a few demo-only roles that aren't connected to any real backend logic yet.
 
 ---
 
@@ -30,23 +30,23 @@ Project-Ticket is Fute Services' internal operations platform — HR/IT complain
 
 | Layer | Technology | Version | Purpose | Security Relevance |
 |---|---|---|---|---|
-| Frontend | React 18.2 + Vite 5 | React 18.2, Vite 5 | SPA | JSX auto-escaping is the primary client-side XSS control |
-| Backend | Express | ^4.18.2 | REST API | Now hardened with helmet + rate limiting |
-| Auth | Firebase Auth + jsonwebtoken | firebase-admin ^12.0.0, jsonwebtoken ^9.0.2 | Credential store + session token | Password hashing fully delegated to Firebase |
-| Database | Firestore | via firebase-admin | Primary store | Admin-SDK-only access; no client Firestore path exists |
-| Storage | Firebase Storage | via firebase-admin | HR documents | MIME/size validated on upload |
-| Email | Nodemailer (SMTP) | ^6.9.7 | Notifications | Output HTML-escaped |
-| Security headers | helmet | ^8.3.0 *(added today)* | CSP/HSTS/frame protections | New |
-| Rate limiting | express-rate-limit | ^8.6.2 | Abuse throttling | Now applied globally, not just auth routes |
-| Hosting | Vercel | — | Frontend + backend, 2 projects | TLS terminated at edge |
-| CI/CD | *none* | — | — | Confirmed absent — see §35 |
-| Testing | Playwright | e2e | Frontend | — |
+| Frontend (what you see in the browser) | React 18.2 + Vite 5 | React 18.2, Vite 5 | The website itself | React automatically escapes text so malicious code typed into a form can't run in the browser (this is the main defense against a type of attack called XSS, explained in section 21) |
+| Backend (the server that handles requests) | Express | ^4.18.2 | The API the website talks to | Now protected with helmet and rate limiting |
+| Login system | Firebase Auth + jsonwebtoken | firebase-admin ^12.0.0, jsonwebtoken ^9.0.2 | Stores accounts and issues login tokens | Password checking is fully handled by Firebase, not by our own code |
+| Database | Firestore | via firebase-admin | Where all the app's data lives | Only the backend server can touch it directly; there's no path for the browser to reach it on its own |
+| File storage | Firebase Storage | via firebase-admin | HR documents | File type and size are checked before anything is accepted |
+| Email | Nodemailer (SMTP) | ^6.9.7 | Sends notification emails | Any text inserted into an email is escaped so it can't be used to inject fake links or formatting |
+| Security headers | helmet | ^8.3.0 (added today) | Adds browser-safety instructions to every response | New |
+| Rate limiting | express-rate-limit | ^8.6.2 | Slows down abuse | Now applied to every page, not just login |
+| Hosting | Vercel | : | Frontend and backend run as two separate projects | The connection is encrypted (HTTPS) right at Vercel's edge servers |
+| Automated deployment checks (CI/CD) | none | : | : | Confirmed missing, see section 35 |
+| Testing | Playwright | end-to-end | Automated browser tests for the frontend | : |
 
 ---
 
 ## 4. Complete Project Structure
 
-See `docs/DEEP_AUDIT_REPORT.md` §4 for the full tree — unchanged except: root `package-lock.json` and `.tools/jdk-21.../` (both orphaned, unreferenced by any build) were deleted today per owner decision.
+See `docs/DEEP_AUDIT_REPORT.md` section 4 for the full folder layout. It's unchanged except that two leftover, unused files (a stray `package-lock.json` and an old Java installer folder called `.tools/jdk-21.../`) were deleted today with the owner's approval.
 
 ---
 
@@ -54,135 +54,148 @@ See `docs/DEEP_AUDIT_REPORT.md` §4 for the full tree — unchanged except: root
 
 | File/Folder | Purpose | Security Relevance |
 |---|---|---|
-| `main/backend/server.js` | Entry point, middleware stack, error handler | Now the home of helmet, trust-proxy, and the general rate limiter |
-| `main/backend/config/firebase.js` | Admin SDK init, emulator fallback | Holds full-trust Firestore/Auth/Storage credentials |
-| `main/backend/middleware/authMiddleware.js` | JWT verify + session-revocation + active-flag check | Primary authentication gate for every protected route |
-| `main/backend/middleware/roleMiddleware.js` | Route-level role allow-list | Primary coarse authorization gate |
-| `main/backend/middleware/permissionMiddleware.js` | Firestore-backed fine-grained action matrix (IT assets) | Secondary authorization layer |
-| `main/backend/controllers/authController.js` | Register/login/logout/me/verify-password | Now enforces min-10-char password on register |
-| `main/backend/controllers/superAdminUserController.js` | Admin user CRUD, password reset | Now enforces min-10-char password on admin-created accounts too |
-| `main/backend/controllers/complaintControllerFactory.js` | Shared HR/IT complaint CRUD | Ownership checks live here (update/delete) |
-| `main/backend/controllers/taskProjectController.js` | Tasks/projects CRUD | Verified: in-controller ownership check on status updates |
-| `main/backend/controllers/securityController.js` | Session/lockout admin console backend | Verified: every handler is Founder-gated (`superadmin` role) at the route |
-| `main/backend/utils/sessions.js` | Session create/revoke | Backs the JWT-revocation mechanism |
-| `main/backend/utils/auditLog.js` | Admin-action audit trail | Writes to `audit_logs` collection |
-| `main/backend/utils/upload.js` | Multer config | MIME allow-list, 10MB cap, memory storage |
-| `main/backend/utils/mailer.js` | SMTP notifications | HTML-escapes interpolated fields |
+| `main/backend/server.js` | The starting point of the backend: sets up the middleware chain (the sequence of checks every request passes through) and the error handler | Now where helmet, the trust-proxy fix, and the general rate limiter live |
+| `main/backend/config/firebase.js` | Sets up the connection to Firebase (with a fallback to a local test version when real credentials aren't configured) | Holds the highest-trust credentials in the whole app, for the database, login system, and file storage |
+| `main/backend/middleware/authMiddleware.js` | Checks that a login token is valid, that the session hasn't been signed out remotely, and that the account isn't disabled | The main gatekeeper for every protected page |
+| `main/backend/middleware/roleMiddleware.js` | Checks whether your account's role is allowed on a given page at all | The main coarse-grained permission check |
+| `main/backend/middleware/permissionMiddleware.js` | A more detailed, per-action permission check stored in the database (used for IT equipment records) | A second, finer layer of permission checking |
+| `main/backend/controllers/authController.js` | Handles registering, logging in, logging out, fetching your own profile, and verifying your password | Now requires at least 10 characters when you register |
+| `main/backend/controllers/superAdminUserController.js` | Lets an admin create, edit, or reset accounts | Now also requires at least 10 characters for admin-created accounts |
+| `main/backend/controllers/complaintControllerFactory.js` | Shared logic for creating, reading, updating, and deleting HR and IT complaints | This is where the check "do you actually own this complaint" lives, for edits and deletes |
+| `main/backend/controllers/taskProjectController.js` | Handles tasks and projects | Confirmed: it checks ownership before letting someone update a task's status |
+| `main/backend/controllers/securityController.js` | Powers the admin's Security console (viewing sessions, unlocking accounts) | Confirmed: every action here is restricted to the Founder role at the routing level |
+| `main/backend/utils/sessions.js` | Creates and revokes login sessions | Supports the ability to remotely sign a login token out |
+| `main/backend/utils/auditLog.js` | Records a trail of admin actions | Writes to the `audit_logs` collection in the database |
+| `main/backend/utils/upload.js` | Configures file uploads (using a library called Multer) | Only allows certain file types, and caps size at 10MB, keeping files in memory rather than writing them to disk |
+| `main/backend/utils/mailer.js` | Sends notification emails | Escapes any text inserted into an email so it can't inject malicious content |
 
 ---
 
 ## 6. Overall Architecture
 
+In plain terms: your browser sends a request over an encrypted connection with a login token attached. That request passes through several safety checks (helmet's headers, rate limiting, an allow-list of trusted websites, and JSON parsing) before it reaches the actual login check, the role check, the fine-grained permission check, and finally the code that does the real work and checks you own whatever you're touching. From there it may talk to the database, the login system, file storage, or the email server. If anything goes wrong, one central error handler sends back a safe, generic message to you while logging the full detail only on the server.
+
 ```
- Browser (React SPA)
-   │  HTTPS + Bearer JWT
-   ▼
- Express API  ── helmet() ── rate-limit(300/15min) ── CORS allow-list ── express.json()
-   │
-   ├─ authMiddleware → roleMiddleware → permissionMiddleware → controller (ownership checks)
-   │        │
-   │        ├──▶ Firestore        — all app data, Admin SDK only
-   │        ├──▶ Firebase Auth    — credential verification
-   │        ├──▶ Firebase Storage — HR documents
-   │        └──▶ SMTP             — notification email
-   │
-   └─ centralized error handler → generic message to client, full detail server-log only
+ Browser (the website)
+   |  Encrypted connection (HTTPS) with a login token attached
+   v
+ Backend server: security headers, then rate limiting (300 requests per 15 min),
+ then a check for trusted websites, then reading the incoming data
+   |
+   |-- login check -> role check -> fine-grained permission check -> the actual
+   |   page logic (which also checks you own what you're editing)
+   |        |
+   |        |--> Database (all app data, reachable only by the backend server)
+   |        |--> Login system (checks your password)
+   |        |--> File storage (HR documents)
+   |        `--> Email server (sends notifications)
+   |
+   `-- central error handler: sends you a safe generic message, logs the full
+       detail only on the server
 ```
 
 ---
 
 ## 7. Frontend Architecture
 
-React Context per domain, no client Firestore access, axios with bearer-token interceptor. Zero `dangerouslySetInnerHTML`/`eval`/`new Function`/unchecked `postMessage` listeners found (re-verified fresh in this pass, not just carried over from the prior audit).
+The website uses React's "Context" feature to share data between different parts of the app, and it never talks to the database directly, everything goes through the backend API. We searched for common ways that malicious code could sneak into a page (a few specific patterns called `dangerouslySetInnerHTML`, `eval`, `new Function`, and unchecked `postMessage` listeners) and found none of them anywhere in the frontend code. We re-checked this fresh in this pass rather than just trusting the previous audit's finding.
 
 ---
 
 ## 8. Backend Architecture
 
-Request lifecycle: `authMiddleware` → `roleMiddleware` → `permissionMiddleware` (where applicable) → controller → Firestore (transactional where consistency matters) → response. See §5 for what changed today.
+Every request goes through the same sequence: the login check, then the role check, then the fine-grained permission check where relevant, then the actual page logic, then (when the data needs to stay consistent) a database transaction, then the response. See section 5 above for exactly what changed today.
 
 ---
 
 ## 9. Database Architecture
 
-Firestore only (CONFIRMED — `@supabase`/`@google-cloud` packages present in `node_modules` are transitive, not used directly). No `firestore.rules` exists, which is architecturally sound *only* because every access path goes through the server-side Admin SDK — see §26.
+The app only uses Firestore (Google's database). We confirmed this directly: two other database-related packages (`@supabase` and `@google-cloud`) do exist in the project's installed dependencies, but they're only there because Firestore's own tools depend on them internally, the app's own code never uses them. There's no database-level "security rules" file, which sounds concerning but is actually fine here, because the browser has no direct path to the database at all; every request has to go through the backend server first. See section 26 for more detail.
 
 ---
 
 ## 10. API Architecture
 
-~60 endpoints across 10 route files, all under `/api/*`. Full route-by-role table: `docs/DEEP_AUDIT_REPORT.md` §9 (unchanged by today's fixes — the fixes were middleware-level, not route-gate changes).
+The backend exposes roughly 60 different endpoints (specific URLs the website can call) across 10 route files. A full table of exactly who can call what is in `docs/DEEP_AUDIT_REPORT.md`, section 9. Today's fixes didn't change any of those permission rules, they were changes to the safety net around the whole API, not to individual pages.
 
 ---
 
 ## 11. Complete Request Lifecycle
 
+Here's what happens, step by step, when you click something in the app that needs data from the server:
+
 ```
-USER ACTION → COMPONENT → CONTEXT/HOOK → api.js (axios) → HTTP request
-  → helmet/rate-limit/CORS → authMiddleware → roleMiddleware → permissionMiddleware
-  → controller (validation + ownership check) → Firestore
-  → response → context state update → UI re-render
+You click something -> the relevant piece of the page -> the app's shared
+data/state -> the API helper file (api.js) -> an HTTP request is sent
+  -> passes through helmet / rate limiting / trusted-website check
+  -> login check -> role check -> fine-grained permission check
+  -> the actual page logic (checks the data is valid, and that you own it)
+  -> the database
+  -> a response comes back -> the app's shared data updates -> the screen redraws
 ```
 
 ---
 
 ## 12. Complete Data Flow
 
-Representative flow — filing then resolving an HR complaint — documented with file:line evidence in `docs/DEEP_AUDIT_REPORT.md` §10. Unchanged by today's fixes (none touched this flow's logic, only its perimeter).
+As a concrete example: filing an HR complaint, and then having it resolved, is documented step by step with exact file names and line numbers in `docs/DEEP_AUDIT_REPORT.md`, section 10. Today's fixes didn't touch that logic, only the safety net around the whole system.
 
 ---
 
 ## 13. Data Inventory
 
-| Data | Source | Processing | Storage | Sensitive? |
+| Data | Where it comes from | How it's handled | Where it's stored | Sensitive? |
 |---|---|---|---|---|
-| Credentials | Login/register form | Verified via Firebase Identity Toolkit | Firebase Auth (never this app's DB) | Yes |
-| Session tokens | Issued on login | Signed JWT | Browser local/session storage | Yes |
-| Complaints | HR/IT ticket forms | Ownership-tagged, transactional writes | `hr_complaints`/`it_complaints` | Yes (personal grievance content) |
-| Employee documents | HR desk uploads | MIME/size validated | Firebase Storage | Yes |
-| Audit trail | Admin actions | Auto-logged | `audit_logs` | Yes (internal) |
-| Failed logins | Login attempts | IP-logged | `failed_logins` | Yes (security-relevant) |
+| Login credentials | The login/signup form | Checked through Firebase's login system | Firebase's own login system (never this app's own database) | Yes |
+| Login tokens | Issued when you log in | A signed token (like a temporary digital ID card) | Kept in the browser | Yes |
+| Complaints | HR/IT ticket forms | Tagged with who owns it, saved as a single all-or-nothing database write | The `hr_complaints`/`it_complaints` collections | Yes (this is personal grievance content) |
+| Employee documents | HR desk uploads | File type and size checked first | Firebase file storage | Yes |
+| Audit trail | Admin actions | Recorded automatically | The `audit_logs` collection | Yes (internal record-keeping) |
+| Failed login attempts | Login attempts | Recorded with the visitor's IP address | The `failed_logins` collection | Yes (used for security monitoring) |
 
 ---
 
 ## 14. Sensitive Data Flow
 
-See `docs/DEEP_AUDIT_REPORT.md` §15 — unchanged.
+See `docs/DEEP_AUDIT_REPORT.md`, section 15, this is unchanged from that report.
 
 ---
 
 ## 15. Authentication Audit
 
+Here's what happens step by step when someone logs in:
+
 ```
-LOGIN FLOW
-USER → LOGIN FORM → FRONTEND (AuthContext) → POST /api/auth/login
- → validation (required fields) → Firebase Identity Toolkit REST verify
- → lockout/failed-login check → JWT issued (7d expiry, sid claim)
- → token stored client-side (local/sessionStorage) → AUTHENTICATED
+You type your email/password -> the login form -> the app (AuthContext) sends
+a request -> the server checks the fields are filled in -> Firebase's login
+system verifies the password -> the server checks you're not locked out and
+records a failed attempt if the password was wrong -> a login token is issued
+(valid for 7 days, with a session ID embedded in it) -> the token is stored
+in the browser -> you're logged in
 ```
 
-| Property | Value | Evidence |
+| Question | Answer | Where this is proven in the code |
 |---|---|---|
-| Password hashing algorithm | Delegated to Firebase Auth (scrypt) | No bcrypt/argon2 in this codebase — correct, not a gap |
-| Token algorithm | HS256 JWT via `jsonwebtoken`, signed with `JWT_SECRET` | authController.js |
-| Token expiration | 7 days | authController.js:55-59 |
-| Refresh mechanism | None — compensated by session-revocation check every request | authMiddleware.js |
-| Password reset (admin-driven) | Min 10 chars, audit-logged | superAdminUserController.js:268-289 |
-| Password policy (self-registration) | **Min 10 chars — fixed today**, was previously unenforced | authController.js |
-| Password policy (admin-created accounts) | **Min 10 chars — fixed today**, was previously unenforced | superAdminUserController.js |
-| Brute-force protection | 5-attempt lockout + per-IP rate limit (10/15min) | authController.js, authRoutes.js |
-| MFA | UNKNOWN — not found in files read | — |
+| How are passwords protected? | Fully handled by Firebase's login system (using a strong hashing method called scrypt), our own code never touches raw passwords | There's no password-hashing code in this codebase at all, and that's correct, not a gap: Firebase already does it properly |
+| What kind of login token is used? | A signed token (JWT, using an algorithm called HS256) signed with a secret key called `JWT_SECRET` | authController.js |
+| How long does a login token last? | 7 days | authController.js, lines 55 to 59 |
+| Can a token be refreshed without logging in again? | No, but there's a workaround: every request re-checks whether the session was signed out remotely, so a revoked login stops working almost immediately even though the token itself doesn't expire for 7 days | authMiddleware.js |
+| Admin-driven password reset | Requires at least 10 characters, and is recorded in the audit trail | superAdminUserController.js, lines 268 to 289 |
+| Password rule for self-signup | At least 10 characters, fixed today, this used to not be enforced at all | authController.js |
+| Password rule for admin-created accounts | At least 10 characters, fixed today, this used to not be enforced either | superAdminUserController.js |
+| Protection against repeated password guessing | Account locks after 5 wrong attempts, plus a limit of 10 login attempts per 15 minutes from the same visitor | authController.js, authRoutes.js |
+| Multi-factor authentication (a second login step, like a text code) | Not found anywhere in the code we reviewed | : |
 
 ---
 
 ## 16. Authorization Audit
 
-RBAC via `roleMiddleware`, resource-level permissions via `permissionMiddleware` (IT assets), ownership checks in controllers. **Critical question — can a user access another user's data by changing an ID?** Answer, verified this pass across every controller read: **no**, for every mutating endpoint checked. The two previously-open questions are now resolved:
+The app uses role-based access control (checking what your account type is allowed to do), plus resource-level permissions for IT equipment, plus ownership checks built into the individual page-handling code. The critical question we asked was: can a user get at someone else's data just by changing an ID number in a request? We checked every place data gets changed, and the answer is no. The two previously open questions from the last audit are now resolved:
 
-- `PATCH /tasks/:id/status` (no route-level role gate) — **CONFIRMED safe**: `taskProjectController.js:65-83` checks the caller is `coordinator`/`founder` OR the task's own `assignee`, rejecting all others with 403.
-- Dashboard/analytics aggregation endpoints — **CONFIRMED safe**: every consuming route is Founder-gated at the route level (`founderRoutes.js:58-63`); no partial-access path exists for lower roles.
+- Updating a task's status (`PATCH /tasks/:id/status`) has no role check at the routing level, but we confirmed it's still safe: the code in `taskProjectController.js` (lines 65 to 83) checks that you're either a coordinator/Founder, or that the task is actually assigned to you, and rejects everyone else with a "forbidden" response.
+- The dashboard and reporting pages are also confirmed safe: every one of those pages is restricted to the Founder role at the routing level, so there's no partial-access path where a lower-level role could sneak in.
 
-`searchByToken` (`complaintControllerFactory.js:191-198`) remains a documented, intentional exception: any authenticated user can fetch any complaint by its 6-char token (≈2.2B combinations) — a horizontal-access design choice for shared status lookup, not a bug, retained as LOW.
+One thing worth knowing about (called `searchByToken`, in `complaintControllerFactory.js`, lines 191 to 198): any logged-in user can look up any complaint if they know its 6-character token. This is intentional, tokens work like a shared tracking number, and there are about 2.2 billion possible combinations, so guessing one isn't realistic. It's a deliberate design choice, not a bug, and we've rated it LOW risk.
 
 ---
 
@@ -190,58 +203,70 @@ RBAC via `roleMiddleware`, resource-level permissions via `permissionMiddleware`
 
 | Property | Value |
 |---|---|
-| Session identifier | JWT + server-side `sessions` doc keyed by `sid` |
-| Cookie usage | None — Bearer header, not cookies, so CSRF is not applicable to this API (see §22) |
-| Storage | `localStorage`/`sessionStorage` (JS-readable, no httpOnly option exists since no cookie is used) |
-| Expiration | 7 days, but revocable within ~60s via session-doc check |
-| Rotation | Not implemented — one token per login until expiry or revocation |
-| Revocation | CONFIRMED working — logout and admin force-logout both flip `revoked:true`, checked every request |
-| Concurrent sessions | Not restricted — multiple devices can hold valid tokens simultaneously; the Founder can see and individually revoke each |
+| What identifies your session | A login token plus a matching record in the `sessions` database collection, linked by a session ID |
+| Cookies | Not used at all, the login token is sent in a header instead, which also means a common attack called CSRF doesn't apply here (see section 22) |
+| Where the token is stored | In the browser's storage, which JavaScript on the page can technically read (there's no extra browser-level protection here, because that protection only applies to cookies, which this app doesn't use) |
+| How long it lasts | 7 days, but it can be revoked and take effect within about 60 seconds |
+| Does the token get replaced periodically? | No, one token lasts from login until it expires or is revoked |
+| Can a login be revoked? | Yes, confirmed working: both logging out yourself, and an admin force-logging someone out, flip a "revoked" flag that's checked on every single request |
+| Multiple devices at once | Not restricted, you can be logged in on several devices at the same time; the Founder can see all of them and revoke any one individually |
 
 ---
 
 ## 18. API Security
 
-No broken authentication found. No confirmed IDOR/BOLA after this pass (see §16). No mass-assignment path found — `role` is never writable from a caller-controlled field without a hardcoded allow-list check (`superAdminUserController.js:144-145`, `ASSIGNABLE_ROLES`). Parameter pollution: not specifically tested, Express's default query parser applies. Rate limiting: **now global**, not just auth routes (fixed today). CORS: allow-listed, not wildcard (see §22).
+We found no broken login checks. We found no cases where someone could access or change data that isn't theirs (see section 16). We found no way to sneak extra fields into a request that shouldn't be settable, for example your account role can never be changed by sending it in a request body; it's protected by a hardcoded allow-list (`superAdminUserController.js`, lines 144 to 145). We didn't specifically test for "parameter pollution" (sending the same field twice to confuse the server), this relies on Express's default behavior. Rate limiting is now applied everywhere, not just the login page (fixed today). The list of trusted websites allowed to call the API is a specific allow-list, not a wildcard that lets anyone in (see section 23).
 
 ---
 
 ## 19. OWASP Top 10 Assessment
 
+(OWASP is a well-known industry list of the ten most common categories of web security problems. This table checks the app against each one.)
+
 | Category | Status | Evidence | Severity | Recommendation |
 |---|---|---|---|---|
-| A01 Broken Access Control | **Adequate** | Server-side role+ownership checks throughout, verified across all 10 controllers | — | Keep verifying new endpoints follow the same pattern |
-| A02 Cryptographic Failures | **Adequate** | Password hashing fully delegated to Firebase; JWT signed server-side; TLS via Vercel edge | — | Confirm TLS enforcement isn't solely platform-assumed (see §37) |
-| A03 Injection | **Strong** | Firestore's query builder used throughout, no string-concatenated queries, no `eval`/`child_process` found | — | — |
-| A04 Insecure Design | **Adequate** | Session-revocation, lockout, and ownership checks are deliberate design choices, not afterthoughts | — | — |
-| A05 Security Misconfiguration | **Fixed today** | helmet added, trust-proxy fixed, `/healthz` trimmed | LOW (post-fix) | Was HIGH pre-fix |
-| A06 Vulnerable/Outdated Components | **Unknown/Partial** | `npm audit` on backend reports 9 vulnerabilities (8 moderate, 1 high) in transitive deps — not yet resolved | MEDIUM | Run `npm audit fix`, review breaking changes before `--force` |
-| A07 Identification/Auth Failures | **Adequate** | Lockout, rate limiting, session revocation all present; no MFA | MEDIUM (no MFA) | Consider MFA for the Founder role specifically |
-| A08 Software/Data Integrity Failures | **Adequate** | No unsigned/unverified deserialization found; no CI/CD to attest build integrity | MEDIUM | Add CI with lockfile-pinned installs |
-| A09 Security Logging/Monitoring Failures | **Partial** | Admin actions + failed logins durably logged; general request/error logs are console-only | MEDIUM | Add structured logging (see §36, §46) |
-| A10 SSRF | **Not applicable / clean** | No server-side requests to user-controlled URLs found (see §29) | — | — |
+| A01: Broken access control | Adequate | Every role and ownership check happens on the server, confirmed across all 10 controllers | : | Keep applying the same pattern to any new page |
+| A02: Cryptographic failures | Adequate | Password hashing is fully handled by Firebase; login tokens are signed on the server; the connection is encrypted at Vercel's edge | : | Double-check that encryption isn't only assumed at the platform level (see section 37) |
+| A03: Injection (malicious code sneaking into a database query or command) | Strong | The database's own query builder is used everywhere, with no queries built by pasting text together, and no use of code-execution functions | : | : |
+| A04: Insecure design | Adequate | Session revocation, account lockout, and ownership checks were clearly designed in on purpose, not bolted on as an afterthought | : | : |
+| A05: Security misconfiguration | Fixed today | Security headers added, the trust-proxy setting fixed, the health-check page trimmed | LOW (after the fix) | Was HIGH before the fix |
+| A06: Vulnerable or outdated components | Unknown / partial | Running a dependency-checking tool on the backend reports 9 known issues (8 moderate, 1 high) in indirect dependencies, not yet resolved | MEDIUM | Run the automatic fixer, and carefully review any fix that requires forcing a bigger version jump |
+| A07: Identification and authentication failures | Adequate | Account lockout, rate limiting, and session revocation are all present; there's no multi-factor authentication | MEDIUM (no MFA) | Consider adding MFA specifically for the Founder role |
+| A08: Software and data integrity failures | Adequate | No unsafe deserialization found; there's no automated pipeline to verify what's actually being deployed | MEDIUM | Add an automated pipeline that installs from a locked, verified dependency list |
+| A09: Security logging and monitoring failures | Partial | Admin actions and failed logins are reliably recorded; ordinary request and error logs are console-only, not searchable | MEDIUM | Add organized, searchable logging (see sections 36 and 46) |
+| A10: Server-side request forgery (tricking the server into making requests on an attacker's behalf) | Not applicable, clean | No server-side requests to attacker-controlled addresses were found (see section 29) | : | : |
 
 ---
 
 ## 20. Injection Assessment
 
-No SQL (no SQL database in use). NoSQL: Firestore's `.where()`/`.doc()` API is used throughout with typed/fixed field names — no dynamic collection names or string-built query paths found. No command injection (`grep` for `child_process`/`exec(` across `main/backend`: zero hits). No template injection (no server-side templating engine in use — API returns JSON only). No LDAP (not applicable). No expression injection found.
+There's no traditional SQL database in use, so SQL injection doesn't apply. For the NoSQL database (Firestore) that is used, all queries go through its official query-building tools with fixed field names, we found no dynamically built collection names or queries pasted together from text. We found no command injection risk (we searched the entire backend for code that runs shell commands, and found none). There's no server-side template engine in use (the API only returns plain data, not rendered HTML), so template injection doesn't apply. LDAP injection (a directory-service attack) doesn't apply, this app doesn't use LDAP. We found no expression-injection risk either.
 
 ---
 
 ## 21. XSS Assessment
 
-**Stored XSS:** complaint/HR text is stored raw in Firestore, but the frontend renders it through React JSX (auto-escaping) — no rendering sink found that would execute it. **Reflected XSS:** API returns JSON, not HTML, so classic reflected XSS via URL params doesn't apply to the API surface. **DOM XSS:** zero `dangerouslySetInnerHTML`/`innerHTML`/`eval`/`new Function` in `main/frontend/src` (re-verified fresh this pass). **Verdict: no XSS sink identified.**
+XSS (cross-site scripting) is when an attacker sneaks malicious code into a page that then runs in another user's browser. We checked three flavors:
+
+**Stored XSS** (malicious content saved in the database, then shown to other people later): complaint and HR text is saved to the database exactly as typed, but the website displays it through React, which automatically escapes text so it can't run as code. We found no place where that protection is bypassed.
+
+**Reflected XSS** (malicious content in a URL that gets echoed back into the page): the API only ever returns plain data (JSON), never rendered HTML, so this style of attack doesn't apply to the API itself.
+
+**DOM XSS** (malicious code injected directly into the page's structure): we searched the entire frontend for the specific patterns that would allow this (`dangerouslySetInnerHTML`, `innerHTML`, `eval`, `new Function`) and found zero, re-checked fresh in this pass.
+
+**Overall verdict: we found no way to inject malicious code into the page.**
 
 ---
 
 ## 22. CSRF Assessment
 
-Not applicable in the traditional sense: authentication is Bearer-JWT in an `Authorization` header, never a cookie, so there is no ambient credential a cross-site form/script could ride along automatically. CSRF tokens are unnecessary here and correctly absent.
+CSRF (cross-site request forgery) is an attack where a malicious website tricks your browser into automatically sending a request to a site you're logged into, taking advantage of the browser automatically attaching your login cookie. This app doesn't use cookies at all, your login token is sent in a header instead, and there's no way for another website to make your browser automatically attach that header. So this category of attack simply doesn't apply here, and no extra CSRF protection is needed.
 
 ---
 
 ## 23. CORS Assessment
+
+CORS (Cross-Origin Resource Sharing) is the browser rule that controls which websites are allowed to make requests to this API from JavaScript. Here's the actual rule from the code:
 
 ```js
 const isLocalhost = (origin) => /^http:\/\/localhost:\d+$/.test(origin);
@@ -253,93 +278,96 @@ app.use(cors({
   maxAge: 600,
 }));
 ```
-`allowedOrigins` = `FRONTEND_URL` env var + one hardcoded production URL. The localhost regex is properly anchored (`^`/`$`) — re-verified this pass, no bypass found (e.g. `evil.com?localhost:1` fails the pattern). Requests with no `Origin` header are allowed (expected for non-browser/server-to-server callers; CORS doesn't gate those regardless). No wildcard, no `credentials: true` paired with a wildcard. **Verdict: sound.**
+
+The list of trusted websites (`allowedOrigins`) comes from an environment setting plus one hardcoded production web address. The rule that allows local development traffic is written carefully (it has to match the whole address exactly, from start to end), and we re-checked this pass that it can't be tricked, for example a fake address like `evil.com?localhost:1` correctly fails the check. Requests with no website address attached at all are allowed through, which is expected and normal for things like command-line tools or one server talking to another (CORS doesn't apply to those anyway). There's no wildcard that lets any website in, and no combination of a wildcard with credentials, which would be a real weakness. **Verdict: this is set up correctly.**
 
 ---
 
 ## 24. Security Headers
 
-**Before today: none.** `helmet()` is now applied globally in `server.js`, verified live to emit: `Content-Security-Policy` (default-src 'self' and friends), `Strict-Transport-Security` (max-age=31536000, includeSubDomains), `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, and others — confirmed via a live `curl -I` against the running server after the change.
+**Before today: there were none at all.** Security headers are small pieces of information a server sends back that tell the browser how to behave more safely. The `helmet()` tool is now applied to every response, and we confirmed live (by directly checking a running server's response) that it adds: a Content-Security-Policy (restricts what a page is allowed to load), Strict-Transport-Security (forces the browser to always use an encrypted connection, for one year, including on subdomains), a rule stopping browsers from guessing file types in unsafe ways, a rule stopping the site from being embedded in another site's frame (a clickjacking protection), a stricter referrer policy, and a couple of others.
 
 ---
 
 ## 25. Secret & Credential Audit
 
-No real secrets found in source (repo-wide grep for key-shaped strings: only two benign matches — a Playwright test password and a UI placeholder string). `.env`/`.env.local` are gitignored at both root and backend level; only `.env.example` templates are tracked. Variable names (values never read): `JWT_SECRET`, `FIREBASE_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY/API_KEY/STORAGE_BUCKET`, `SMTP_HOST/PORT/USER/PASS`, `FRONTEND_URL`, `VITE_API_BASE_URL`. `JWT_SECRET=********` (masked, boot fails without it — server.js:16-19).
+We searched the entire codebase for anything that looks like a real password, API key, or other secret accidentally left in the source code, and found none (the only two matches were harmless: a test password used only in automated tests, and a placeholder example string shown in the interface). The real secret files (`.env` and `.env.local`) are excluded from version control at both the project root and inside the backend folder; only template files with placeholder values are tracked. Here are the names of the secret settings the app needs (never their actual values): `JWT_SECRET`, the Firebase project ID/email/private key/API key/storage bucket names, the email server host/port/username/password, the trusted-website address, and a frontend API address. The app is even designed to refuse to start at all if `JWT_SECRET` is missing (see `server.js`, lines 16 to 19), which prevents it from accidentally running in an insecure state.
 
-`docs/login-credentials.pdf` — filename suggests stored credentials; confirmed not tracked by git. Owner reviewed and elected to leave it in place as-is (decision made 2026-08-29) rather than move/delete; flagged here for the record, not re-flagged as an open action item.
+There is a file called `docs/login-credentials.pdf` whose name suggests it might contain stored login details. We confirmed it is not tracked by version control. The project owner reviewed this and decided (on 2026-08-29) to leave it where it is rather than move or delete it. We're noting it here for the record, it isn't being flagged again as something that still needs action.
 
 ---
 
 ## 26. Database Security
 
-Firestore, Admin-SDK-only access — no client SDK path exists, so the absence of `firestore.rules` is consistent with the architecture rather than a gap, *provided* this remains true (no future client-side Firestore SDK). No injection risk (see §20). Backups: not verified from source — Firestore's own point-in-time recovery/export settings are configured at the Firebase console level, outside this repo — UNKNOWN without console access.
+The database (Firestore) can only be reached by the backend server, using full administrative access; there's no path for the browser to talk to it directly. Because of that, the lack of a database-level "security rules" file is fine as it stands, it's consistent with how the system is built, not a gap, as long as that stays true (if a direct browser-to-database connection is ever added later, rules would then be needed). We found no injection risk (see section 20). We could not verify backup settings from the source code alone, that's configured separately inside Firebase's own control panel, outside this codebase.
 
 ---
 
 ## 27. File Upload Security
 
-Multer with `memoryStorage()` (never touches disk), MIME allow-list (PDF/JPG/DOC/DOCX), 10MB cap enforced via `fileFilter`. Filenames are not directly used as storage paths without going through the app's own path construction (`hrDeskController.js:173`) — no path-traversal vector found. No malware scanning — UNKNOWN/not implemented, acceptable at current scale given the narrow MIME allow-list.
+File uploads use a library called Multer, configured to keep files in memory rather than writing them to disk, only accept specific file types (PDF, JPG, Word documents), and cap size at 10MB. Filenames from users are never used directly as storage paths, the app builds its own internal path instead (see `hrDeskController.js`, line 173), so there's no way to trick it into writing outside the intended folder. There's no malware scanning on uploaded files; we couldn't confirm one exists, but given the narrow list of allowed file types, this is an acceptable tradeoff at the current scale.
 
 ---
 
 ## 28. Storage Security
 
-Firebase Storage, accessed only via the Admin SDK — no public bucket URLs found, no signed-URL expiration to verify since access is entirely backend-mediated (every download re-runs the same role/ownership checks as any other protected read).
+File storage (Firebase Storage) is only reachable through the backend's administrative access; we found no publicly exposed file addresses. Since every download goes through the same role and ownership checks as any other protected page, there was nothing separate to verify around link expiration.
 
 ---
 
 ## 29. SSRF Assessment
 
-No server-side requests to user-controlled URLs found anywhere in `main/backend` — the only outbound HTTP calls are to fixed, hardcoded destinations (Firebase Identity Toolkit REST, SMTP). No webhook receivers, no URL-import features, no user-suppliable callback URLs. **Verdict: not applicable, no SSRF surface exists.**
+SSRF (server-side request forgery) is when an attacker tricks the server into making a request somewhere it shouldn't, often to reach internal systems the attacker couldn't otherwise access. We found no server-side requests to any attacker-influenced address anywhere in the backend, the only outbound network calls go to fixed, hardcoded destinations (Firebase's login system, and the email server). There are no webhook receivers, no "import from a URL" features, and no user-supplied callback addresses anywhere. **Verdict: this category of attack doesn't apply here at all.**
 
 ---
 
 ## 30. Path Traversal Assessment
 
-Only two file-path-adjacent code paths exist: asset IDs (validated `/^[\w-]+$/` before use as a Firestore doc id — not a filesystem path at all) and HR-desk document storage (path built by the app itself from a generated identifier, not directly from a user-supplied filename). No `../` traversal vector found.
+Path traversal is when an attacker uses something like `../../` in a filename to trick a server into reading or writing files outside the folder it's supposed to stay in. We found only two places in the code that touch anything file-path-related: equipment IDs (which are checked against a strict pattern before being used as a database record ID, they're never used as an actual file path), and HR document storage (where the storage path is built by the app itself from a generated ID, never directly from a filename someone typed). We found no way to sneak a traversal pattern through either one.
 
 ---
 
 ## 31. Dependency Security
 
-Backend `npm audit`: **9 vulnerabilities (8 moderate, 1 high)** in transitive dependencies — not yet triaged or fixed as part of today's changes (out of scope for this pass; flagged as an open action item, see §46). No `@`-scoped private-looking package names found in either `package.json` (no dependency-confusion risk). Frontend dependency audit not re-run this pass — see `docs/DEEP_AUDIT_REPORT.md` §3 for the last full stack listing.
+Running a dependency-checking tool (`npm audit`) on the backend reports 9 known issues (8 moderate, 1 high severity) in indirect dependencies, not yet reviewed or fixed as part of today's changes, that's flagged as a follow-up item (see section 46). We found no dependency-confusion risk (a supply-chain attack where a fake package with the same name as a private one gets installed by mistake), there are no privately-named packages that would be vulnerable to that trick. We didn't re-run the frontend's dependency check in this pass; see `docs/DEEP_AUDIT_REPORT.md`, section 3, for the last full list.
 
 ---
 
 ## 32. Third-Party Services
 
-Unchanged from `docs/DEEP_AUDIT_REPORT.md` §16: Firebase Auth, Firestore, Firebase Storage, SMTP (Nodemailer), Vercel. No SMS/analytics/payment/mapping integrations found.
+Unchanged from `docs/DEEP_AUDIT_REPORT.md`, section 16: Firebase's login system, Firestore, Firebase Storage, the email service (via Nodemailer), and Vercel for hosting. We found no text messaging, analytics, payment, or mapping integrations anywhere in the code.
 
 ---
 
 ## 33. Cloud Security
 
-Two Vercel projects (frontend, backend) under one org; Firebase project holds Firestore/Auth/Storage. IAM/permissions for the Firebase service account are configured at the Firebase/GCP console level — UNKNOWN from source alone (not verifiable without console access). No excessive-permission code pattern found in how the Admin SDK is used (it's used for exactly the operations the app needs, no broader scope requested in code).
+There are two separate Vercel hosting projects (one for the frontend website, one for the backend server), under one shared organization account. The Firebase project holds the database, login system, and file storage. The exact permission settings for the Firebase service account are configured in Firebase's own control panel, which we can't verify just by reading the source code. We found no pattern in the code that requests broader access than the app actually needs, it only asks for exactly the operations it uses.
 
 ---
 
 ## 34. Docker/Container Security
 
-Not applicable — no Dockerfile or docker-compose exists anywhere in the repository (confirmed via repo-wide search).
+Not applicable, there's no Docker setup (a way of packaging an app to run consistently anywhere) anywhere in this project. We confirmed this by searching the entire repository.
 
 ---
 
 ## 35. CI/CD Security
 
-**Confirmed absent.** No `.github/workflows`, no other CI config anywhere in the tree. Deployment is Vercel's Git-integration (inferred, exact trigger UNKNOWN from source). Practical consequence: no automated point where `npm audit`, lint, typecheck, or tests block a bad deploy — the 9 dependency vulnerabilities in §31 would not be caught by any existing gate.
+**Confirmed missing.** There's no automated deployment-checking pipeline (commonly called CI/CD) configured anywhere, and we couldn't determine from the source code alone exactly how deployments are triggered, though it's likely tied to Vercel's built-in Git integration. The practical effect: there's no automated point where a dependency check, a code-style check, a type check, or automated tests would block a bad update from reaching the live site. The 9 dependency issues mentioned in section 31 would sail straight through, because nothing currently catches them.
 
 ---
 
 ## 36. Logging & Monitoring
 
-**Implemented:** `audit_logs` collection (admin actions: user create/update/delete, permission change, password reset), `failed_logins` collection (IP-logged). **Missing:** structured/queryable logging for ordinary request/error traffic — currently `console.log`/`console.error` only, landing in ephemeral Vercel function logs. No APM/alerting integration found.
+**What's in place:** an `audit_logs` collection that records admin actions (creating, editing, or deleting user accounts; permission changes; password resets), and a `failed_logins` collection that records failed login attempts along with the visitor's IP address.
+
+**What's missing:** an organized, searchable logging system for everyday request and error traffic, right now that only goes to `console.log`/`console.error`, which lands in Vercel's temporary function logs and isn't easily searched later. We also found no integration with an application-monitoring or alerting tool.
 
 ---
 
 ## 37. Error Handling
 
-Centralized handler (`server.js`) logs full detail server-side, returns a generic message to the client unless a controller explicitly set `.status` — verified no environment branching exists (same behavior dev and prod, always safe). `/healthz` was the one place echoing internal detail (`usingEmulator`, raw Firestore error text) to unauthenticated callers — **fixed today**, now returns only `{status, firestore}` on failure, with the real error still logged server-side.
+There's one central error handler (in `server.js`) that logs the full error detail on the server, but only ever sends a generic, safe message back to whoever made the request, unless a specific page deliberately set its own status code and message. We confirmed there's no difference in behavior between a test environment and the live one, it's equally safe either way. The one place that used to leak internal detail was the health-check page (`/healthz`), it used to reveal whether the app was running in test mode and could echo raw database error text to anyone who visited it without logging in. That's fixed today, it now only returns a simple status and whether the database is reachable, and the real error detail is still logged, just only on the server, not shown to the visitor.
 
 ---
 
@@ -347,189 +375,218 @@ Centralized handler (`server.js`) logs full detail server-side, returns a generi
 
 | Scope | Before today | After today |
 |---|---|---|
-| `/login`, `/register`, `/verify-password` | 10 req/15min per IP | Unchanged |
-| Every other route | **None** | **300 req/15min per IP (global)** |
-| IP attribution behind Vercel's proxy | **Broken** — no `trust proxy` set, so `req.ip` likely resolved to one shared proxy hop for all traffic | **Fixed** — `app.set('trust proxy', 1)` now reads the real client IP from `X-Forwarded-For` |
+| Login, registration, and password-verification pages | 10 requests per 15 minutes per visitor | Unchanged |
+| Every other page | None at all | 300 requests per 15 minutes per visitor, applied globally |
+| Correctly identifying each visitor behind Vercel's proxy | Broken, the `trust proxy` setting was missing, so the server likely saw every visitor's request as coming from the same single address | Fixed, a setting called `app.set('trust proxy', 1)` now reads the real visitor address correctly |
 
-This second fix matters more than it looks: without it, the rate limits above were not reliably per-visitor in production — the STRIDE analysis in §42 originally flagged this as a live gap; it is now closed and its practical value restored.
+This second fix matters more than it might look: without it, the rate limits above weren't reliably tracking individual visitors once the app was live. This was flagged as a real, live gap in our threat-modeling analysis (section 42) and is now closed, restoring the actual protective value of the rate limits.
 
 ---
 
 ## 39. Input Validation
 
-No schema-validation library (joi/zod/express-validator) — validation is manual, per-controller, consistently applying required-field checks and allow-lists (e.g. `VALID_STATUSES`, `EDITABLE_FIELDS`, `ASSIGNABLE_ROLES`). Server-side validation exists independently of the frontend's (client-side-only) HTML5 constraints — confirmed the backend never trusts frontend validation alone.
+There's no dedicated validation library in use (tools like Joi, Zod, or express-validator), instead, each page manually checks required fields and compares values against fixed lists of allowed options (for example `VALID_STATUSES`, `EDITABLE_FIELDS`, `ASSIGNABLE_ROLES`). We confirmed the server never simply trusts the website's own form validation, all of the real checks happen again on the server side.
 
 ---
 
 ## 40. Data Protection
 
-**In transit:** TLS terminated at Vercel's edge; no app-level HTTPS-redirect middleware exists, consistent with that hosting model — UNKNOWN whether Vercel enforces HTTPS-only by platform default for this project (not independently verifiable from source). **At rest:** Firestore/Storage encryption is a GCP-managed platform default — UNKNOWN specifics from source, not application-level. **Application-level encryption:** none — no sensitive field is separately encrypted before being written to Firestore; protection is entirely access-control-based.
+**While data is traveling (in transit):** the connection is encrypted (TLS) right at Vercel's edge, and there's no additional code in the app itself that forces HTTPS, that's consistent with how this hosting setup normally works. We couldn't verify from the source code alone whether Vercel enforces HTTPS-only by default for this specific project.
+
+**While data is stored (at rest):** encryption of the database and file storage is handled automatically by Google Cloud's own infrastructure; we can't verify the exact details from the application's source code, since that's a platform-level setting, not something the app configures itself.
+
+**Extra encryption inside the app:** none, no individual sensitive field gets separately encrypted before being saved to the database. Protection here relies entirely on controlling who's allowed to access the data in the first place, not on encrypting it a second time.
 
 ---
 
 ## 41. Threat Model
 
-**Assets an attacker would want:** employee PII (`users` collection), complaint content (potentially sensitive HR grievances), session tokens, the Firebase service-account credential (full-trust, server-only).
+(A threat model is a structured way of thinking through who might attack the system, what they'd be after, and how they might try to get in.)
 
-**Threat actors:** unauthenticated internet attacker; authenticated low-privilege employee attempting horizontal/vertical escalation; a compromised employee account (phished credentials); a malicious or careless insider with legitimate elevated access; a compromised third-party dependency (see §31).
+**What an attacker would want:** employees' personal information (in the `users` collection), the content of complaints (which can include sensitive HR grievances), login tokens, and the Firebase service-account credential (which has full administrative trust and lives only on the server).
 
-**Entry points:** the ~60 API endpoints (§10), the two unauthenticated routes (`/`, `/healthz`, plus `/register`/`/login`), and (theoretically, not currently exploitable) a compromised npm dependency.
+**Who might attack:** someone with no account at all, trying from the open internet; a logged-in low-level employee trying to reach data or actions above their level; someone whose account was compromised through phishing; a careless or malicious insider who already has legitimate elevated access; or a compromise introduced through a third-party code package (see section 31).
 
-**Example theoretical attack path (mitigated):**
+**Where an attacker could try to get in:** the roughly 60 API pages (section 10), the handful of pages that don't require login at all (the homepage, the health-check page, and the login/register forms), and, in theory (though we found no evidence this is currently possible), a compromised dependency package.
+
+**A worked example of an attack that's already blocked:**
 ```
-ATTACKER (authenticated employee)
- ↓
-PATCH /api/coordinator/tasks/:id/status  (no route-level role check)
- ↓
-attempt: set status on a task NOT assigned to them
- ↓
-taskProjectController.js:74-78 — ownership check
- ↓
-403 Forbidden — attack path closed
+An attacker with a normal employee account
+  |
+  v
+Tries: PATCH /api/coordinator/tasks/:id/status
+       (this page has no role check at the routing level)
+  |
+  v
+Attempts to change the status of a task NOT assigned to them
+  |
+  v
+The code in taskProjectController.js (lines 74 to 78) checks ownership
+  |
+  v
+Result: rejected with a "forbidden" response, the attack doesn't work
 ```
 
 ---
 
 ## 42. Trust Boundaries
 
-```
-User ──(1)── Browser ──(2)── Internet/TLS ──(3)── Vercel edge ──(4)── Express API ──(5)── Firebase
+(A trust boundary is a point where data crosses from a less-trusted zone into a more-trusted one, and each one is a place where something could go wrong if it isn't checked properly.)
 
-(1) JWT in browser storage, JS-readable — no httpOnly cookie (N/A, no cookie auth). Mitigated: no
-    XSS sink exists in this app's own code (confirmed fresh, §21).
-(2) TLS via Vercel edge; no app-level HSTS previously — helmet now adds HSTS at the app layer too.
-(3) CORS allow-list restricts browser-origin callers (§23).
-(4) authMiddleware + roleMiddleware + permissionMiddleware + controller ownership checks, in that
-    order, before any Firestore access (§8, §16).
-(5) Admin SDK, full-trust, server-only credential, never reaches the browser. No Firestore Security
-    Rules — sound ONLY as long as (4) remains the sole access path (§26).
+```
+You -> your Browser -> the open Internet (encrypted) -> Vercel's edge servers
+    -> the backend server -> Firebase
+
+1. Your login token sits in browser storage, which JavaScript on the page can
+   technically read (there's no extra protection here, since that only
+   applies to cookies, and this app doesn't use cookies). This is mitigated
+   by the fact that we found no way to inject malicious code into this app's
+   own pages in the first place (confirmed fresh, section 21).
+2. The connection is encrypted at Vercel's edge; there wasn't an extra
+   browser-level instruction forcing encryption before today, helmet now
+   adds that instruction too.
+3. The list of trusted websites (CORS) restricts which sites' browsers can
+   call the API at all (section 23).
+4. Every request passes through the login check, then the role check, then
+   the fine-grained permission check, then the page's own ownership check,
+   all before it's allowed to touch the database (sections 8 and 16).
+5. The database's full-trust administrative credential never reaches the
+   browser, it only ever lives on the server. There's no database-level
+   security-rules file, and that's fine only as long as point 4 above stays
+   the one and only path into the database (section 26).
 ```
 
 ---
 
 ## 43. Attack Surface
 
+(The "attack surface" is the full set of doors and windows into a system, everywhere someone could try to get in.)
+
 ```
-                    INTERNET
+                    THE OPEN INTERNET
                        |
         +--------------+--------------+
         |                             |
-     PUBLIC (unauth'd)          AUTHENTICATED API
-   / , /healthz, /register,     ~56 endpoints across 10 route
-   /login (rate-limited)        files, role/ownership-gated
+   PUBLIC PAGES                AUTHENTICATED PAGES
+   (no login needed):          (need a valid login):
+   homepage, health-check,     about 56 pages across 10 route
+   register, login             files, each with its own role and
+   (rate-limited)              ownership checks
         |                             |
         +--------------+--------------+
                        |
-                    EXPRESS API
+                  BACKEND SERVER
                        |
           +------------+------------+
           |            |            |
-        AUTH        DATABASE     EXTERNAL
-   (Firebase Auth)  (Firestore,  (SMTP only —
-                     Admin SDK)   no webhooks/
-                                  callbacks)
+      LOGIN SYSTEM   DATABASE     EXTERNAL SERVICES
+      (Firebase)    (Firestore,   (email only, no webhooks
+                     full admin    or external callbacks)
+                     access)
 ```
-No GraphQL, no WebSocket server, no webhook receiver, no separate debug/admin panel route — all confirmed absent by repo-wide grep this pass.
+We found no GraphQL API, no WebSocket server (a type of persistent, two-way connection), no webhook receiver, and no separate debug or admin panel exposed anywhere, all confirmed absent by searching the entire codebase in this pass.
 
 ---
 
 ## 44. Theoretical Attack Paths
 
-1. **Credential stuffing against `/login`** → mitigated by per-IP rate limit + per-account lockout after 5 attempts. Residual risk: no MFA.
-2. **Session token theft via XSS** → no XSS sink exists in this codebase today (§21); helmet's CSP now adds a second layer of defense even if one were introduced later.
-3. **Privilege escalation via self-registration** → blocked; role is hardcoded server-side, never client-suppliable (§16).
-4. **Horizontal data access via ID guessing** → blocked on every mutating endpoint checked (ownership verified server-side); the one intentional exception (`searchByToken`) requires guessing a 6-char token with ≈2.2B combinations.
-5. **Rate-limit bypass via forged `X-Forwarded-For`** → **this was a real, confirmed gap; fixed today** via `trust proxy`.
-6. **Dependency compromise** → 9 known `npm audit` findings in transitive backend deps remain untriaged (§31, §46) — the most concrete open risk in this report.
+1. **Guessing passwords repeatedly against the login page:** blocked by the combination of a per-visitor rate limit and an account lockout after 5 failed attempts. The remaining risk is that there's no multi-factor authentication as a backup layer.
+2. **Stealing a login token through injected malicious code (XSS):** we found no way to inject malicious code into this app's own pages today (section 21); the new security headers add a second layer of defense even if one were ever introduced later.
+3. **Escalating your own privileges through the signup form:** blocked, your role is always hardcoded on the server as a plain employee, it's never something you can set yourself (section 16).
+4. **Accessing someone else's data by guessing an ID number:** blocked on every place that changes data, ownership is verified on the server. The one intentional exception (`searchByToken`) requires guessing a 6-character token out of about 2.2 billion possibilities.
+5. **Bypassing rate limits by faking the visitor's address:** this was a real, confirmed gap, and it's fixed today via the trust-proxy setting.
+6. **A compromised dependency package:** 9 known issues in indirect backend dependencies are still unreviewed (sections 31 and 46), this is the single most concrete open risk in this whole report.
 
 ---
 
 ## 45. Existing Security Controls
 
-| Security Control | Implemented? | Location | Strength |
+| Security Control | In place? | Where | How strong |
 |---|---|---|---|
-| Password hashing | Strong | Delegated to Firebase Auth | — |
-| Authentication (JWT + session revocation) | Strong | authController.js, authMiddleware.js, utils/sessions.js | — |
-| Authorization (role + ownership) | Strong | roleMiddleware.js, permissionMiddleware.js, all controllers | Verified across all 10 controllers this pass |
-| Input validation | Adequate | Manual per-controller allow-lists | No schema library, but consistently applied |
-| Secure cookies | N/A | No cookie-based auth exists | — |
-| HTTPS | Adequate | Vercel edge TLS + helmet HSTS (new) | Platform-level enforcement UNKNOWN in detail |
-| CORS restrictions | Strong | server.js allow-list, regex-anchored | — |
-| CSRF protection | N/A | Bearer-token auth, no ambient credential | — |
-| Rate limiting | **Strong (fixed today)** | Global + auth-specific limiters, trust-proxy corrected | Was Partial before today |
-| Security headers | **Strong (fixed today)** | helmet() | Was Missing before today |
-| Secret management | Strong | .gitignore'd, no secrets in source | — |
-| Database access controls | Strong | Admin-SDK-only, no client path | — |
-| Audit logs | Adequate | audit_logs, failed_logins collections | General request logs not yet structured |
-| File validation | Strong | utils/upload.js MIME/size allow-list | — |
-| Dependency scanning | **Missing** | No CI/CD gate | 9 known findings untriaged |
-| MFA | **Missing** | — | — |
+| Password hashing | Strong | Fully handled by Firebase's login system | : |
+| Login and session handling | Strong | authController.js, authMiddleware.js, utils/sessions.js | : |
+| Role and ownership checks | Strong | roleMiddleware.js, permissionMiddleware.js, and every controller | Verified across all 10 controllers this pass |
+| Checking incoming data | Adequate | Manual, page-by-page allow-lists | No dedicated validation library, but applied consistently |
+| Secure cookies | Not applicable | This app doesn't use cookies for login at all | : |
+| Encrypted connections (HTTPS) | Adequate | Encrypted at Vercel's edge, plus helmet's new instruction to always use it | Exactly how strongly the platform itself enforces this is unverified in detail |
+| Trusted-website restrictions (CORS) | Strong | An address-matching allow-list in server.js | : |
+| CSRF protection | Not applicable | Login uses a header, not a cookie, so there's no ambient credential to hijack | : |
+| Rate limiting | Strong (fixed today) | A global limiter plus a stricter one on the login pages, with the visitor-identification bug fixed | Was only partial before today |
+| Security headers | Strong (fixed today) | The helmet() tool | Was completely missing before today |
+| Keeping secrets out of the code | Strong | Excluded from version control, no secrets found in the source | : |
+| Database access restrictions | Strong | Only reachable with full administrative access, no path from the browser | : |
+| Audit logging | Adequate | The audit_logs and failed_logins collections | General request logs aren't yet organized or searchable |
+| File upload validation | Strong | utils/upload.js, checking file type and size | : |
+| Dependency vulnerability scanning | Missing | No automated pipeline to catch this | 9 known issues currently unreviewed |
+| Multi-factor authentication | Missing | : | : |
 
 ---
 
 ## 46. Security Gaps
 
-**CRITICAL:** none identified.
+**Critical (needs immediate attention):** none found.
 
-**HIGH:** none remaining — the three HIGH items from the prior audit (missing headers, thin rate limiting, credentials PDF) are resolved or explicitly accepted by the owner (see §25).
+**High (should be fixed before going further):** none remaining, the three high-severity items from the last audit (missing headers, thin rate limiting, and the credentials PDF) are either now fixed or were reviewed and knowingly accepted by the project owner (see section 25).
 
-**MEDIUM:**
-- 9 unaddressed `npm audit` findings (8 moderate, 1 high) in backend transitive dependencies.
-- No CI/CD pipeline to gate deploys on dependency/lint/test checks.
-- No structured/searchable logging for general request/error traffic.
-- No MFA, particularly for Founder-level accounts.
+**Medium (worth hardening):**
+- 9 unreviewed dependency issues (8 moderate, 1 high severity) in the backend's indirect dependencies.
+- No automated pipeline to catch dependency, code-style, or test problems before a deploy.
+- No organized, searchable logging for general request and error traffic.
+- No multi-factor authentication, especially for Founder-level accounts.
 
-**LOW:**
-- `renderRoutes.js` and the coordinator task-status endpoint remain intentionally open to any authenticated user (verified safe in this pass, not a defect).
-- `searchByToken` cross-user lookup by design (verified low-risk given token entropy).
+**Low (minor, worth knowing about):**
+- Two specific pages (the production-render pages and the coordinator's task-status update) are intentionally open to any logged-in user regardless of role; we confirmed in this pass that this is safe as designed, not a defect.
+- The `searchByToken` lookup lets any logged-in user find any complaint by its token, which is by design and low-risk given how many possible token values there are.
 
-**INFORMATIONAL:**
-- No session rotation on privilege change (a role change takes effect via the 15s `getMe()` poll and the 60s auth-middleware cache, not via token reissue) — functionally fine, worth knowing.
+**Informational (no action needed, just noted):**
+- If someone's role changes, their old login token doesn't get reissued right away, instead, the change takes effect through a background check that runs every 15 seconds on the frontend and a 60-second cache on the backend. This works fine in practice, just worth understanding how it actually happens.
 
 ---
 
 ## 47. Security Risk Register
 
+(A risk register is a simple table ranking each known issue by how bad it could be, how likely it is, and what to do about it.)
+
 | ID | Risk | Severity | Likelihood | Impact | Priority | Recommendation |
 |---|---|---|---|---|---|---|
-| R1 | Unaddressed npm audit findings in backend deps | MEDIUM | Medium | Medium | 1 | Run `npm audit fix`; review any requiring `--force` before applying |
-| R2 | No CI/CD gate | MEDIUM | High (ongoing) | Medium | 2 | Minimal GitHub Actions workflow: audit + lint + typecheck + e2e on PRs |
-| R3 | No structured logging | MEDIUM | High (ongoing) | Low-Medium | 3 | Add pino, ship to a queryable sink |
-| R4 | No MFA on privileged roles | MEDIUM | Low | High (if credentials compromised) | 3 | Evaluate Firebase Auth MFA for the Founder role |
-| R5 | `docs/login-credentials.pdf` on disk | LOW (owner-accepted) | Low | Medium | — | Owner reviewed, elected to leave as-is |
+| R1 | Unreviewed dependency issues in the backend | MEDIUM | Medium | Medium | 1 | Run the dependency auto-fixer, and carefully review anything that requires a bigger, breaking version jump before applying it |
+| R2 | No automated deployment-checking pipeline | MEDIUM | High (ongoing) | Medium | 2 | Set up a minimal automated workflow that checks dependencies, code style, types, and runs basic tests on every proposed change |
+| R3 | No organized, searchable logging | MEDIUM | High (ongoing) | Low to Medium | 3 | Add a proper logging library and send logs somewhere they can be searched later |
+| R4 | No multi-factor authentication on privileged accounts | MEDIUM | Low | High (if credentials are ever compromised) | 3 | Look into adding MFA for the Founder role through Firebase's built-in support |
+| R5 | `docs/login-credentials.pdf` still sits on disk | LOW (owner has accepted this) | Low | Medium | : | The owner has reviewed this and chosen to leave it as-is |
 
 ---
 
 ## 48. Security Score
 
-| Category | Score | Basis |
+| Category | Score | Why |
 |---|---:|---|
-| Authentication | 82 | Strong revocation/lockout/rate-limit; no MFA |
-| Authorization | 85 | Verified clean across all 10 controllers this pass |
-| API Security | 78 | Global rate limiting + headers now in place; no schema validation library |
-| Data Protection | 65 | Transit/access-control solid; no app-level encryption, TLS enforcement detail unverified |
-| Input Validation | 65 | Consistent manual validation, no schema library |
-| Secret Management | 88 | Confirmed clean, correctly gitignored |
-| Database Security | 75 | Admin-SDK-only is sound; no rules as a fallback layer |
-| Infrastructure | 68 | Vercel-managed TLS; cloud IAM detail unverified from source |
-| Dependency Security | 50 | 9 untriaged npm audit findings, no CI gate |
-| Logging & Monitoring | 55 | Admin/failed-login logging strong; general logging weak |
-| Secure Configuration | 80 | helmet + trust-proxy + rate limiting fixed today |
+| Authentication (login security) | 82 | Strong session revocation, lockout, and rate limiting; no MFA yet |
+| Authorization (permission checks) | 85 | Verified clean across all 10 controllers this pass |
+| API security | 78 | Global rate limiting and headers are now in place; there's no dedicated validation library |
+| Data protection | 65 | Solid while data is traveling and in access control; no extra in-app encryption, and platform-level encryption enforcement is unverified |
+| Checking incoming data | 65 | Applied consistently by hand, but with no dedicated validation library |
+| Keeping secrets safe | 88 | Confirmed clean, correctly excluded from version control |
+| Database security | 75 | Sound because access is restricted to the backend server only; there's no rules file as a backup layer |
+| Infrastructure | 68 | TLS is managed by Vercel; the exact cloud permission details are unverified from the source code |
+| Dependency security | 50 | 9 unreviewed issues, and no automated pipeline to catch new ones |
+| Logging and monitoring | 55 | Admin and failed-login logging is strong; general logging is weak |
+| Secure configuration | 80 | Helmet, the trust-proxy fix, and rate limiting were all fixed today |
 
-**OVERALL SECURITY SCORE: 79/100**
+**OVERALL SECURITY SCORE: 79 out of 100**
 
-*(Calculated as the unweighted mean of the 11 categories above, rounded down. Dependency Security and Logging & Monitoring are the two categories holding the score back; every other category is 65+.)*
+*(This is a simple average of the 11 categories above, rounded down. Dependency security and logging/monitoring are the two categories dragging the score down, every other category scores 65 or higher.)*
 
 ---
 
 ## 49. Project Health Score
 
-- **Architecture: 78/100** — clean tiering, consistent controller-factory reuse.
-- **Security: 79/100** — see §48.
-- **Code Quality: 74/100** — good reuse discipline, mixed JS/TS coverage.
-- **Performance: 72/100** — deliberate code-splitting; eager context-fetching self-acknowledged as a tradeoff.
-- **Maintainability: 71/100** — strong self-documentation habit (this doc included).
-- **Production Readiness: 68/100** — up from 61 pre-fix; still held back by no CI/CD and no MFA.
+- **Architecture: 78/100**, clean separation between layers, and consistent reuse of shared code (like the complaint-controller factory) instead of copy-pasting logic.
+- **Security: 79/100**, see section 48 above.
+- **Code Quality: 74/100**, good discipline around reusing code, though the codebase mixes JavaScript and TypeScript inconsistently.
+- **Performance: 72/100**, deliberate splitting of the app into smaller loadable chunks; there's a known, self-acknowledged tradeoff where some data gets fetched earlier than it strictly needs to be.
+- **Maintainability: 71/100**, a strong habit of writing documentation as things change (this very document is an example of that habit).
+- **Production Readiness: 68/100**, up from 61 before today's fixes; still held back mainly by the missing automated pipeline and the missing MFA.
 
 ---
 
@@ -537,126 +594,128 @@ No GraphQL, no WebSocket server, no webhook receiver, no separate debug/admin pa
 
 **Verdict: MOSTLY READY.**
 
-Not NOT READY — no critical or unmitigated high-severity vulnerability exists today. Not fully PRODUCTION READY in the strictest sense — the missing CI/CD gate means nothing currently stops a future dependency vulnerability or code regression from reaching production undetected, and the 9 existing npm audit findings haven't been triaged. Closing R1–R2 in §47 would justify moving this to PRODUCTION READY.
+This is not "not ready", there's no critical or unaddressed high-severity vulnerability today. But it's also not fully "production ready" in the strictest sense, the missing automated pipeline means nothing currently stops a future dependency problem or a code mistake from reaching the live site unnoticed, and the 9 existing dependency issues haven't been reviewed yet. Closing risk items R1 and R2 from section 47 would be enough to call this fully production ready.
 
 ---
 
 ## 51. Security Remediation Roadmap
 
-### Phase 1 — Immediate *(completed today)*
-- [x] Add `helmet()` — security response headers
-- [x] Fix `trust proxy` — restores real per-visitor rate limiting behind Vercel
-- [x] Add general API rate limiting (previously auth-routes-only)
-- [x] Unify password-length floor (10 chars) across registration, admin-create, and admin-reset
-- [x] Trim `/healthz` info disclosure for unauthenticated callers
-- [x] Remove orphaned root `package-lock.json` and unused `.tools/jdk-21.../` bundle
+(A roadmap for what to fix, grouped by urgency.)
 
-### Phase 2 — Security Hardening *(next)*
-- [ ] Triage and resolve the 9 `npm audit` findings in `main/backend`
-- [ ] Stand up a minimal CI workflow (npm audit + lint + typecheck + Playwright smoke) on PRs to `main`
-- [ ] Add structured logging (pino) for general request/error traffic, shipped to a queryable sink
+### Phase 1: Immediate (completed today)
+- [x] Added the helmet() security-headers tool
+- [x] Fixed the trust-proxy setting, restoring real per-visitor rate limiting behind Vercel
+- [x] Added rate limiting to every page (previously only the login pages had it)
+- [x] Made the password-length rule (10 characters) consistent across signup, admin-create, and admin-reset
+- [x] Trimmed what the health-check page reveals to visitors who aren't logged in
+- [x] Removed a leftover, unused `package-lock.json` file and an old Java installer folder
 
-### Phase 3 — Advanced Security *(as the app scales)*
-- [ ] Evaluate MFA for the Founder role
-- [ ] Consider automated dependency/secret scanning (e.g. Dependabot, gitleaks) once CI exists
-- [ ] Revisit `renderRoutes.js`/coordinator task-status role-openness if the user base or feature scope grows
-- [ ] Consider a lightweight WAF/monitoring layer if the app moves from internal to a broader user base
+### Phase 2: Security Hardening (next)
+- [ ] Review and resolve the 9 dependency issues in the backend
+- [ ] Set up a minimal automated pipeline (dependency check, code style, type check, and browser tests) that runs on every proposed change to the main codebase
+- [ ] Add a proper logging library for general request and error traffic, sending logs somewhere searchable
+
+### Phase 3: Advanced Security (as the app grows)
+- [ ] Look into multi-factor authentication for the Founder role
+- [ ] Consider automated dependency and secret scanning tools (like Dependabot or gitleaks) once the automated pipeline exists
+- [ ] Revisit whether the production-render pages and the coordinator task-status page should stay open to any logged-in user, as the user base or feature set grows
+- [ ] Consider a lightweight web application firewall or monitoring layer if the app grows beyond internal use
 
 ---
 
 ## 52. Production Security Checklist
 
-**Authentication**
-- [x] Secure password hashing (delegated to Firebase Auth)
-- [x] Password policy (10-char minimum, now consistent everywhere)
-- [ ] MFA
-- [x] Secure sessions (revocable, 7-day JWT)
-- [x] Secure password reset (admin-driven, audited)
-- [x] Brute-force protection (lockout + rate limit)
+**Login and authentication**
+- [x] Secure password hashing (handled by Firebase)
+- [x] A minimum password length (10 characters, now consistent everywhere)
+- [ ] Multi-factor authentication
+- [x] Sessions that can be revoked (7-day login tokens)
+- [x] A secure, audited admin password-reset process
+- [x] Protection against repeated password guessing (lockout plus rate limiting)
 
-**Authorization**
-- [x] RBAC
-- [x] Server-side authorization
-- [x] Resource ownership checks
-- [x] Admin protection (Founder-only routes verified)
-- [x] IDOR protection (verified across all controllers)
-- [x] Privilege escalation protection (role never client-writable)
+**Permissions**
+- [x] Role-based access control
+- [x] Permission checks happen on the server
+- [x] Ownership checks on your own data
+- [x] Admin-only pages are actually restricted (verified)
+- [x] Protection against accessing someone else's data by guessing an ID (verified across all controllers)
+- [x] Your account role can never be changed by sending it in a request
 
 **API**
-- [x] Authentication
-- [x] Authorization
-- [x] Input validation
-- [ ] Schema-based output filtering (manual today, works but not schema-enforced)
-- [x] Rate limiting (now global)
-- [x] Secure errors
-- [x] CORS
+- [x] Login required where it should be
+- [x] Permission checks
+- [x] Checking incoming data
+- [ ] A formal schema enforcing exactly what a response can contain (currently manual, works, but not enforced by a schema tool)
+- [x] Rate limiting (now applied everywhere)
+- [x] Safe, generic error messages
+- [x] Trusted-website restrictions (CORS)
 
 **Data**
-- [x] HTTPS (platform-enforced)
-- [ ] Encryption at rest — application-level (relies on GCP platform default)
-- [x] Sensitive data minimization (no unnecessary fields returned to lower roles)
-- [x] Secure storage (Admin-SDK-mediated only)
-- [ ] Verified backup strategy (UNKNOWN from source)
+- [x] Encrypted connections (HTTPS, enforced by the hosting platform)
+- [ ] Extra, application-level encryption at rest (this currently relies on Google Cloud's own default encryption)
+- [x] Not returning unnecessary sensitive fields to lower-permission roles
+- [x] Secure file storage (only reachable through the backend's administrative access)
+- [ ] A verified backup strategy (we couldn't confirm this from the source code alone)
 
 **Infrastructure**
-- [x] HTTPS
-- [ ] Verified cloud IAM configuration (UNKNOWN from source)
-- [x] Secrets management (gitignored, never in source)
-- [ ] CI/CD-gated deployment
+- [x] Encrypted connections
+- [ ] Verified cloud permission settings (unverifiable from the source code alone)
+- [x] Secrets kept out of version control and never in the source code
+- [ ] A deployment process gated by automated checks
 
 **Monitoring**
-- [x] Security logs (admin actions, failed logins)
-- [x] Audit logs
-- [x] Failed login monitoring
-- [ ] Alerting
-- [ ] Formal incident response plan
+- [x] Security-relevant logs (admin actions, failed logins)
+- [x] An audit trail
+- [x] Monitoring of failed logins
+- [ ] Alerting when something looks wrong
+- [ ] A formal, written plan for what to do if there's a security incident
 
 ---
 
 ## 53. Complete Feature Security Map
 
-Unchanged from `docs/DEEP_AUDIT_REPORT.md` §23 — every feature's frontend/API/DB/auth mapping still applies; only the perimeter (headers/rate-limiting) changed today, not per-feature logic.
+Unchanged from `docs/DEEP_AUDIT_REPORT.md`, section 23, the full mapping of each feature to its frontend, API, database, and login/permission requirements still applies exactly as described there. Only the safety net around the whole system (headers and rate limiting) changed today, not the logic inside any individual feature.
 
 ---
 
 ## 54. New Developer Explanation
 
-Start at `main/backend/server.js` — it's short and reads top to bottom: load config, fail fast if `JWT_SECRET` is missing, add security headers and rate limiting, set up CORS, mount ten route files under `/api/*`, then a catch-all error handler. Every route file in `main/backend/routes/` pairs one URL prefix with `authMiddleware` (checks who you are) and usually `roleMiddleware` (checks what your role can do), before handing off to a controller in `main/backend/controllers/`. Controllers are where the actual logic lives — read/write Firestore, check that you own the thing you're editing, and return JSON. The frontend (`main/frontend/src`) is a normal React app: `App.jsx` sets up routing and wraps everything in Context providers that fetch data through `utils/api.js`, one axios instance with your login token attached automatically. Security isn't a separate module bolted on — it's the middleware chain every request passes through before reaching your controller code, plus the ownership check your controller itself performs before any write.
+If you're new to this codebase, start with `main/backend/server.js`, it's short, and reads top to bottom: it loads configuration, immediately refuses to start if a required secret (`JWT_SECRET`) is missing, adds the security headers and rate limiting, sets up the trusted-website rules, connects the ten route files under `/api/`, and finally has one catch-all error handler at the end. Every file inside `main/backend/routes/` pairs one URL prefix with a login check, and usually also a role check, before handing the request off to a "controller" file inside `main/backend/controllers/`. The controllers are where the real work happens, reading and writing the database, checking you actually own whatever you're trying to change, and sending back the response. The frontend (`main/frontend/src`) is a normal React app: `App.jsx` sets up the page routing and wraps everything in shared Context providers, which fetch their data through `utils/api.js`, a single shared connection to the backend that automatically attaches your login token to every request. Security here isn't a separate add-on module, it's simply the sequence of checks every request has to pass through before it reaches your code, plus the ownership check that each individual controller performs itself before making any change.
 
 ---
 
 ## 55. Critical Findings
 
-None. No CRITICAL-severity finding was identified before or after today's fixes. The highest-priority remaining item is triaging the 9 existing `npm audit` findings (§31, §47 R1) — worth doing soon, not an active incident.
+None. No critical-severity issue was found either before or after today's fixes. The highest-priority item still open is reviewing the 9 existing dependency issues (sections 31 and 47, item R1), that's worth doing soon, but it is not an active, ongoing incident.
 
 ---
 
 ## 56. Final Security Assessment
 
-Project-Ticket entered this audit with solid foundations and exited it with its two biggest gaps — missing security headers and thin/broken rate limiting — closed. What remains is process maturity (CI/CD, structured logging, MFA) rather than architecture or code-level vulnerabilities. Every access-control claim in this report was verified against the actual controller code, not assumed from route names or comments; nothing was found to contradict the codebase's own stated design intent.
+Project-Ticket started this audit with solid foundations, and left it with its two biggest gaps (missing security headers, and thin or broken rate limiting) closed. What's left is process maturity: an automated deployment pipeline, organized logging, and multi-factor authentication, not architecture problems or code-level vulnerabilities. Every access-control claim in this report was checked directly against the actual code, not assumed from a route's name or a comment left in the code; nothing we found contradicted what the codebase itself says it's trying to do.
 
 ---
 
-## Final Questions — Answered Directly
+## Final Questions, Answered Directly
 
-1. **What are we doing RIGHT?** Server-side enforcement of every access decision that matters (identity, role, ownership); real session revocation; brute-force lockout; clean secret hygiene; no XSS/injection sinks found anywhere in the codebase.
-2. **What are we doing WRONG?** Nothing actively dangerous — the gaps are absence of process controls (CI/CD, structured logging, MFA), not broken logic.
-3. **Controls already implemented?** See §45 — authentication, authorization, secrets, CORS, headers (as of today), rate limiting (as of today), file validation, audit logging.
-4. **Controls partially implemented?** General logging/monitoring, dependency scanning (manual only, not automated), TLS/backup verification (platform-assumed, not independently confirmed).
-5. **Controls completely missing?** MFA, CI/CD security gate, structured/queryable general logging.
-6. **Biggest security risk?** The 9 untriaged `npm audit` findings — the most concrete, unresolved item in this report.
-7. **Can unauthorized users access protected resources?** No path found — every protected route requires a valid, non-revoked JWT.
-8. **Can one user access another's data?** No — verified across all controllers; the one intentional exception (`searchByToken`) requires guessing a high-entropy token.
-9. **Can privileges be escalated?** No path found — role is never client-writable outside a Founder-gated, allow-listed admin flow.
-10. **Are passwords securely protected?** Yes — hashing fully delegated to Firebase Auth; app never stores or sees a raw password beyond the login request itself.
-11. **Are auth tokens securely handled?** Adequately — JWT in browser storage (standard for this architecture), revocable server-side, no XSS sink exists to steal it via this app's own code.
-12. **Are APIs properly protected?** Yes, following today's fixes — auth, authorization, rate limiting, and headers all in place.
-13. **Is sensitive data adequately protected?** Yes at the access-control layer; no additional application-level encryption exists, which is a reasonable choice given the access-control model, not a gap.
-14. **Are secrets properly managed?** Yes — confirmed clean, gitignored, never in source.
-15. **Are third-party integrations secure?** Yes — narrow, well-scoped (Firebase, SMTP), no risky integrations found.
-16. **Is the database properly protected?** Yes — Admin-SDK-only access model is sound as implemented.
-17. **Is the infrastructure properly secured?** Largely platform-delegated to Vercel/Firebase; specifics (IAM, backup policy) are UNKNOWN from source alone.
-18. **Is the project production-ready?** Mostly ready — see §50.
-19. **What MUST be fixed before production?** Nothing blocking — the app is already effectively in production use. Triage the npm audit findings soon.
-20. **What SHOULD be fixed after (i.e., soon)?** CI/CD gate, structured logging, MFA evaluation — Phase 2/3 of §51.
-21. **What security architecture should we follow going forward?** Keep the current pattern: every new endpoint gets a route-level role check plus an in-controller ownership check before any mutation, exactly as every existing controller does — that consistency is this codebase's biggest security asset.
+1. **What are we doing right?** Every important access decision (who you are, your role, whether you own the data) is checked on the server. Sessions can genuinely be revoked. There's real protection against repeated password guessing. Secrets are kept clean and out of the source code. We found no way to inject malicious code or perform an injection attack anywhere in the codebase.
+2. **What are we doing wrong?** Nothing actively dangerous, the gaps are missing process controls (an automated pipeline, organized logging, MFA), not broken logic.
+3. **What's already in place?** See section 45: login, permissions, secrets, trusted-website restrictions, security headers (as of today), rate limiting (as of today), file validation, and audit logging.
+4. **What's partially in place?** General logging and monitoring, dependency scanning (done manually, not automatically), and encryption/backup verification (assumed at the platform level, not independently confirmed).
+5. **What's completely missing?** Multi-factor authentication, an automated deployment-checking pipeline, and organized, searchable general logging.
+6. **What's the biggest security risk right now?** The 9 unreviewed dependency issues, that's the single most concrete unresolved item in this entire report.
+7. **Can someone without an account reach protected pages?** No path was found, every protected page requires a valid, non-revoked login token.
+8. **Can one user reach another person's data?** No, verified across every controller; the one intentional exception (`searchByToken`) requires guessing a token with extremely high entropy (very hard to guess).
+9. **Can someone escalate their own permissions?** No path was found, your role can never be set by you, only through a Founder-gated, allow-listed admin process.
+10. **Are passwords properly protected?** Yes, hashing is fully handled by Firebase's login system; this app never stores or even sees a raw password beyond the moment it's submitted at login.
+11. **Are login tokens handled securely?** Reasonably well, they're stored in the browser (standard for this kind of app), can be revoked on the server, and there's no way to inject code into this app that could steal one.
+12. **Are the APIs properly protected?** Yes, following today's fixes, login checks, permission checks, rate limiting, and security headers are all in place.
+13. **Is sensitive data adequately protected?** Yes, at the access-control level; there's no additional in-app encryption, which is a reasonable choice given how access is already controlled, not a gap.
+14. **Are secrets properly managed?** Yes, confirmed clean, excluded from version control, never left in the source code.
+15. **Are the third-party services being used securely?** Yes, the integrations are narrow and well-scoped (Firebase and an email server), we found no risky integrations.
+16. **Is the database properly protected?** Yes, the "only the backend server has full access" model is sound as implemented.
+17. **Is the infrastructure properly secured?** Largely handled by Vercel and Firebase; the specific details (cloud permissions, backup policy) can't be confirmed from the source code alone.
+18. **Is the project ready for production?** Mostly, see section 50.
+19. **What absolutely must be fixed before production?** Nothing is currently blocking, the app is already effectively being used in production. Reviewing the dependency issues soon is strongly recommended.
+20. **What should be fixed soon after?** The automated pipeline, organized logging, and evaluating MFA, these are phases 2 and 3 in section 51.
+21. **What security approach should we keep following going forward?** Keep the current pattern: every new page should get a role check at the routing level, plus an ownership check inside the actual code, before it changes anything, exactly like every existing controller already does. That consistency is this codebase's biggest security strength.

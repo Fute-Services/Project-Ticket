@@ -7,6 +7,8 @@
 > **What this document does**
 >
 > This guide starts from zero and walks through the full build in order. It explains what each part means, why you need it, what to build, how the parts connect, how to test them, and when to move to the next step. The goal is to avoid jumping directly into a complex Founder AI before the foundation is ready.
+>
+> **New to the technical terms?** This document uses some software-industry words repeatedly, such as "backend" (the behind-the-scenes part of the app that a user never sees directly, which does the real work of checking permissions and reading data), "API" (a fixed, well-defined way for one piece of software to ask another piece of software for information), and "tool" (a small, purpose-built function that the AI is allowed to call to fetch or change real company data). A full plain-language glossary of every recurring term is in Section 24, near the end, if you want to check a word at any point.
 
 #### Product context
 
@@ -59,7 +61,7 @@ AI explains the result in simple language
 
 ## 1. Understand the final system before coding
 
-Your final product has three layers: people, AI agents, and company systems. The AI sits in the middle. It is not the database and it is not the permission system.
+Your final product has three layers: people, AI agents, and company systems. The AI sits in the middle. It is not the database (the actual storage system that holds your company's real, current records) and it is not the permission system (the rules that decide who is allowed to see or change what).
 
 ### What each department AI means
 
@@ -168,7 +170,7 @@ ProductionJob.project_id= PRJ-1024
 
 ## 4. Build authentication and permissions first
 
-Permissions must be enforced by your backend. Hiding a Founder AI button in the frontend is not enough because a user could still try to call the API directly.
+Permissions must be enforced by your backend (the behind-the-scenes server code, not the screens the user sees). Just hiding the Founder AI button on the visible page (the "frontend") is not enough, because a technically savvy user could still try to reach the underlying API (the direct channel used to request data) themselves, bypassing the button entirely.
 
 ### Example roles
 
@@ -199,7 +201,7 @@ Allowed: return data  |  Not allowed: reject
 
 ### Why check twice?
 
-The first check protects the AI endpoint. The second check protects the actual data tool. Even if an AI makes a strange tool choice, the tool itself still refuses unauthorized access.
+The first check protects the AI "endpoint" (the specific address in the backend that this type of request arrives at). The second check protects the actual data tool. Even if an AI makes a strange tool choice, the tool itself still refuses unauthorized access, so there are two independent locks instead of relying on just one.
 
 #### Conceptual backend check
 
@@ -216,7 +218,7 @@ Sensitive HR rule: use explicit permissions for salary, personal contacts, leave
 
 ## 5. Create the AI Gateway
 
-The AI Gateway is one backend layer that all AI requests pass through. It keeps AI logic out of random frontend pages and gives you one place for security, logging, cost controls and agent routing.
+The AI Gateway is one single checkpoint in your backend that every AI request has to pass through, no matter which screen it came from. Instead of scattering security and permission logic across many different pages, everything funnels through this one place, which makes it far easier to keep secure, to log what happened, to control costs, and to decide which AI agent should actually handle each question.
 
 ### Recommended request flow
 
@@ -275,7 +277,7 @@ Server decides whether this user is allowed to use agent="founder".
 
 ## 6. Build the Tool Layer
 
-A tool is simply a safe backend function the AI can call. This is the most important technical layer because it connects natural-language questions to real company data.
+A tool is simply a safe, purpose-built backend function the AI is allowed to call, similar to giving an assistant one specific labeled button to press rather than the keys to every filing cabinet. This is the most important technical layer, because it is what actually connects a plain-language question typed by a person to the real, current company data sitting in your systems.
 
 ### Start with read-only tools
 
@@ -545,7 +547,7 @@ If some departments use external systems, you have two choices: call the externa
 
 ## 11. Add document knowledge separately
 
-Your database is best for live structured facts. Documents are different. Policies, SOPs, architecture notes, sales playbooks and manuals should be indexed so the AI can search the relevant passages.
+Your database is best for live structured facts. Documents are different. Policies, SOPs (Standard Operating Procedures, i.e. written step-by-step company processes), architecture notes, sales playbooks and manuals should be "indexed", meaning processed and organized in a way that lets the AI search through them and pull out the relevant passage, similar to how a search engine finds the right page for you.
 
 ### Examples of document knowledge
 
@@ -656,7 +658,7 @@ For important answers, display small source information such as Development DB, 
 
 ## 14. Add audit logs and tracing
 
-When an answer is wrong, you need to know what happened. An AI audit log records the user question, selected agent, tools called, tool outputs/status, response, timing and errors.
+When an answer is wrong, you need to know what happened. An "audit log" is simply a permanent written record of events, in this case: it records the user's question, which agent handled it, which tools were called, what those tools returned, the final response, how long it took, and any errors along the way.
 
 ### Recommended AI run table
 
@@ -812,9 +814,9 @@ Backend performs update
 Audit event is stored
 ```
 
-> **Do not let the model directly write arbitrary SQL**
+> **Do not let the model directly write arbitrary SQL** (SQL is the language used to directly read from or change a database; letting the AI write its own SQL means it could technically touch anything, with no guardrails)
 >
-> Business actions should use narrow, validated backend functions. This keeps permissions, validation and audit rules under your control.
+> Business actions should use narrow, validated backend functions instead, of the kind described above as "tools". This keeps permissions, validation and a record of what happened (an "audit log", explained further in Section 14) under your control at all times.
 
 ## 18. Recommended project structure
 

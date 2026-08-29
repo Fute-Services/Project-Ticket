@@ -1,18 +1,18 @@
-# Authentication Workflow — httpOnly Cookies + Rotating Refresh Tokens
+# How Logging In Works: Secure Cookies and Refresh Tokens
 
-**Last updated:** 2026-08-29 · **Companion doc:** `docs/SECURITY.md`
+**Last updated:** 2026-08-29 · **Related doc:** `docs/SECURITY.md`
 
-This document is the complete, current structure of how sessions work in Project-Ticket, after the switch from a single 7-day JWT in `localStorage` to a short-lived access token + rotating refresh token, both in `httpOnly` cookies.
+This document explains, step by step, how a person's login session is kept secure in Project-Ticket. It replaces an older approach (one long-lived login token saved in the browser's local storage) with a safer one: a short-lived "access" token plus a longer-lived "refresh" token, both stored in a special kind of cookie called `httpOnly`, which JavaScript running on the page cannot read. That matters because if a malicious script ever ran on the site, it still couldn't steal these cookies directly.
 
 ## Summary
 
-| Token | Lifetime | Storage | Purpose |
+| Token | How long it lasts | Where it's stored | What it's for |
 |---|---|---|---|
-| Access token (`fute_token`) | 15 minutes | `httpOnly` cookie, path `/` | Sent on every request; what `authMiddleware.js` actually checks |
-| Refresh token (`fute_refresh`) | 7 days (or a browser-session cookie if "Remember me" is off) | `httpOnly` cookie, path `/api/auth` only | Exchanged for a new access token when the old one expires — never sent to any other route |
-| CSRF token (`fute_csrf`) | Mirrors the refresh token's lifetime | Regular (non-`httpOnly`) cookie, path `/` | Echoed back as an `X-CSRF-Token` header on every mutating request — proves the request came from this app's own frontend, not a forged cross-site one |
+| Access token (`fute_token`) | 15 minutes | An `httpOnly` cookie (hidden from page scripts), used on every page | Sent with every request. This is what the server actually checks to confirm who you are. |
+| Refresh token (`fute_refresh`) | 7 days (or just until the browser closes, if "Remember me" was left unchecked) | An `httpOnly` cookie, but only sent to the login-related pages, not everywhere | Used to get a new access token once the old one expires. It is never sent anywhere else, which limits where it could ever be exposed. |
+| CSRF token (`fute_csrf`) | Matches however long the refresh token lasts | A regular cookie (not hidden from scripts), used everywhere | Sent back as a special header on any request that changes data, as proof the request really came from this app's own website and not a forged request from somewhere else. |
 
-The refresh token is **rotated** on every use — a new one is issued and the old one is invalidated. If an already-invalidated (rotated-out) refresh token is ever presented again, that's treated as evidence of theft: the entire session is revoked immediately, forcing a real re-login even for the legitimate device.
+The refresh token is **replaced every time it's used**: a new one is issued and the old one stops working. If someone ever tries to reuse an old, already-replaced refresh token, the system treats that as a sign the token was stolen. It immediately shuts down that whole login session, forcing everyone, including the real user, to log in again.
 
 ## Complete flow
 
@@ -26,7 +26,7 @@ flowchart TD
     LoginFail --> LoginForm
     Verify -->|Valid| CreateSession["Create session doc in Firestore<br/>uid, ip, userAgent, remember"]
     CreateSession --> IssueTokens["Issue Access JWT (15 min)<br/>+ Refresh token (7d, hash stored)<br/>+ CSRF token"]
-    IssueTokens --> SetCookies["Set 3 cookies:<br/>fute_token — httpOnly, path /<br/>fute_refresh — httpOnly, path /api/auth<br/>fute_csrf — readable, path /"]
+    IssueTokens --> SetCookies["Set 3 cookies:<br/>fute_token: httpOnly, path /<br/>fute_refresh: httpOnly, path /api/auth<br/>fute_csrf: readable, path /"]
     SetCookies --> App[Dashboard loads]
     Cred -->|Yes| App
 
@@ -39,7 +39,7 @@ flowchart TD
     CSRFMatch -->|Yes| AuthCheck
     CSRFCheck -->|No, safe GET| AuthCheck{"Access cookie valid,<br/>signature OK,<br/>session not revoked?"}
 
-    AuthCheck -->|Valid| Controller["Controller runs —<br/>role + ownership checks,<br/>reads/writes Firestore"]
+    AuthCheck -->|Valid| Controller["Controller runs:<br/>role + ownership checks,<br/>reads/writes Firestore"]
     Controller --> Response["JSON response<br/>{success, message, data}"]
 
     AuthCheck -->|"Expired / missing (401)"| Interceptor["Frontend response interceptor<br/>catches the 401"]
@@ -53,7 +53,7 @@ flowchart TD
     SetCookies2 --> Retry["Retry the original request<br/>with the new access cookie"]
     Retry --> Controller
 
-    Lookup -->|"Matches a PREVIOUS,<br/>already-rotated-out hash"| Theft["Reuse detected —<br/>revoke the ENTIRE session<br/>(revokedReason: refresh_token_reuse)"]
+    Lookup -->|"Matches a PREVIOUS,<br/>already-rotated-out hash"| Theft["Reuse detected:<br/>revoke the ENTIRE session<br/>(revokedReason: refresh_token_reuse)"]
     Theft --> ClearAll[Clear all 3 cookies]
     ClearAll --> ForceLogin[Redirect to login]
 
@@ -74,17 +74,17 @@ flowchart TD
     class Interceptor,CallRefresh,Rotate warn
 ```
 
-## Why each piece exists
+## Why it's built this way
 
-- **15-minute access token** — limits how long a leaked/stolen access token would actually be usable, without making the user re-enter their password constantly (that's the refresh token's job).
-- **Refresh token scoped to `path: /api/auth`** — it's never sent to any of the ~60 other API routes, only the auth endpoints that need it, shrinking where it could ever leak from.
-- **Rotation + reuse detection** — the standard defense against a copied refresh token: the legitimate client always has the *current* one, so an attacker replaying an older copy is caught the moment the real client (or the attacker) uses theirs first and rotates past it.
-- **Separate CSRF cookie** — required because the access/refresh cookies must be `SameSite=None` to work across the frontend/backend's separate Vercel domains, which removes the browser's own built-in CSRF protection. The double-submit pattern (cookie value must match a header value) restores it: a forged cross-site request can't read our cookie to produce a matching header.
-- **Single-flight refresh on the frontend** — several components can hit a 401 around the same moment (e.g. a few widgets polling together); without coalescing them into one shared refresh call, the second one to arrive would find the first had already rotated the token and get incorrectly treated as a reuse/theft attempt.
+- **The access token only lasts 15 minutes.** This limits how much damage a leaked or stolen token could do, without forcing the user to type their password over and over (that's what the refresh token is for).
+- **The refresh token is only sent to the login-related pages.** It never travels to any of the roughly 60 other pages/features in the app, so there are far fewer places it could ever be exposed.
+- **The refresh token gets replaced every time it's used, and reuse is detected.** This is the standard way to defend against a copied refresh token. The real, legitimate device always has the newest one, so if a copy is ever replayed, the system catches it the moment either the real device or the copy is used first and the token moves on to its replacement.
+- **There's a separate cookie just for CSRF protection** (CSRF stands for Cross-Site Request Forgery: a trick where another website tries to make requests to this app pretending to be the logged-in user). This is needed because the login cookies have to work across two different website addresses (the frontend and the backend live on separate domains), which turns off a browser safety feature that would normally block this kind of trick automatically. The extra cookie brings that protection back: a forged request from another website can't read this cookie, so it can never produce a matching value to prove it's legitimate.
+- **Only one refresh request happens at a time**, even if several parts of the page notice the login has expired at the same moment. Without this, two refresh requests could collide, and the second one would look like a stolen, already-used token by mistake.
 
-## Simplified step-by-step
+## Simplified, step-by-step version
 
-The same three flows above, written linearly.
+The same three flows above, written out in plain, linear steps.
 
 ### Complete authentication flow
 
@@ -137,7 +137,7 @@ Token Valid?
      Dashboard
 ```
 
-### Token refresh — when the Access JWT expires
+### Token refresh: what happens when the access token expires
 
 ```
 API Request
@@ -155,7 +155,7 @@ Update Cookies
 API Request continues (original request retried automatically)
 ```
 
-*If the presented refresh token turns out to be an already-rotated-out one instead of the current one, this branches differently: the whole session is revoked instead of a new token being issued — see the reuse-detection path in the full diagram above.*
+*If the refresh token presented turns out to be an old, already-replaced one instead of the current one, things go differently: the whole session gets shut down instead of a new token being issued. See the reuse-detection path in the full diagram above for how that works.*
 
 ### Logout
 

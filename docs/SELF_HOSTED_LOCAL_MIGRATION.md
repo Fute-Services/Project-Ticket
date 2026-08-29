@@ -1,61 +1,46 @@
-# Migrating off Firebase to a fully self-hosted local server (192.168.1.121)
+# Moving off Firebase to a fully self-hosted local server (192.168.1.121)
 
-Goal: zero paid/cloud dependency (no Firebase, no Vercel). Backend, database
-and file storage all run on your own LAN box, `192.168.1.121`. No monthly
-subscription, no internet dependency for the app to work.
+**Goal:** zero paid or cloud dependency (no Firebase, no Vercel). The backend, database, and file storage would all run on your own office network box, `192.168.1.121`. No monthly subscription, and the app would keep working even without an internet connection.
 
-This is a real rewrite, not a config change — the backend currently talks to
-Firestore (data), Firebase Auth (login/passwords), and Firebase Storage
-(employee documents) in ~20 files. Every step below is required, not optional
-polish.
+This is a genuine rewrite, not a simple settings change. The backend currently talks to three separate Firebase services in roughly 20 files: Firestore (the database), Firebase Auth (handles logins and passwords), and Firebase Storage (holds employee documents). Every step below is required work, not optional polish.
 
 ## 0. What's actually being replaced
 
-Grep of `main/backend` for `db.collection(`, `bucket.`, `runTransaction`,
-`.batch(`, `auth.*` turned up the real surface area:
+A search through `main/backend` for the code patterns that talk to Firebase turned up the real scope of the change:
 
 | Firebase piece | Replacement | Why this choice |
 |---|---|---|
-| Firestore (`db.collection(...)`) | **MongoDB**, installed locally | Firestore is document-shaped (arbitrary fields per doc, no fixed schema) — Mongo is the same shape. Moving to Postgres would mean designing real tables/relations for ~18 collections; Mongo lets every existing `db.collection('x').doc(id).get()` call become `db.collection('x').findOne({_id: id})` with the surrounding logic untouched. Less rewrite, less risk. |
-| Firebase Auth (`auth.createUser/getUserByEmail/updateUser/deleteUser`, password verify) | **bcrypt + your own `users` collection** | Firebase owns password hashes today in a format you can't export into bcrypt. This is the one piece that isn't a mechanical swap — see step 4. |
-| Firebase Storage (`bucket.file(...).save()`, signed URLs) | **Local disk folder**, served statically | `multer` is already a dependency and already used for the upload itself; no need to add MinIO/S3 for one feature (employee document uploads in `hrDeskController.js`). |
-| `db.runTransaction(...)` (sessions.js, approvalController.js, complaintControllerFactory.js) | **MongoDB client sessions + transactions** | Mongo transactions require the server to run as a (single-node is fine) replica set — see step 1. |
-| `db.batch()` (complaintControllerFactory.js, securityController.js) | **`bulkWrite()`** | Direct equivalent. |
+| Firestore (the database) | **MongoDB**, installed locally | Firestore stores records without a rigid, fixed shape (each entry can carry whatever fields it needs). MongoDB works the same way. Switching to a traditional table-based database (like Postgres) would mean designing formal tables and relationships for around 18 different record types from scratch. MongoDB lets each existing "look up this record" call become MongoDB's equivalent version with the surrounding logic left untouched. Less rewriting, less risk of breaking something. |
+| Firebase Auth (creating accounts, looking people up, verifying passwords) | **bcrypt** (a well-established password-hashing tool) **plus your own `users` collection** | Firebase currently owns the scrambled (hashed) version of every password, in a format that can't be exported into bcrypt's format. This is the one part of the move that isn't a simple mechanical swap. See step 4. |
+| Firebase Storage (where uploaded files are kept) | **A local disk folder**, served directly by the app | `multer`, the tool that already handles file uploads in this app, doesn't need a cloud storage service behind it. There's no need to add a separate storage system just for one feature (employee document uploads in `hrDeskController.js`). |
+| Firestore's "transaction" feature (used in `sessions.js`, `approvalController.js`, `complaintControllerFactory.js` to make sure a group of related database changes either all happen or none do) | **MongoDB's own client sessions and transactions** feature | MongoDB's transactions require the database to be running in a mode called a "replica set" (even a single-machine one works), see step 1. |
+| Firestore's "batch" feature (grouping several writes into one operation, used in `complaintControllerFactory.js` and `securityController.js`) | MongoDB's **`bulkWrite()`** | A direct equivalent, does the same job. |
 
-Collections found (these all need to exist in Mongo): `users`, `sessions`,
-`failed_logins`, `audit_logs`, `settings` (singleton docs:
-`notification_rules`, `action_permissions`, `role_permissions`,
-`system_config`, `sla_policies`), `hr_complaints`, `it_complaints`,
-`approvals`, `leave_requests`, `assets`, `departments`, `employees`,
-`attendance`, `extra_hours`, `sent_emails`, `tasks`, `projects`, `renders`.
+The record types (called "collections") found in use, which all need to exist in MongoDB too: `users`, `sessions`, `failed_logins`, `audit_logs`, `settings` (which itself holds several named configuration entries: notification rules, action permissions, role permissions, system config, SLA policies), `hr_complaints`, `it_complaints`, `approvals`, `leave_requests`, `assets`, `departments`, `employees`, `attendance`, `extra_hours`, `sent_emails`, `tasks`, `projects`, `renders`.
 
 ---
 
 ## 1. Install MongoDB on 192.168.1.121
 
-1. Download **MongoDB Community Server** (MSI installer) from mongodb.com —
-   free, no account needed.
-2. Install it as a Windows Service (installer does this by default) so it
-   auto-starts on reboot.
-3. **Enable it as a single-node replica set** — required for transactions
-   (`runTransaction` usage above), otherwise those calls throw at runtime:
-   - Edit `C:\Program Files\MongoDB\Server\<version>\bin\mongod.cfg`, add:
+1. Download **MongoDB Community Server** (the Windows installer) from mongodb.com. It's free and doesn't require an account.
+2. Install it as a Windows background service (the installer does this by default), so it starts automatically whenever the server restarts.
+3. **Turn on "replica set" mode**, which is required for the transaction feature mentioned above; without it, those parts of the app would fail when they run.
+   - Open `C:\Program Files\MongoDB\Server\<version>\bin\mongod.cfg` and add:
      ```yaml
      replication:
        replSetName: "rs0"
      ```
-   - Restart the MongoDB service (`services.msc` → MongoDB → Restart).
-   - Run once from `mongosh`:
+   - Restart the MongoDB service (open `services.msc`, find MongoDB, click Restart).
+   - Then, just once, open MongoDB's command-line tool (`mongosh`) and run:
      ```js
      rs.initiate()
      ```
-4. Confirm it's reachable: `mongosh mongodb://localhost:27017` should connect.
-5. It listens on `127.0.0.1:27017` by default — fine, since the backend runs
-   on the same box and talks to it over localhost, not the LAN.
+4. Confirm it's working: running `mongosh mongodb://localhost:27017` should connect successfully.
+5. By default it only listens on the machine's own internal address (`127.0.0.1:27017`), which is fine, since the backend program runs on the very same machine and talks to it locally, not over the office network.
 
-## 2. Swap the Firebase config module for a Mongo one
+## 2. Swap the Firebase setup file for a MongoDB one
 
-Replace `main/backend/config/firebase.js` with `main/backend/config/db.js`:
+Replace `main/backend/config/firebase.js` with a new file, `main/backend/config/db.js`:
 
 ```js
 const { MongoClient } = require('mongodb');
@@ -74,109 +59,72 @@ async function connect() {
 module.exports = { client, connect, getDb: () => db };
 ```
 
-Add `mongodb` to `package.json` dependencies (`npm install mongodb`), and
-remove `firebase-admin`.
+Add `mongodb` as a dependency (run `npm install mongodb`), and remove `firebase-admin`.
 
-`server.js` must `await connect()` before `app.listen(...)` — Firestore
-connected lazily on first call, Mongo's driver needs an explicit connect.
+`server.js` needs to wait for `connect()` to finish before it starts accepting requests (`await connect()` before `app.listen(...)`). Firestore used to connect automatically the first time it was needed; MongoDB's connection has to be started explicitly.
 
-## 3. Rewrite every `db.collection(...)` call site
+## 3. Rewrite every place the code talks to the database
 
-This is the bulk of the work — 19 controllers + `utils/sessions.js` +
-`utils/auditLog.js` + `utils/notificationRules.js` +
-`middleware/authMiddleware.js` + `middleware/permissionMiddleware.js`. The
-translation is mechanical but must be done file by file:
+This is the bulk of the work: 19 controllers (the files that handle each feature), plus `utils/sessions.js`, `utils/auditLog.js`, `utils/notificationRules.js`, `middleware/authMiddleware.js`, and `middleware/permissionMiddleware.js`. The translation from Firestore's way of doing things to MongoDB's is mechanical, meaning each change follows a repeatable pattern, but it still has to be done file by file, carefully.
 
-| Firestore | MongoDB |
+| Firestore's way | MongoDB's equivalent |
 |---|---|
-| `collection.doc(id).get()` → `.exists` / `.data()` | `collection.findOne({_id: id})` → `null` if not found, fields are on the object directly |
-| `collection.doc(id).set(data)` | `collection.replaceOne({_id: id}, data, {upsert: true})` |
-| `collection.doc(id).set(data, {merge: true})` | `collection.updateOne({_id: id}, {$set: data})` |
-| `collection.doc(id).update(data)` | `collection.updateOne({_id: id}, {$set: data})` |
-| `collection.doc(id).delete()` | `collection.deleteOne({_id: id})` |
-| `collection.add(data)` | `collection.insertOne({...data})` — capture `insertedId` (Mongo won't auto-string it like a Firestore doc id; either let it be an ObjectId or set your own `_id`) |
-| `collection.where('field', '==', val).get()` | `collection.find({field: val}).toArray()` |
-| `collection.where('field', '>=', val).orderBy('field').limit(n).get()` | `collection.find({field: {$gte: val}}).sort({field: 1}).limit(n).toArray()` |
-| `collection.count().get()` | `collection.countDocuments(filter)` |
-| Firestore doc id (string, e.g. `"AST-1006"`) | Use the same value as Mongo's `_id` — keeps `assetController.js`'s business-id-as-doc-id convention working unchanged |
+| Look up one record by ID | Find one record matching that ID; if nothing matches, you get back nothing instead of an empty placeholder |
+| Save a record, replacing whatever was there | Replace it, creating it if it didn't already exist |
+| Update just some fields on a record, leaving the rest alone | Update just those fields |
+| Update just some fields (a second, equivalent way Firestore offers) | Same update operation as above |
+| Delete a record | Delete a record |
+| Create a new record | Create a new record; note that you need to capture the new record's ID afterward, since MongoDB doesn't hand you back a simple text ID the way Firestore does. You can either let MongoDB generate its own ID format or set your own. |
+| Find every record matching a condition | Find every record matching a condition |
+| Find matching records, sorted and limited to a certain number | Find, sort, and limit, same idea |
+| Count matching records | Count matching records |
+| A Firestore record's ID (a plain text value, for example `"AST-1006"`) | Use that exact same value as MongoDB's ID field, this keeps the existing convention of "the business ID is also the database ID" working without any other code changes |
 
-Do this **one controller at a time**, running that controller's routes
-against a Postman/curl smoke test before moving to the next. Order by risk:
-`authController.js` and `middleware/authMiddleware.js` first (nothing else
-works without login), then `complaintControllerFactory.js` (used by
-`hrRoutes`/`itRoutes`, biggest file), then the rest.
+Work through this **one file at a time**, and test that file's features by hand (using a tool like Postman or the `curl` command) before moving to the next one. Do them in this order, riskiest and most foundational first: `authController.js` and `middleware/authMiddleware.js` first (nothing else works if login is broken), then `complaintControllerFactory.js` (used by both the HR and IT complaint features, and the biggest file), then everything else.
 
-### Transactions and batches specifically
+### Grouped changes (transactions and batches) specifically
 
-- `utils/sessions.js` (`consumeRefreshToken`) and `approvalController.js`
-  (`updateStatus`) and `complaintControllerFactory.js` (`updateStatus`) use
-  `db.runTransaction`. Mongo equivalent:
+- `utils/sessions.js` (the part that issues new login tokens), `approvalController.js`, and `complaintControllerFactory.js` (both in their status-update code) use Firestore's transaction feature, which guarantees a group of changes either all succeed together or none of them happen. MongoDB's equivalent:
   ```js
   const session = client.startSession();
   try {
     await session.withTransaction(async () => {
-      // reads/writes here, passing { session } as the last arg to each call
+      // reads/writes here, passing { session } as the last argument to each one
     });
   } finally {
     await session.endSession();
   }
   ```
-- `complaintControllerFactory.js` (`deleteComplaint`) and
-  `securityController.js` use `db.batch()`. Mongo equivalent: build an array
-  of `{deleteOne: {...}}` / `{updateOne: {...}}` operations and call
-  `collection.bulkWrite(ops)`.
+- `complaintControllerFactory.js` (its delete-complaint code) and `securityController.js` use Firestore's batch feature, for grouping several writes into one. MongoDB's equivalent: build a list of the delete/update operations you want, and hand the whole list to MongoDB's `bulkWrite()` function at once.
 
-## 4. Replace Firebase Auth with local password auth
+## 4. Replace Firebase Auth with your own local password login
 
-This is the security-sensitive part — don't shortcut it.
+This is the security-sensitive part. Don't rush or shortcut it.
 
-**Password hashes already stored in Firebase Auth cannot be exported into
-bcrypt.** Firebase uses a scrypt variant with per-project parameters; there is
-no supported way to re-verify those hashes outside Firebase. Pick one:
+**The scrambled passwords currently stored by Firebase Auth cannot be exported into bcrypt's format.** Firebase uses a different scrambling method with settings unique to your Firebase project, and there's no supported way to check those existing scrambled passwords outside of Firebase itself. You have two options:
 
-- **(Recommended for this size of project)** Force a password reset for every
-  existing user at cutover — email each user a one-time reset link, or have
-  an admin set a temporary password via `superAdminUserController.js`'s
-  existing "force reset" endpoint once it's rewritten (step below). Simple,
-  no ambiguity, acceptable for an internal company portal.
-- Advanced alternative: implement Google's documented scrypt verification
-  algorithm against an exported Firebase Auth hash dump, so old passwords
-  keep working. More work, only worth it if you can't ask users to reset.
+- **(Recommended for a project this size)** Require every existing user to reset their password at the moment of the switchover. Either email each person a one-time reset link, or have an admin set a temporary password for them through the existing "force reset" feature in `superAdminUserController.js`, once that feature itself has been rewritten (see below). This is simple, leaves no room for confusion, and is a perfectly reasonable ask for an internal company tool.
+- A more advanced alternative: implement Google's own published version of their password-scrambling algorithm, run against an exported dump of the old Firebase password data, so people's existing passwords would keep working without anyone resetting anything. This is considerably more work, and really only worth doing if asking everyone to reset their password isn't acceptable.
 
-Once decided (assume password reset), rewrite:
+Assuming you go with the password-reset approach, here's what changes:
 
-- **`config/firebase.js`'s `auth` export** → delete it. Password hashing
-  moves into the `users` collection itself.
+- **`config/firebase.js`'s login-handling export**: delete it entirely. Password checking moves into the `users` collection itself.
 - **`authController.js`**:
-  - `register()`: replace `auth.createUser(...)` with
-    `bcrypt.hash(password, 12)` and store the hash directly on the user doc
-    (`{ email, passwordHash, full_name, role, ... }`), with your own
-    generated `_id` (e.g. `crypto.randomUUID()`) instead of a Firebase uid.
-  - `login()`: replace the Identity Toolkit `fetch(...)` call with
-    `bcrypt.compare(password, user.passwordHash)`.
-  - Delete `IDENTITY_TOOLKIT_BASE` / `IDENTITY_TOOLKIT_KEY` and the
-    `usingEmulator` import entirely.
-- **`superAdminUserController.js`**: replace `auth.createUser`,
-  `auth.updateUser(uid, {disabled})`, `auth.deleteUser(uid)`,
-  `auth.updateUser(uid, {password})` with, respectively: insert with a
-  bcrypt hash, `updateOne({_id}, {$set: {active: !active}})` (an `active`
-  field already exists in the schema per `authController.js`'s login check),
-  `deleteOne({_id})`, `updateOne({_id}, {$set: {passwordHash: await
-  bcrypt.hash(newPassword, 12)}})`.
-- Add `bcrypt` to `package.json` (`npm install bcrypt`).
-- Remove `FIREBASE_API_KEY` from `.env` — no longer needed once
-  `verifyPassword()` also switches to `bcrypt.compare`.
+  - The sign-up code: instead of creating the account through Firebase, scramble the password with bcrypt and store that scrambled version directly on the new user's record (along with their email, name, role, and so on), generating your own unique ID for them instead of relying on a Firebase-issued one.
+  - The login code: instead of checking the password through Firebase's online verification service, compare it locally using bcrypt's built-in comparison function.
+  - Delete the leftover Firebase-specific configuration values and the emulator-related code entirely, since none of it applies anymore.
+- **`superAdminUserController.js`**: every place it currently calls Firebase to create a user, disable/enable a user, delete a user, or reset someone's password needs to be replaced with the equivalent direct database operation: inserting a new record with a bcrypt-scrambled password, flipping an "active" true/false field that already exists in the data (the login check in `authController.js` already relies on it), deleting the record outright, or updating the record with a freshly bcrypt-scrambled new password.
+- Add `bcrypt` as a project dependency (`npm install bcrypt`).
+- Remove the Firebase API key setting from your configuration; it's no longer needed once password verification switches over to bcrypt entirely.
 
-JWT-based sessions (`utils/jwt.js`, cookies, `sid` revocation) are unaffected
-— none of that is Firebase-specific, it stays exactly as-is.
+The login-token system (JWTs, cookies, and the ability to remotely sign a session out) doesn't need to change at all. None of that is specific to Firebase; it stays exactly as it is today.
 
-## 5. Replace Firebase Storage with local disk
+## 5. Replace Firebase Storage with local disk storage
 
-`hrDeskController.js`'s `uploadEmployeeDocument` is the only file that
-touches `bucket`. Replace:
+`hrDeskController.js`'s employee-document upload feature is the only place that touches Firebase Storage. Replace it with something like:
 
 ```js
-// instead of bucket.file(storagePath).save(req.file.buffer, ...) + getSignedUrl
+// instead of uploading to Firebase Storage and generating a signed web link
 const fs = require('fs/promises');
 const path = require('path');
 
@@ -187,20 +135,17 @@ await fs.writeFile(diskPath, req.file.buffer);
 const url = `/uploads/employee-documents/${id}/${path.basename(diskPath)}`;
 ```
 
-Then in `server.js`, serve that folder statically:
+Then, in `server.js`, make that folder directly downloadable from the app itself:
 
 ```js
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 ```
 
-Add `main/backend/uploads/` to `.gitignore` (actual files shouldn't be
-committed). Employee documents contain PII — this folder is only reachable
-on your LAN, same as everything else, but make sure the server itself isn't
-port-forwarded to the internet.
+Make sure `main/backend/uploads/` is excluded from the project's shared code history (the actual uploaded files shouldn't ever be committed alongside the code). Employee documents contain personal information. This folder is only reachable from your office network, same as everything else described here, but double-check the server itself is never exposed directly to the open internet.
 
-## 6. Environment variables
+## 6. Configuration values
 
-New `main/backend/.env`:
+The new `main/backend/.env` file would look like:
 
 ```
 MONGO_URI=mongodb://localhost:27017/fute_portal
@@ -210,12 +155,11 @@ HR_EMAIL=... IT_EMAIL=...   # unchanged
 PORT=5000
 ```
 
-Remove every `FIREBASE_*` variable — nothing reads them anymore once step 4
-is done.
+Remove every Firebase-related setting; nothing reads them anymore once step 4 above is done.
 
-## 7. Run the backend on the server as a persistent service
+## 7. Run the backend on the server as a permanent background service
 
-Copy `main/backend` to the server, then:
+Copy the `main/backend` folder to the server, then run:
 
 ```bash
 cd main/backend
@@ -224,19 +168,18 @@ npm install mongodb bcrypt
 npm uninstall firebase-admin
 ```
 
-Use **PM2** so it survives reboots/crashes (it's the standard, free choice —
-no need for a hand-rolled Windows service):
+Use a tool called **PM2** to keep it running permanently, restarting it automatically if it crashes or the machine reboots (this is the standard, free choice for this; there's no need to build a custom Windows service from scratch):
 
 ```bash
 npm install -g pm2
 pm2 start server.js --name fute-backend
 pm2 save
-pm2-installer   # or `pm2 startup` equivalent so it restarts on Windows boot
+pm2-installer   # or the equivalent "pm2 startup" command, so it restarts automatically when Windows boots
 ```
 
-Backend now listens on `192.168.1.121:5000`.
+The backend would then be reachable at `192.168.1.121:5000`.
 
-## 8. Build and serve the frontend
+## 8. Build and serve the frontend (the part people actually see and use)
 
 ```bash
 cd main/frontend
@@ -244,55 +187,44 @@ npm install
 npm run build
 ```
 
-Serve the `dist/` folder from the same box — simplest is `serve`:
+Then serve the resulting `dist` folder from the same machine. The simplest way is a small tool called `serve`:
 
 ```bash
 npm install -g serve
 serve -s dist -l 80
 ```
 
-(Or point IIS at the `dist` folder if you'd rather use IIS, since it's
-already on Windows.)
+(Or, if you'd rather use Windows' built-in web server since the machine already runs Windows, point IIS at the `dist` folder instead.)
 
-Set `main/frontend/.env`'s `VITE_API_BASE_URL=http://192.168.1.121:5000`
-before building, and rebuild whenever that changes (Vite bakes env vars in
-at build time).
+Before building, set `main/frontend/.env`'s web address setting to point at `http://192.168.1.121:5000`, and rebuild any time that value changes; the build tool (Vite) locks environment settings into the build permanently at build time, they can't be changed afterward without rebuilding.
 
-## 9. Backups — Firestore gave you this for free, Mongo on one box doesn't
+## 9. Backups: Firestore handled this automatically, a single MongoDB machine does not
 
-Non-optional for a system holding real employee data. Schedule a daily dump:
+This is not optional for a system holding real employee data. Set up a daily automatic backup:
 
-1. Create `C:\backups\` folder.
-2. Windows Task Scheduler → daily task running:
+1. Create a `C:\backups\` folder.
+2. In Windows Task Scheduler, set up a daily task that runs:
    ```
    mongodump --uri="mongodb://localhost:27017/fute_portal" --out="C:\backups\%date:~-4,4%%date:~-10,2%%date:~-7,2%"
    ```
-3. **Copy those dumps off the box periodically** (external drive, another
-   machine on the LAN) — a backup that lives on the same disk as the live
-   data doesn't survive that disk failing.
-4. To restore: `mongorestore --uri="mongodb://localhost:27017/fute_portal" C:\backups\<date>\fute_portal`
+3. **Copy those backup files off the machine regularly** (to an external drive, or another machine on the network). A backup stored on the very same disk as the live data won't help if that disk fails.
+4. To restore from a backup later: `mongorestore --uri="mongodb://localhost:27017/fute_portal" C:\backups\<date>\fute_portal`
 
 ## 10. Network access
 
-- The server is only reachable from `192.168.1.0/24` (your office LAN) unless
-  you explicitly port-forward it — don't, unless you also add TLS and
-  tighten `cors`'s `allowedOrigins` list in `server.js` beyond `localhost`.
-- Windows Firewall must allow inbound on port 5000 (backend) and 80
-  (frontend) for other LAN machines to reach it — allow only from
-  `192.168.1.0/24`, not "Any".
+- The server should only be reachable from `192.168.1.0/24` (your office network) unless you deliberately open it to the wider internet, which isn't recommended unless you also add encrypted connections (TLS) and tighten the list of allowed website addresses in `server.js` beyond just your local development address.
+- Windows Firewall needs to allow incoming connections on port 5000 (the backend) and port 80 (the website) so other computers on the office network can reach it. Restrict that to your office network's address range specifically, not "any" source.
 
 ## 11. Cutover checklist
 
-- [ ] MongoDB installed, running as replica set, reachable via `mongosh`
+- [ ] MongoDB installed, running in replica-set mode, reachable through `mongosh`
 - [ ] `config/db.js` replaces `config/firebase.js`
-- [ ] All 19 controllers + 4 utils/middleware files converted (test each)
-- [ ] `authController.js` + `superAdminUserController.js` on bcrypt, no
-      Firebase Auth calls left (`grep -r "require('firebase-admin')"` returns
-      nothing)
-- [ ] Existing users notified / reset before old logins are cut off
-- [ ] `hrDeskController.js` uploads to local disk, `/uploads` served statically
-- [ ] `.env` has no `FIREBASE_*` keys
-- [ ] Backend running under PM2, restarts on reboot
-- [ ] Frontend built with `VITE_API_BASE_URL` pointed at the server, served
-- [ ] Daily `mongodump` scheduled, verified restorable, copied off-box
-- [ ] Firewall restricts backend/frontend ports to the LAN subnet
+- [ ] All 19 controllers plus the 4 supporting files converted and individually tested
+- [ ] `authController.js` and `superAdminUserController.js` fully switched to bcrypt, with no remaining Firebase login calls anywhere (searching the code for Firebase imports turns up nothing)
+- [ ] Existing users notified and their passwords reset before old logins stop working
+- [ ] `hrDeskController.js` uploads go to local disk, and that folder is served directly by the app
+- [ ] The `.env` configuration file has no leftover Firebase settings
+- [ ] The backend runs under PM2 and restarts automatically after a reboot
+- [ ] The frontend is built with its web address setting pointed at the server, and is being served
+- [ ] A daily backup is scheduled, has been tested to confirm it actually restores, and copies are kept off the machine
+- [ ] The firewall restricts both the backend and frontend ports to the office network only
