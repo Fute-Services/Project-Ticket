@@ -94,6 +94,7 @@ app.use('/api/leave', require('./routes/leaveRoutes'));
 app.use('/api/coordinator', require('./routes/coordinatorRoutes'));
 app.use('/api/production/renders', require('./routes/renderRoutes'));
 app.use('/api/hr-desk', require('./routes/hrDeskRoutes'));
+app.use('/api/sales-desk', require('./routes/salesDeskRoutes'));
 
 app.get('/', (req, res) => ok(res, { message: 'Fute Portal API running' }));
 

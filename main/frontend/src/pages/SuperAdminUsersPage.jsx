@@ -14,9 +14,10 @@ const ROLE_LABEL = {
   it: 'IT',
   coordinator: 'Coordinator',
   employee: 'Employee',
+  sales: 'Sales',
 };
 
-const EDITABLE_ROLES = ['it', 'hr', 'coordinator', 'employee', 'founder'];
+const EDITABLE_ROLES = ['it', 'hr', 'sales', 'coordinator', 'employee', 'founder'];
 
 export default function SuperAdminUsersPage() {
   const { user: me } = useAuth();
