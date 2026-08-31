@@ -6,13 +6,13 @@ const { ok, created, fail } = require('../utils/respond');
 // Roles Super Admin is allowed to hand-create an account for from the Role
 // Permissions page. Deliberately excludes 'founder' and 'superadmin' —
 // there's no self-service way to mint either from this screen.
-const ASSIGNABLE_ROLES = ['it', 'hr', 'coordinator', 'employee'];
+const ASSIGNABLE_ROLES = ['it', 'hr', 'sales', 'coordinator', 'employee'];
 
 // Roles Super Admin can move an EXISTING user into via the Users page —
 // wider than ASSIGNABLE_ROLES because promoting someone to founder is a
 // legitimate Super Admin action (superadmin outranks founder). Minting a
 // second superadmin still isn't self-service, same reasoning as above.
-const EDITABLE_ROLES = ['it', 'hr', 'coordinator', 'employee', 'founder'];
+const EDITABLE_ROLES = ['it', 'hr', 'sales', 'coordinator', 'employee', 'founder'];
 
 // Tickets store `role`/`user_role` at creation time, so most docs need no
 // lookup here at all; only legacy docs missing both fields fall back to a

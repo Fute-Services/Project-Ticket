@@ -9,6 +9,7 @@ import { TaskProjectProvider } from './context/TaskProjectContext';
 import { RenderProvider } from './context/RenderContext';
 import { AssetProvider } from './context/AssetContext';
 import { HrDeskProvider } from './context/HrDeskContext';
+import { SalesDeskProvider } from './context/SalesDeskContext';
 import LoginPage from './pages/LoginPage';
 import RequireAuth, { AppSkeleton } from './components/RequireAuth';
 import { Toaster } from './components/ui/sonner';
@@ -48,13 +49,34 @@ const SuperAdminAnalyticsPage = lazy(() => import('./pages/SuperAdminAnalyticsPa
 const SuperAdminAuditLogPage = lazy(() => import('./pages/SuperAdminAuditLogPage'));
 const SuperAdminSettingsPage = lazy(() => import('./pages/SuperAdminSettingsPage'));
 const DepartmentDashboardPage = lazy(() => import('./pages/DepartmentDashboardPage'));
+const SalesOverview = lazy(() => import('./pages/sales/Overview'));
+const SalesDirectory = lazy(() => import('./pages/sales/Directory'));
+const SalesDailyCalls = lazy(() => import('./pages/sales/DailyCalls'));
+const SalesFollowUps = lazy(() => import('./pages/sales/FollowUps'));
+const SalesMeetings = lazy(() => import('./pages/sales/Meetings'));
+const SalesPipeline = lazy(() => import('./pages/sales/Pipeline'));
+const SalesCampaigns = lazy(() => import('./pages/sales/Campaigns'));
+const SalesReports = lazy(() => import('./pages/sales/Reports'));
+const SalesSettings = lazy(() => import('./pages/sales/Settings'));
 
 const DASHBOARD_ROUTES = [{ path: '/it/dashboard', allow: ['it'] }];
 
-// Sales, Developers, Marketing, Branding, Production — demo-only roles with
-// no backend of their own yet (see data/deptDemoData.js). Each gets its own
-// route, scoped to just that role, same isolation as every other dashboard.
-const DEPARTMENT_ROLES = ['sales', 'developers', 'marketing', 'branding', 'production'];
+// Developers, Marketing, Branding, Production — still demo-only roles with
+// no backend of their own yet (see data/deptDemoData.js). Sales used to be
+// a fifth entry here; it now has a real backend/routes below instead.
+const DEPARTMENT_ROLES = ['developers', 'marketing', 'branding', 'production'];
+
+const SALES_ROUTES = [
+  { path: '/sales/overview', element: <SalesOverview /> },
+  { path: '/sales/directory', element: <SalesDirectory /> },
+  { path: '/sales/daily-calls', element: <SalesDailyCalls /> },
+  { path: '/sales/follow-ups', element: <SalesFollowUps /> },
+  { path: '/sales/meetings', element: <SalesMeetings /> },
+  { path: '/sales/pipeline', element: <SalesPipeline /> },
+  { path: '/sales/campaigns', element: <SalesCampaigns /> },
+  { path: '/sales/reports', element: <SalesReports /> },
+  { path: '/sales/settings', element: <SalesSettings /> },
+];
 
 const HR_ROUTES = [
   { path: '/hr/overview', element: <HrOverview /> },
@@ -95,6 +117,7 @@ export default function App() {
       <RenderProvider>
       <AssetProvider>
       <HrDeskProvider>
+      <SalesDeskProvider>
       <BrowserRouter>
       <Suspense fallback={<AppSkeleton />}>
         <Routes>
@@ -220,6 +243,13 @@ export default function App() {
               element={<RequireAuth allow={['hr']}>{element}</RequireAuth>}
             />
           ))}
+          {SALES_ROUTES.map(({ path, element }) => (
+            <Route
+              key={path}
+              path={path}
+              element={<RequireAuth allow={['sales', 'founder']}>{element}</RequireAuth>}
+            />
+          ))}
           {COORDINATOR_ROUTES.map(({ path, element }) => (
             <Route
               key={path}
@@ -243,6 +273,7 @@ export default function App() {
       </Suspense>
         <Toaster position="bottom-right" richColors closeButton />
       </BrowserRouter>
+      </SalesDeskProvider>
       </HrDeskProvider>
       </AssetProvider>
       </RenderProvider>

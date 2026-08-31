@@ -302,4 +302,29 @@ export const getMyPerformance = () => api.get('/api/hr-desk/performance/me');
 export const sendHrEmail = (data) => api.post('/api/hr-desk/send-email', data);
 export const getSentHrEmails = () => api.get('/api/hr-desk/send-email');
 
+// Sales Desk — same list/create/update/delete shape as hrDeskResource, just
+// against /api/sales-desk instead. A separate desk (own role, own
+// collection), not part of the HR module even though it reuses its pattern.
+function salesDeskResource(path) {
+  return {
+    list: () => api.get(`/api/sales-desk/${path}`),
+    create: (data) => api.post(`/api/sales-desk/${path}`, data),
+    update: (id, patch) => api.patch(`/api/sales-desk/${path}/${id}`, patch),
+    remove: (id) => api.delete(`/api/sales-desk/${path}/${id}`),
+  };
+}
+export const salesLeadsApi = salesDeskResource('leads');
+salesLeadsApi.import = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post('/api/sales-desk/leads/import', formData);
+};
+salesLeadsApi.logCall = (id, data) => api.post(`/api/sales-desk/leads/${id}/log-call`, data);
+export const exportSalesEmailCampaign = () =>
+  api.get('/api/sales-desk/email-campaign/export', { responseType: 'blob' });
+
+export const salesCampaignsApi = salesDeskResource('campaigns');
+export const getSalesSettings = () => api.get('/api/sales-desk/settings');
+export const updateSalesSettings = (data) => api.patch('/api/sales-desk/settings', data);
+
 export default api;

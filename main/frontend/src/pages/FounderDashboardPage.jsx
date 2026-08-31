@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApprovals } from '../context/ApprovalContext';
 import { useLeave } from '../context/LeaveContext';
 import { useHrDesk } from '../context/HrDeskContext';
+import { useSalesDesk } from '../context/SalesDeskContext';
 import { useTaskProject } from '../context/TaskProjectContext';
 import {
   Bell,
@@ -236,6 +237,7 @@ export default function FounderDashboardPage() {
   // HrDeskContext every HR page already shares (founder is already granted
   // read access there), just not surfaced on this dashboard until now.
   const { employees: hrEmployees, attendanceRecords: hrAttendance, extraHours: hrExtraHours } = useHrDesk();
+  const { leads: salesLeads } = useSalesDesk();
   const pendingDocsAndHours = approvals.filter(
     (a) => a.status === 'pending_founder' && ['document', 'extra-hours'].includes(a.category)
   );
@@ -244,6 +246,12 @@ export default function FounderDashboardPage() {
   const extraHoursThisMonth = hrExtraHours
     .filter((e) => e.date?.startsWith(thisMonthPrefix))
     .reduce((sum, e) => sum + (e.hours || 0), 0);
+
+  const salesContactedThisMonth = salesLeads.filter(
+    (l) => l.status && l.status !== 'Yet to be Called' && String(l.updated_at || l.created_at || '').startsWith(thisMonthPrefix)
+  ).length;
+  const salesMeetingsArranged = salesLeads.filter((l) => l.status === 'Meeting Arranged' || l.status === 'Converted').length;
+  const salesActiveReps = new Set(salesLeads.map((l) => l.assignedTo).filter(Boolean)).size;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans selection:bg-primary/30 selection:text-primary">
@@ -488,6 +496,31 @@ export default function FounderDashboardPage() {
                 <div className="bg-card border border-border rounded-2xl p-3.5">
                   <div className="text-2xl font-extrabold text-foreground">{extraHoursThisMonth}h</div>
                   <div className="text-xs text-muted-foreground mt-0.5">Extra hours logged<br />this month, org-wide</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sales Desk Rollup — Founder's own view into the Sales
+                Directory (leads, pipeline, reps), same shared SalesDeskContext
+                the Sales role's own Overview/Directory pages read. */}
+            <div className="w-full">
+              <h2 className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider">Sales Desk</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-card border border-border rounded-2xl p-3.5">
+                  <div className="text-2xl font-extrabold text-foreground">{salesLeads.length}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Leads in the directory</div>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-3.5">
+                  <div className="text-2xl font-extrabold text-foreground">{salesContactedThisMonth}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Leads contacted<br />this month</div>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-3.5">
+                  <div className="text-2xl font-extrabold text-foreground">{salesMeetingsArranged}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Meetings arranged<br />or converted</div>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-3.5">
+                  <div className="text-2xl font-extrabold text-foreground">{salesActiveReps}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Active reps</div>
                 </div>
               </div>
             </div>

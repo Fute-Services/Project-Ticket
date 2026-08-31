@@ -16,12 +16,14 @@ export const HOME_FOR_ROLE = {
   it: '/it/dashboard',
   coordinator: '/coordinator/overview',
   employee: '/employee/dashboard',
+  // Sales Desk — real backend (sales_leads collection, /api/sales-desk),
+  // not the illustrative department view the other four still use below.
+  sales: '/sales/overview',
   // Demo-only roles: same illustrative data the Founder already sees when
   // browsing these departments (see data/deptDemoData.js) — these accounts
   // exist so anyone can preview that view without going through the
   // Founder's dashboard. There's no dedicated backend or workflow behind
   // them yet, same as when a founder views them.
-  sales: '/department/sales',
   developers: '/department/developers',
   marketing: '/department/marketing',
   branding: '/department/branding',

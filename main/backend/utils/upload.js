@@ -23,4 +23,22 @@ const upload = multer({
   },
 });
 
-module.exports = { upload };
+// Sales Desk lead import — .xlsx only, same memory-storage/size-limit
+// approach as the Documents upload above, just gated to spreadsheet
+// mimetypes instead of PDF/JPG/Word.
+const SPREADSHEET_MIME_TYPES = new Set([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+  'application/vnd.ms-excel', // some browsers send this for .xlsx too
+]);
+const uploadSpreadsheet = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB — a ~1,000-row lead sheet is well under this
+  fileFilter: (req, file, cb) => {
+    if (!SPREADSHEET_MIME_TYPES.has(file.mimetype)) {
+      return cb(Object.assign(new Error('Only Excel (.xlsx) files are allowed'), { status: 400 }));
+    }
+    cb(null, true);
+  },
+});
+
+module.exports = { upload, uploadSpreadsheet };
