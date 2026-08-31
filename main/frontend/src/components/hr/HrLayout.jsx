@@ -187,16 +187,16 @@ export default function HrLayout({ children }) {
             )}
           </div>
 
-          {/* Collapse toggle */}
+          {/* Collapse Menu Toggle Button */}
           <button
             type="button"
-            onClick={() => setCollapsed((p) => !p)}
+            onClick={() => setCollapsed((prev) => !prev)}
             aria-expanded={!collapsed}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden lg:flex w-full p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/70 hover:text-white items-center justify-center gap-2 text-xs font-medium transition-colors cursor-pointer"
+            className="w-full p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/70 hover:text-white flex items-center justify-center gap-2 text-xs font-medium transition-colors cursor-pointer"
           >
             {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
-            {!collapsed && <span>Collapse</span>}
+            {!collapsed && <span>Collapse Menu</span>}
           </button>
         </div>
       </aside>
