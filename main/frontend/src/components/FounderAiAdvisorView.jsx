@@ -147,36 +147,36 @@ export default function FounderAiAdvisorView({ onNavigate }) {
     hr: {
       name: 'Payel (HR AI)',
       role: 'HR Executive Advisor',
-      color: 'border-blue-500/30 text-blue-400 bg-blue-950/20 shadow-blue-500/5',
-      accent: '#3b82f6',
+      color: 'border-[#23734B]/30 text-[#23734B] bg-[#23734B]/10 shadow-[#23734B]/5',
+      accent: '#23734B',
       icon: Users,
     },
     it: {
       name: 'IT Desk AI',
       role: 'IT Service Specialist',
-      color: 'border-cyan-500/30 text-cyan-400 bg-cyan-950/20 shadow-cyan-500/5',
-      accent: '#06b6d4',
+      color: 'border-[#1B5136]/30 text-[#1B5136] bg-[#1B5136]/10 shadow-[#1B5136]/5',
+      accent: '#1B5136',
       icon: Cpu,
     },
     coordinator: {
       name: 'Project Planner AI',
       role: 'Operations Coordinator',
-      color: 'border-purple-500/30 text-purple-400 bg-purple-950/20 shadow-purple-500/5',
-      accent: '#a855f7',
+      color: 'border-[#0C3515]/30 text-[#0C3515] bg-[#0C3515]/10 shadow-[#0C3515]/5',
+      accent: '#0C3515',
       icon: FolderKanban,
     },
     employee: {
       name: 'Employee Rep AI',
       role: 'Staff Voice Liaison',
-      color: 'border-emerald-500/30 text-emerald-400 bg-emerald-950/20 shadow-emerald-500/5',
-      accent: '#10b981',
+      color: 'border-[#616E5F]/30 text-[#616E5F] bg-[#616E5F]/10 shadow-[#616E5F]/5',
+      accent: '#616E5F',
       icon: MessageSquare,
     },
     founder: {
       name: 'Ratish (Founder AI)',
       role: 'Cabinet Chief of Staff',
-      color: 'border-amber-500/30 text-amber-400 bg-amber-950/20 shadow-amber-500/5',
-      accent: '#f59e0b',
+      color: 'border-[#6CA78B]/40 text-[#1B5136] bg-[#6CA78B]/15 shadow-[#6CA78B]/10',
+      accent: '#6CA78B',
       icon: Bot,
     }
   };
@@ -544,10 +544,10 @@ export default function FounderAiAdvisorView({ onNavigate }) {
       {/* Visual Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border rounded-2xl p-5 shadow-lg relative overflow-hidden">
         {/* Background ambient light decoration */}
-        <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-primary/5 via-purple-500/5 to-transparent pointer-events-none" />
-        
+        <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-primary/5 via-[#6CA78B]/5 to-transparent pointer-events-none" />
+
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white shadow-lg border border-primary/20 shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-primary to-[#0C3515] flex items-center justify-center text-white shadow-lg border border-primary/20 shrink-0">
             <Sparkles size={24} className="animate-pulse" />
           </div>
           <div>
@@ -833,7 +833,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
                   <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full border ${
                     reportData.summary.healthIndex === 'Healthy' 
                       ? 'text-primary border-primary/20 bg-primary/10' 
-                      : 'text-amber-500 border-amber-500/25 bg-amber-500/10'
+                      : 'text-[#0C3515] border-[#0C3515]/25 bg-[#0C3515]/10'
                   }`}>
                     {reportData.summary.healthIndex.toUpperCase()}
                   </span>
@@ -880,7 +880,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
                               met.status === 'Present' || met.status === 'Low'
                                 ? 'bg-primary/5 text-primary border-primary/20'
                                 : met.status === 'Warning' || met.status === 'Medium'
-                                  ? 'bg-amber-500/5 text-amber-500 border-amber-500/20'
+                                  ? 'bg-[#6CA78B]/10 text-[#1B5136] border-[#6CA78B]/30'
                                   : 'bg-destructive/5 text-destructive border-destructive/20'
                             }`}>
                               {met.status}
@@ -1096,7 +1096,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
                               </div>
                               <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
                                 t.status === 'In Progress'
-                                  ? 'bg-amber-500/5 text-amber-500 border-amber-500/20'
+                                  ? 'bg-[#6CA78B]/10 text-[#1B5136] border-[#6CA78B]/30'
                                   : 'bg-muted text-muted-foreground border-border'
                               }`}>
                                 {t.status}
@@ -1135,7 +1135,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
                                 act.urgency === 'High' 
                                   ? 'bg-destructive' 
                                   : act.urgency === 'Medium' 
-                                    ? 'bg-amber-500' 
+                                    ? 'bg-[#6CA78B]'
                                     : 'bg-primary'
                               }`} />
                               <div>

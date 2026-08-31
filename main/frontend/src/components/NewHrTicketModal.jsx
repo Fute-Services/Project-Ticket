@@ -125,7 +125,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
         {/* Header */}
         <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-muted/40">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-500">
+            <div className="w-10 h-10 rounded-xl bg-[#1B5136]/10 border border-[#1B5136]/20 flex items-center justify-center text-[#1B5136]">
               <UserPlus size={20} />
             </div>
             <div>
@@ -147,7 +147,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
 
         {submitted ? (
           <div className="p-10 text-center flex flex-col items-center justify-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 flex items-center justify-center animate-bounce">
+            <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/30 text-primary flex items-center justify-center animate-bounce">
               <CheckCircle2 size={32} />
             </div>
             <h3 className="text-lg font-bold text-foreground">HR Ticket Submitted!</h3>
@@ -232,7 +232,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                     type="button"
                     onClick={() => setPriority(p.id)}
                     className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex flex-col items-center text-center transition-all cursor-pointer ${priority === p.id
-                        ? 'bg-orange-500 text-white border-orange-600 shadow-md shadow-orange-500/20'
+                        ? 'bg-[#1B5136] text-white border-[#0C3515] shadow-md shadow-black/10'
                         : 'bg-muted border-border text-muted-foreground hover:text-foreground'
                       }`}
                   >
@@ -254,7 +254,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Correction needed in July Salary Slip - Overtime missing"
-                className="w-full h-10 bg-background border border-border rounded-xl px-3.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="w-full h-10 bg-background border border-border rounded-xl px-3.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
 
@@ -269,7 +269,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Please describe your query or issue in detail..."
-                className="w-full bg-background border border-border rounded-xl p-3 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="w-full bg-background border border-border rounded-xl p-3 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
 
@@ -284,7 +284,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                     value={attachment}
                     onChange={(e) => setAttachment(e.target.value)}
                     placeholder="Paste Google Drive link (with access)"
-                    className="w-full bg-transparent text-[11px] text-foreground placeholder-gray-500 focus-visible:outline-none border-b border-dashed border-border pb-0.5 mb-0.5"
+                    className="w-full bg-transparent text-[11px] text-foreground placeholder-muted-foreground focus-visible:outline-none border-b border-dashed border-border pb-0.5 mb-0.5"
                   />
                   <span className="text-[10px] text-muted-foreground leading-tight block">
                     {attachment.trim() && !isValidDriveLink
@@ -300,10 +300,10 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                   id="confidential-check"
                   checked={isConfidential}
                   onChange={(e) => setIsConfidential(e.target.checked)}
-                  className="mt-0.5 rounded border-border text-orange-500 focus:ring-orange-500 cursor-pointer"
+                  className="mt-0.5 rounded border-border text-warning focus:ring-warning cursor-pointer"
                 />
                 <label htmlFor="confidential-check" className="text-[11px] text-foreground cursor-pointer select-none leading-tight">
-                  <strong className="text-orange-500 font-bold block">Mark as Confidential</strong>
+                  <strong className="text-warning font-bold block">Mark as Confidential</strong>
                   Routed directly to Senior HR & Founder escalation queue.
                 </label>
               </div>
@@ -328,7 +328,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md shadow-orange-500/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-5 py-2 bg-[#1B5136] hover:bg-[#0C3515] text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md shadow-black/10 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <span>{submitting ? 'Submitting…' : 'Submit HR Ticket'}</span>
                 <ArrowRight size={14} />

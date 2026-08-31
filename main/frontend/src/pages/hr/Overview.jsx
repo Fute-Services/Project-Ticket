@@ -98,11 +98,11 @@ export default function HrOverview() {
 
         {/* Key Stat Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
-          <StatCard label="Total Employees" value={employees.length} sub={`${activeEmployees} active`} accent="#f97316" />
-          <StatCard label="Attendance Today" value={`${attendancePct}%`} sub={`${presentToday}/${todaysAttendance.length} present`} accent="#10b981" />
-          <StatCard label="Candidates" value={candidates.length} sub="in pipeline" accent="#a855f7" />
-          <StatCard label="Interviews Today" value={interviewsToday} sub="scheduled" accent="#3b82f6" />
-          <StatCard label="Notifications" value={notifications.filter((n) => n.unread).length} sub="unread" accent="#e86024" />
+          <StatCard label="Total Employees" value={employees.length} sub={`${activeEmployees} active`} accent="#1B5136" />
+          <StatCard label="Attendance Today" value={`${attendancePct}%`} sub={`${presentToday}/${todaysAttendance.length} present`} accent="#23734B" />
+          <StatCard label="Candidates" value={candidates.length} sub="in pipeline" accent="#6CA78B" />
+          <StatCard label="Interviews Today" value={interviewsToday} sub="scheduled" accent="#0C3515" />
+          <StatCard label="Notifications" value={notifications.filter((n) => n.unread).length} sub="unread" accent="#6CA78B" />
         </div>
 
         {/* Donut Chart */}

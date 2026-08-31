@@ -186,7 +186,7 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe your issue in detail..."
-                className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
               />
             </div>
 

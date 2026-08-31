@@ -81,7 +81,7 @@ export default function CoordinatorLayout({ children }) {
       <aside
         className={`fixed lg:sticky top-3 left-3 lg:left-auto lg:ml-3 z-40 ${
           collapsed ? 'w-[240px] lg:w-[68px]' : 'w-[240px] xl:w-[250px]'
-        } h-[calc(100vh-1.5rem)] bg-background border border-border rounded-lg flex flex-col justify-between shrink-0 p-4 overflow-hidden transition-all duration-300 lg:translate-x-0 ${
+        } h-[calc(100vh-1.5rem)] bg-card border border-border rounded-lg flex flex-col justify-between shrink-0 p-4 overflow-hidden transition-all duration-300 lg:translate-x-0 ${
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -203,7 +203,7 @@ export default function CoordinatorLayout({ children }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search tasks..."
-                className="h-10 bg-muted backdrop-blur-md border border-border rounded-xl pl-10 pr-4 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:bg-muted w-full transition-colors"
+                className="h-10 bg-muted backdrop-blur-md border border-border rounded-xl pl-10 pr-4 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:bg-muted w-full transition-colors"
               />
               {results.length > 0 && (
                 <div className="absolute top-full left-0 mt-2 w-full bg-muted border border-border rounded-xl shadow-xl overflow-hidden z-30">

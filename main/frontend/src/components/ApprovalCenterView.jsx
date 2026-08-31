@@ -141,7 +141,7 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                 placeholder="Request title"
-                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
 
@@ -167,7 +167,7 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
                 value={form.sub}
                 onChange={(e) => setForm((f) => ({ ...f, sub: e.target.value }))}
                 placeholder="Details"
-                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
 
@@ -178,7 +178,7 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
                 value={form.employeeId}
                 onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
                 placeholder="Employee ID (e.g. EMP-2001)"
-                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
 
@@ -189,7 +189,7 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
                 value={form.username}
                 onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
                 placeholder="Username (e.g. john.doe)"
-                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
 

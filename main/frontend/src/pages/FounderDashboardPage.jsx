@@ -55,37 +55,6 @@ const DEPT_ACCENT = {
   production: 'hsl(var(--chart-1))',
 };
 
-// Leadership bios are short original summaries, not copied text — matches
-// the public team page at futeservices.com (name, title, one-line focus).
-const LEADERSHIP_TEAM = [
-  {
-    name: 'Ratish Kovvammal',
-    title: 'Founder & CEO',
-    initials: 'RK',
-    gradient: 'from-primary to-warning',
-    photo: '/team-ratish.webp',
-    bio: '14+ years across sales, marketing, software, and customer experience.',
-  },
-  {
-    name: 'Payel Saha',
-    title: 'Chief Operations Officer',
-    initials: 'PS',
-    gradient: 'from-muted to-muted',
-    photo: '/team-payel.webp',
-    bio: 'Leads day-to-day operations with a versatile, hands-on approach.',
-  },
-  {
-    name: 'Soma',
-    title: 'Managing Director',
-    initials: 'S',
-    gradient: 'from-muted to-destructive',
-    photo: '/team-soma.webp',
-    bio: 'Drives creative direction and seamless execution across projects.',
-  },
-];
-
-
-
 
 
 export default function FounderDashboardPage() {
@@ -200,7 +169,7 @@ export default function FounderDashboardPage() {
       label: 'AI Agent Command Room',
       shortLabel: 'AI Agents',
       icon: Sparkles,
-      gradient: 'from-primary via-purple-500 to-indigo-500',
+      gradient: 'from-primary via-primary-hover to-[#0C3515]',
       welcomeMsg: 'Ask AI Agents to collaborate and report the status of all departments.',
       tagColor: 'text-primary border-primary/20 bg-primary/10',
     },
@@ -283,7 +252,7 @@ export default function FounderDashboardPage() {
       <aside
         className={`fixed lg:sticky top-3 left-3 lg:left-auto lg:ml-3 z-40 ${
           collapsed ? 'w-[195px] lg:w-[64px]' : 'w-[195px] xl:w-[200px]'
-        } h-[calc(100vh-1.5rem)] bg-background border border-border rounded-lg flex flex-col justify-between shrink-0 p-3 overflow-hidden transition-all duration-300 lg:translate-x-0 ${
+        } h-[calc(100vh-1.5rem)] bg-card border border-border rounded-lg flex flex-col justify-between shrink-0 p-3 overflow-hidden transition-all duration-300 lg:translate-x-0 ${
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -331,7 +300,7 @@ export default function FounderDashboardPage() {
             onClick={() => goToDept('ai-agents')}
             title={collapsed ? 'Fute AI+' : undefined}
             aria-current={activeDept === 'ai-agents' ? 'page' : undefined}
-            className={`mx-1 flex items-center py-1.5 rounded-xl text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer bg-gradient-to-br from-primary via-purple-500 to-indigo-500 text-white shadow ${
+            className={`mx-1 flex items-center py-1.5 rounded-xl text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer bg-gradient-to-br from-primary via-primary-hover to-[#0C3515] text-white shadow ${
               collapsed ? 'lg:justify-center lg:px-0 gap-2.5 px-2.5' : 'gap-2.5 px-2.5'
             } ${activeDept === 'ai-agents' ? 'ring-2 ring-offset-2 ring-offset-background ring-primary' : ''}`}
           >
@@ -467,10 +436,10 @@ export default function FounderDashboardPage() {
         {/* Dynamic Container View - Overview Hero Page */}
         {activeDept === 'overview' ? (
           <div className="w-full flex flex-col gap-4">
-            {/* Top: Founder + Leadership Team Header */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-stretch">
-              {/* Digital Clock Card - Orange Theme */}
-              <div className="lg:col-span-1 bg-gradient-to-br from-orange-500 via-amber-600 to-orange-600 text-white border border-orange-400/40 rounded-2xl p-4 flex flex-col justify-between items-center text-center relative overflow-hidden shadow-lg shadow-orange-500/20 group hover:shadow-orange-500/30 transition-all">
+            {/* Top: Digital Clock */}
+            <div className="grid grid-cols-1 gap-3 items-stretch">
+              {/* Digital Clock Card */}
+              <div className="w-full lg:w-72 bg-gradient-to-br from-primary via-primary-hover to-[#0C3515] text-white border border-primary/40 rounded-2xl p-4 flex flex-col justify-between items-center text-center relative overflow-hidden shadow-lg shadow-primary/20 group hover:shadow-primary/30 transition-all">
                 <div className="flex items-center justify-between w-full mb-2">
                   <div className="flex items-center gap-1.5 text-xs text-white/90 font-semibold uppercase tracking-wider">
                     <Clock size={14} className="text-white animate-pulse" />
@@ -495,35 +464,6 @@ export default function FounderDashboardPage() {
                 <div className="w-full border-t border-white/20 pt-2.5 flex justify-between items-center text-[11px] text-white/80">
                   <span>Timezone</span>
                   <span className="font-semibold text-white font-mono">IST (UTC+5:30)</span>
-                </div>
-              </div>
-
-              {/* Leadership Team - 3 columns */}
-              <div className="lg:col-span-3 bg-card border border-border rounded-2xl p-4 flex flex-col justify-between h-full">
-                <h2 className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider">Leadership Team</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
-                  {LEADERSHIP_TEAM.map((person) => (
-                    <div key={person.name} className="bg-muted border border-border rounded-2xl p-3.5 flex items-center gap-3 h-full hover:border-muted-foreground/40 transition-all">
-                      {person.photo ? (
-                        <img
-                          src={person.photo}
-                          alt={person.name}
-                          onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
-                          className="w-11 h-11 rounded-full object-cover shadow-lg border-2 border-border shrink-0"
-                        />
-                      ) : null}
-                      <div
-                        className={`w-11 h-11 rounded-full bg-gradient-to-tr ${person.gradient} items-center justify-center text-foreground text-xs font-semibold shadow-lg border-2 border-border shrink-0 ${person.photo ? 'hidden' : 'flex'}`}
-                      >
-                        {person.initials}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-xs font-semibold text-foreground truncate">{person.name}</h3>
-                        <span className="text-xs text-primary font-semibold block leading-tight">{person.title}</span>
-                        <p className="text-xs text-muted-foreground leading-snug mt-1 line-clamp-3">{person.bio}</p>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>

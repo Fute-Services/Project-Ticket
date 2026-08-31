@@ -237,7 +237,7 @@ export default function AssetsView() {
 
                 if (status === 'approved') {
                   return (
-                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold bg-emerald-500/10 text-emerald-500 border-emerald-500/20 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold bg-primary/10 text-primary border-primary/20 whitespace-nowrap">
                       <CheckCircle2 size={12} /> Approved
                     </span>
                   );
@@ -253,7 +253,7 @@ export default function AssetsView() {
 
                 if (status === 'pending_founder' || status === 'pending') {
                   return (
-                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold bg-amber-500/10 text-amber-500 border-amber-500/20 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold bg-[#6CA78B]/15 text-[#1B5136] border-[#6CA78B]/40 whitespace-nowrap">
                       <Clock size={12} /> Pending Approval
                     </span>
                   );

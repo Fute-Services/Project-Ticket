@@ -165,7 +165,7 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
                   value={requesterName}
                   onChange={(e) => setRequesterName(e.target.value)}
                   placeholder="Your full name"
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
               <div>
@@ -179,7 +179,7 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
                   value={requesterNumber}
                   onChange={(e) => setRequesterNumber(e.target.value)}
                   placeholder="e.g. 98765 43210"
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
             </div>
@@ -197,7 +197,7 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
                   value={folderName}
                   onChange={(e) => setFolderName(e.target.value)}
                   placeholder="e.g. Project_Backup_2026"
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
@@ -212,7 +212,7 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
                   value={folderPath}
                   onChange={(e) => setFolderPath(e.target.value)}
                   placeholder="e.g. D:\Data\Project_Backup_2026"
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
@@ -226,7 +226,7 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
                   placeholder="Explain why this data transfer is required..."
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
                 />
               </div>
             </div>
@@ -242,7 +242,7 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
                   value={backupName}
                   onChange={(e) => setBackupName(e.target.value)}
                   placeholder="e.g. Nightly_Backup_Aug"
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
               <div>

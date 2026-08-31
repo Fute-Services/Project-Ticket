@@ -133,7 +133,7 @@ export default function NewLeaveModal({ isOpen, onClose, onSubmitSuccess }) {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Briefly describe the reason for leave..."
-                className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
               />
             </div>
 

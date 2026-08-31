@@ -36,7 +36,7 @@ export default function SuperAdminLayout({ children }) {
       <aside
         className={`sticky top-3 left-3 ml-3 ${
           collapsed ? 'w-[64px]' : 'w-[195px] xl:w-[200px]'
-        } h-[calc(100vh-1.5rem)] bg-background border border-border rounded-lg flex flex-col justify-between shrink-0 p-3 overflow-hidden transition-all duration-300`}
+        } h-[calc(100vh-1.5rem)] bg-card border border-border rounded-lg flex flex-col justify-between shrink-0 p-3 overflow-hidden transition-all duration-300`}
       >
         <div>
           {!collapsed && (

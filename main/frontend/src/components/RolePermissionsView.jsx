@@ -227,14 +227,14 @@ export default function RolePermissionsView() {
               value={newUserForm.email}
               onChange={(e) => setNewUserForm((f) => ({ ...f, email: e.target.value }))}
               placeholder="Email address"
-              className="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
             <input
               required
               value={newUserForm.full_name}
               onChange={(e) => setNewUserForm((f) => ({ ...f, full_name: e.target.value }))}
               placeholder="Full name"
-              className="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
             <input
               required
@@ -243,7 +243,7 @@ export default function RolePermissionsView() {
               value={newUserForm.password}
               onChange={(e) => setNewUserForm((f) => ({ ...f, password: e.target.value }))}
               placeholder="Initial password"
-              className="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="bg-card border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
             <button
               type="submit"

@@ -111,12 +111,12 @@ export default function Attendance() {
         <h1 className="text-base font-semibold text-foreground tracking-tight">Attendance Management</h1>
 
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-2.5">
-          <StatCard icon={Users2} label="Total" value={employees.length} accent="#e86024" />
-          <StatCard icon={UserCheck} label="Present" value={counts.present} accent="#22c55e" />
+          <StatCard icon={Users2} label="Total" value={employees.length} accent="#1B5136" />
+          <StatCard icon={UserCheck} label="Present" value={counts.present} accent="#23734B" />
           <StatCard icon={UserX} label="Absent" value={counts.absent} accent="#ef4444" />
-          <StatCard icon={Home} label="WFH" value={counts.wfh} accent="#a855f7" />
-          <StatCard icon={CalendarOff} label="On Leave" value={counts.onLeave} accent="#f59e0b" />
-          <StatCard icon={Timer} label="Total Hours Today" value={formatHours(counts.totalHours)} accent="#38bdf8" />
+          <StatCard icon={Home} label="WFH" value={counts.wfh} accent="#6CA78B" />
+          <StatCard icon={CalendarOff} label="On Leave" value={counts.onLeave} accent="#616E5F" />
+          <StatCard icon={Timer} label="Total Hours Today" value={formatHours(counts.totalHours)} accent="#0C3515" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 items-start">

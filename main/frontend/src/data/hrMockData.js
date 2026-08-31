@@ -220,10 +220,10 @@ export const hiringTrend = [12, 18, 15, 22, 19, 27, 24, 30]; // last 8 weeks, of
 export const attendanceTrend = [92, 89, 94, 90, 96, 91, 93, 95]; // last 8 weeks, % present
 
 export const departmentDistribution = [
-  { department: 'Engineering', count: 14, color: '#e86024' },
-  { department: 'Human Resources', count: 4, color: '#f59e0b' },
-  { department: 'IT', count: 5, color: '#d97706' },
-  { department: 'Sales', count: 6, color: '#fb923c' },
+  { department: 'Engineering', count: 14, color: 'hsl(var(--chart-1))' },
+  { department: 'Human Resources', count: 4, color: 'hsl(var(--chart-2))' },
+  { department: 'IT', count: 5, color: 'hsl(var(--chart-3))' },
+  { department: 'Sales', count: 6, color: 'hsl(var(--chart-4))' },
 ];
 
 export const departmentPerformance = [

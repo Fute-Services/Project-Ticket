@@ -97,7 +97,7 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
       {/* Top Header */}
       <div className="h-14 px-5 border-b border-border flex items-center justify-between bg-muted shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-500">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
             <MessageSquare size={18} />
           </div>
           <div>
@@ -131,8 +131,8 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
                   onClick={() => setActiveChannel(ch.id)}
                   className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-all text-left cursor-pointer ${
                     isActive
-                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-bold'
-                      : 'text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10'
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 font-bold'
+                      : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
                   }`}
                 >
                   <Hash size={15} className={isActive ? 'text-white' : 'text-muted-foreground'} />
@@ -148,7 +148,7 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
           {/* Channel Top Banner */}
           <div className="p-3.5 border-b border-border bg-muted/60 shrink-0">
             <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-              <Hash size={15} className="text-orange-500" />
+              <Hash size={15} className="text-primary" />
               <span>{currentChannelObj?.name}</span>
             </div>
             <p className="text-xs text-muted-foreground truncate mt-0.5">{currentChannelObj?.desc}</p>
@@ -186,11 +186,11 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder={`Message #${currentChannelObj?.name}...`}
-              className="flex-1 h-10 bg-background border border-border rounded-xl px-3.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors"
+              className="flex-1 h-10 bg-background border border-border rounded-xl px-3.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors"
             />
             <button
               type="submit"
-              className="h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-orange-500/20 transition-all cursor-pointer shrink-0"
+              className="h-10 px-4 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-bold text-xs flex items-center gap-2 shadow-md shadow-primary/20 transition-all cursor-pointer shrink-0"
             >
               <span>Send</span>
               <Send size={14} />

@@ -178,7 +178,7 @@ export default function Email() {
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Write a reply..."
                   rows={3}
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
                 <button
                   type="button"
@@ -195,20 +195,20 @@ export default function Email() {
                   value={activeDraft.to}
                   onChange={(e) => updateDraft({ to: e.target.value })}
                   placeholder="To: recipient@email.com"
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
                 <input
                   value={activeDraft.subject}
                   onChange={(e) => updateDraft({ subject: e.target.value })}
                   placeholder="Subject"
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold"
                 />
                 <textarea
                   value={activeDraft.body || ''}
                   onChange={(e) => updateDraft({ body: e.target.value })}
                   placeholder="Write your message..."
                   rows={8}
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
                 <div className="flex items-center justify-end gap-2">
                   <button type="button" onClick={discardDraft} className="text-xs text-muted-foreground hover:text-foreground px-3 py-2 cursor-pointer">

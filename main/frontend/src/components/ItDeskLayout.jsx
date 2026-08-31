@@ -106,7 +106,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
           // than the viewport and gave every phone a horizontal scrollbar.
           // As a block element `w-auto` already fills the row minus its margins.
           collapsed ? 'w-auto lg:w-[64px]' : 'w-auto lg:w-[195px] xl:w-[200px]'
-        } m-3 lg:h-[calc(100vh-1.5rem)] lg:sticky lg:top-3 bg-background border border-border rounded-lg flex flex-col justify-between shrink-0 p-3 transition-all duration-300 overflow-hidden`}
+        } m-3 lg:h-[calc(100vh-1.5rem)] lg:sticky lg:top-3 bg-card border border-border rounded-lg flex flex-col justify-between shrink-0 p-3 transition-all duration-300 overflow-hidden`}
       >
         <div>
           {/* Brand Header */}
@@ -222,7 +222,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search tickets, requests, approvals..."
-              className="h-9 bg-muted backdrop-blur-md border border-border rounded-xl pl-9 pr-4 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:bg-muted w-[260px] sm:w-[320px] transition-colors"
+              className="h-9 bg-muted backdrop-blur-md border border-border rounded-xl pl-9 pr-4 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:bg-muted w-[260px] sm:w-[320px] transition-colors"
             />
             {results.length > 0 && (
               <div className="absolute top-full left-0 mt-2 w-[320px] bg-muted border border-border rounded-xl shadow-xl overflow-hidden z-30">

@@ -137,8 +137,8 @@ export default function FounderApprovalView() {
                   onClick={() => setItFilter(f)}
                   className={`px-3 py-1 rounded-lg capitalize transition-all cursor-pointer ${
                     itFilter === f
-                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-bold'
-                      : 'text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10'
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 font-bold'
+                      : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
                   }`}
                 >
                   {f === 'rejected' ? 'Not Approved' : f}
@@ -185,7 +185,7 @@ export default function FounderApprovalView() {
                   item.priority === 'high'
                     ? 'bg-destructive/20 text-destructive border-destructive/30'
                     : item.priority === 'medium'
-                    ? 'bg-warning/20 text-warning border-warning/30'
+                    ? 'bg-primary/20 text-primary border-primary/30'
                     : 'bg-muted/20 text-muted-foreground border-muted/30';
 
                 return (
@@ -193,9 +193,9 @@ export default function FounderApprovalView() {
                     key={item.id}
                     className={`p-4 rounded-xl border transition-all flex flex-col gap-3 ${
                       isPending
-                        ? 'bg-card border-border hover:border-orange-500/40 shadow-sm'
+                        ? 'bg-card border-border hover:border-primary/40 shadow-sm'
                         : isApproved
-                        ? 'bg-emerald-500/5 border-emerald-500/20'
+                        ? 'bg-primary/5 border-primary/20'
                         : 'bg-destructive/5 border-destructive/20'
                     }`}
                   >
@@ -203,7 +203,7 @@ export default function FounderApprovalView() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex flex-col gap-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-xs font-bold text-orange-500">{item.id}</span>
+                          <span className="font-mono text-xs font-bold text-primary">{item.id}</span>
                           <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md border uppercase ${priorityStyle}`}>
                             {item.priority || 'Normal'}
                           </span>
@@ -218,7 +218,7 @@ export default function FounderApprovalView() {
                       {/* Status / Action Buttons */}
                       <div className="shrink-0">
                         {isApproved && (
-                          <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                             <CheckCircle2 size={13} /> Approved
                           </span>
                         )}
@@ -232,7 +232,7 @@ export default function FounderApprovalView() {
                             <button
                               type="button"
                               onClick={() => decideIt(item, 'approved')}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                              className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-all flex items-center gap-1 cursor-pointer"
                             >
                               <Check size={13} /> Approve
                             </button>
@@ -283,8 +283,8 @@ export default function FounderApprovalView() {
                   onClick={() => setHrComplaintFilter(f)}
                   className={`px-3 py-1 rounded-lg capitalize transition-all cursor-pointer ${
                     hrComplaintFilter === f
-                      ? 'bg-warning text-warning-foreground font-bold'
-                      : 'text-muted-foreground hover:text-warning hover:bg-warning/10'
+                      ? 'bg-primary text-primary-foreground font-bold'
+                      : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
                   }`}
                 >
                   {f === 'rejected' ? 'Not Approved' : f}
@@ -331,7 +331,7 @@ export default function FounderApprovalView() {
                   item.priority === 'High'
                     ? 'bg-destructive/20 text-destructive border-destructive/30'
                     : item.priority === 'Medium'
-                    ? 'bg-warning/20 text-warning border-warning/30'
+                    ? 'bg-primary/20 text-primary border-primary/30'
                     : 'bg-muted/20 text-muted-foreground border-muted/30';
 
                 return (
@@ -341,7 +341,7 @@ export default function FounderApprovalView() {
                       isPending
                         ? 'bg-card border-border hover:border-warning/40 shadow-sm'
                         : isApproved
-                        ? 'bg-emerald-500/5 border-emerald-500/20'
+                        ? 'bg-primary/5 border-primary/20'
                         : 'bg-destructive/5 border-destructive/20'
                     }`}
                   >
@@ -361,7 +361,7 @@ export default function FounderApprovalView() {
                       {/* Status / Action Buttons */}
                       <div className="shrink-0">
                         {isApproved && (
-                          <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                             <CheckCircle2 size={13} /> Approved
                           </span>
                         )}
@@ -375,7 +375,7 @@ export default function FounderApprovalView() {
                             <button
                               type="button"
                               onClick={() => decideIt(item, 'approved')}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                              className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-all flex items-center gap-1 cursor-pointer"
                             >
                               <Check size={13} /> Approve
                             </button>

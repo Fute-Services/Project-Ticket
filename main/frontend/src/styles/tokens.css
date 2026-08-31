@@ -1,62 +1,63 @@
-/* Design tokens — orange on black.
+/* Design tokens — green on off-white.
    Edit here, not in component files.
 
-   The palette is deliberately two colours: one orange accent and a
-   black/neutral ramp. Everything that used to carry its own hue (department
-   accents, chart series, status tints) now resolves to orange or neutral.
+   The palette is a green ramp (from a reference brand image) over a light
+   neutral ground. Everything that used to carry its own hue (department
+   accents, chart series, status tints) now resolves to a shade of green or
+   neutral.
 
    One exception, kept on purpose: `--destructive` stays red. Delete and
-   reject have to be visually distinct from approve and save, and orange
-   can't carry that difference when orange is also the primary action colour.
+   reject have to be visually distinct from approve and save, and green
+   can't carry that difference when green is also the primary action colour.
 
-   Dark-only: there is no light theme, so these are the only values that
-   exist — no `.dark` class or toggle needed, `<html>` carries `class="dark"`
-   unconditionally (see index.html). Values are bare HSL triplets — no
-   hsl() wrapper — so Tailwind can compose them as hsl(var(--x) / <alpha>)
-   and opacity modifiers like bg-primary/90 keep working. */
+   Light-only: there is no dark theme, so these are the only values that
+   exist — no `.dark` class or toggle needed, `<html>` carries no theme class
+   (see index.html). Values are bare HSL triplets — no hsl() wrapper — so
+   Tailwind can compose them as hsl(var(--x) / <alpha>) and opacity modifiers
+   like bg-primary/90 keep working. */
 
 :root {
-  --background: 0 0% 4%;
-  --foreground: 0 0% 96%;
+  --background: 120 6% 97%;
+  --foreground: 131 68% 5%;
 
-  --card: 0 0% 8%;
-  --card-foreground: 0 0% 96%;
+  --card: 0 0% 100%;
+  --card-foreground: 131 68% 5%;
 
-  --popover: 0 0% 8%;
-  --popover-foreground: 0 0% 96%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 131 68% 5%;
 
-  --muted: 0 0% 12%;
-  --muted-foreground: 0 0% 60%;
+  --muted: 140 5% 89%;
+  --muted-foreground: 112 7% 40%;
 
-  --secondary: 0 0% 12%;
-  --secondary-foreground: 0 0% 96%;
+  --secondary: 140 5% 89%;
+  --secondary-foreground: 131 68% 5%;
 
-  --accent: 20 60% 16%;
-  --accent-foreground: 20 90% 70%;
+  --accent: 151 30% 92%;
+  --accent-foreground: 150 50% 21%;
 
-  --border: 0 0% 18%;
-  --input: 0 0% 18%;
-  --ring: 20 82% 53%;
+  --border: 140 5% 89%;
+  --input: 140 3% 81%;
+  --ring: 150 53% 29%;
 
-  --primary: 20 82% 53%;
+  --primary: 150 53% 29%;
   --primary-foreground: 0 0% 100%;
-  --primary-hover: 22 88% 60%;
+  --primary-hover: 150 50% 21%;
 
-  --success: 20 82% 53%;
+  --success: 150 53% 29%;
   --success-foreground: 0 0% 100%;
-  --warning: 30 90% 58%;
-  --warning-foreground: 0 0% 4%;
-  --destructive: 0 70% 55%;
+  --warning: 38 85% 48%;
+  --warning-foreground: 131 68% 5%;
+  --destructive: 0 70% 50%;
   --destructive-foreground: 0 0% 100%;
-  --info: 0 0% 65%;
-  --info-foreground: 0 0% 4%;
+  --info: 151 25% 54%;
+  --info-foreground: 0 0% 100%;
 
-  --chart-1: 20 82% 58%;
-  --chart-2: 25 75% 68%;
-  --chart-3: 30 55% 78%;
-  --chart-4: 0 0% 62%;
-  --chart-5: 0 0% 42%;
-  --chart-6: 0 0% 78%;
+  --chart-1: 150 53% 29%;
+  --chart-2: 151 25% 54%;
+  --chart-3: 150 50% 21%;
+  --chart-4: 133 63% 13%;
+  --chart-5: 112 7% 40%;
+  --chart-6: 140 3% 81%;
 
   --radius: 12px;
   --radius-sm: 8px;
@@ -65,7 +66,7 @@
   --font-body: 'Inter', system-ui, sans-serif;
   --heading-weight: 600;
 
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow: 0 1px 3px rgba(4, 21, 7, 0.08);
 
   --space-1: 4px;
   --space-2: 8px;

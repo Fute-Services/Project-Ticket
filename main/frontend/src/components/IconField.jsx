@@ -36,7 +36,7 @@ export default function IconField({ icon: Icon, label, right, className = '', id
         <input
           id={inputId}
           {...inputProps}
-          className={`w-full bg-muted border border-border rounded-xl px-3.5 py-3 text-sm text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors ${
+          className={`w-full bg-muted border border-border rounded-xl px-3.5 py-3 text-sm text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors ${
             Icon ? 'pl-11' : ''
           } ${right ? 'pr-11' : ''} ${className}`}
         />

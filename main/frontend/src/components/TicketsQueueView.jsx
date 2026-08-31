@@ -64,11 +64,10 @@ function useSolverOptions(deptLabel) {
 
 // A Radix Select (not a native `<select>`) so the OPEN dropdown panel can be
 // fully skinned too — a native `<option>` list ignores almost all CSS, so
-// getting a matching black-and-orange popover (rounded corners, shadow,
-// hover/selected highlight) needs a real custom listbox, not just a styled
-// trigger. Trigger is a graphite gradient "soft UI" control that presses
-// inward on focus; the panel below picks up the same palette.
-const DEFAULT_TEXT_COLOR = 'text-orange-400 hover:text-orange-300 [&>svg]:text-orange-400';
+// getting a matching popover (rounded corners, shadow, hover/selected
+// highlight) needs a real custom listbox, not just a styled trigger. The
+// panel below picks up the same token palette as the trigger.
+const DEFAULT_TEXT_COLOR = 'text-primary hover:text-primary-hover [&>svg]:text-primary';
 
 // `textColorClass` lets a caller override just the value/icon color (e.g.
 // Attendance.jsx wants green for "Present" and red for "Absent") while
@@ -82,16 +81,16 @@ export function ColorSelect({ value, onChange, options, ariaLabel, textColorClas
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger
         aria-label={ariaLabel}
-        className={`h-auto w-full pl-3 pr-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide bg-gradient-to-b from-[#232323] to-[#101010] border border-orange-500/20 shadow-[0_2px_4px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all cursor-pointer hover:border-orange-500/45 focus:outline-none focus:border-orange-500/70 focus:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.85),inset_-1px_-1px_3px_rgba(255,140,40,0.08)] focus:ring-0 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-100 ${textColorClass}`}
+        className={`h-auto w-full pl-3 pr-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide bg-card border border-border shadow-sm transition-all cursor-pointer hover:border-primary/45 focus:outline-none focus:border-primary/70 focus:ring-0 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-100 ${textColorClass}`}
       >
         <SelectValue />
       </SelectTrigger>
-      <SelectContent className="min-w-[--radix-select-trigger-width] bg-gradient-to-b from-[#1e1e1e] to-[#0d0d0d] border border-orange-500/25 shadow-[0_10px_28px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.04)] rounded-xl p-1">
+      <SelectContent className="min-w-[--radix-select-trigger-width] bg-popover border border-border shadow-md rounded-xl p-1">
         {normalized.map((o) => (
           <SelectItem
             key={o.value}
             value={o.value}
-            className="text-orange-200/90 text-xs font-semibold uppercase tracking-wide rounded-lg py-1.5 pl-2.5 cursor-pointer focus:bg-orange-500/15 focus:text-orange-300 data-[state=checked]:bg-orange-500/20 data-[state=checked]:text-orange-300"
+            className="text-foreground text-xs font-semibold uppercase tracking-wide rounded-lg py-1.5 pl-2.5 cursor-pointer focus:bg-accent focus:text-accent-foreground data-[state=checked]:bg-primary/15 data-[state=checked]:text-primary"
           >
             {o.label}
           </SelectItem>
@@ -286,12 +285,12 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                 const statusStr = t.employeeStatus || 'Active';
                 const badgeColor =
                   statusStr === 'Satisfied'
-                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    ? 'bg-primary/10 text-primary border-primary/20'
                     : statusStr === 'Closed'
                     ? 'bg-muted text-muted-foreground border-border'
                     : statusStr === 'Pending'
-                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                    : 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+                    ? 'bg-[#6CA78B]/15 text-[#1B5136] border-[#6CA78B]/40'
+                    : 'bg-[#1B5136]/10 text-[#1B5136] border-[#1B5136]/20';
 
                 return (
                   <span
@@ -378,7 +377,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
 
                       if (status === 'approved') {
                         return (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-bold whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 text-xs font-bold whitespace-nowrap">
                             <CheckCircle2 size={13} /> Approved
                           </span>
                         );
@@ -392,7 +391,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                       }
                       if (status === 'pending_founder') {
                         return (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 text-xs font-bold whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#6CA78B]/15 text-[#1B5136] border border-[#6CA78B]/40 text-xs font-bold whitespace-nowrap">
                             <Clock size={13} /> Pending
                           </span>
                         );
