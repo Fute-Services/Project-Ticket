@@ -13,10 +13,11 @@ import DataRequestsView from '../components/DataRequestsView';
 import AssetsView, { ASSET_TYPE_ICON } from '../components/AssetsView';
 import ReportsView from '../components/ReportsView';
 import RenderingStatusView from '../components/RenderingStatusView';
-import { Card, SectionHeader, StatCard } from '../components/ui';
+import { Card, SectionHeader, StatCard, DarkMetricCard } from '../components/ui';
 import { ASSET_TYPES } from '../data/itMockData';
+import { Activity, Server, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
-// Composition root for the IT Service Desk — each tab's view used to be a
+// Composition root for the IT Service Desk - each tab's view used to be a
 // top-level component defined inline in this same 1317-line file (Data
 // Requests, Asset Management, Reports & Logs, Rendering Status); each now
 // lives in its own file under components/ and is just switched on here.
@@ -38,7 +39,7 @@ export default function DashboardPage() {
   ]);
 
   // Certain servers carry a standing rule about who signs off, or what tag
-  // the request should always carry — set once here rather than left for
+  // the request should always carry - set once here rather than left for
   // whoever fills the form to remember every time.
   function routingFor(server) {
     if (server === 'Server 100') return { approver: "Payel Ma'am (HR Manager)" };
@@ -49,7 +50,7 @@ export default function DashboardPage() {
     return {};
   }
 
-  // Awaited by the modal — when the request needs a named approver, the
+  // Awaited by the modal - when the request needs a named approver, the
   // linked approval record is a real backend write (submitApproval now
   // rethrows on failure) and must succeed before this reports success;
   // otherwise the local request list would show "Waiting Approval" with no
@@ -104,11 +105,11 @@ export default function DashboardPage() {
     });
   }
 
-  // Shared with the Employee dashboard — a ticket raised there appears
+  // Shared with the Employee dashboard - a ticket raised there appears
   // here immediately, and a status change made here reflects there too.
   const { tickets: recentTickets, changeStatus: changeTicketStatus, updateTicketField, hasMoreTickets, loadMoreTickets, loadingMore: loadingMoreTickets } = useTickets();
 
-  // Donut chart data — derived from the live IT ticket list rather than
+  // Donut chart data - derived from the live IT ticket list rather than
   // hard-coded, same reasoning as statusData below: it should actually move
   // as tickets come and go instead of always reading "248 total".
   const CATEGORY_COLOR = {
@@ -134,7 +135,7 @@ export default function DashboardPage() {
   }, [recentTickets]);
   const categoryTotal = recentTickets.filter((t) => t.dept === 'IT').length;
 
-  // Resolved + Closed against everything raised — the closest real proxy to
+  // Resolved + Closed against everything raised - the closest real proxy to
   // "SLA compliance" available without a per-ticket due-date/SLA field to
   // measure against. Shows a dash rather than a misleading 0%/100% when
   // there's no ticket history yet to compute from.
@@ -146,7 +147,7 @@ export default function DashboardPage() {
 
   // Derived from the live ticket list rather than hard-coded. The previous
   // fixed figures summed to 174%, which the old hand-rolled donut rendered as
-  // overlapping arcs — and they never moved when a ticket changed status.
+  // overlapping arcs - and they never moved when a ticket changed status.
   const statusData = useMemo(() => {
     const tone = {
       Open: 'hsl(var(--chart-1))',
@@ -196,7 +197,7 @@ export default function DashboardPage() {
             <StatCard label="Pending Approval" value={itPendingFounder} sub="awaiting founder" />
             <StatCard label="Resolved Tickets" value={recentTickets.filter((t) => t.status === 'Resolved').length} sub="completed" />
             <StatCard label="In Progress" value={recentTickets.filter((t) => t.status === 'In Progress').length} sub="working" />
-            <StatCard label="SLA Compliance" value={slaCompliance === null ? '—' : `${slaCompliance}%`} sub="resolved of raised" />
+            <StatCard label="SLA Compliance" value={slaCompliance === null ? '-' : `${slaCompliance}%`} sub="resolved of raised" />
           </div>
 
           {/* Donut Charts */}

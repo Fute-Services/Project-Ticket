@@ -1,12 +1,12 @@
 // Local, in-memory demo data for the HR dashboard. Nothing here touches the
-// real backend — every HR page reads and mutates these arrays directly so
+// real backend - every HR page reads and mutates these arrays directly so
 // the whole HR module is fully clickable without needing ATS/email/
 // resume-parsing infrastructure that doesn't exist yet. See
 // docs/BACKEND_WORKFLOW.md §5 for what wiring this to a real API would take.
 
 // Real company roster (replaces the earlier six-person illustrative list).
 // No phone/joiningDate on file for these yet, so those fields are left out
-// rather than invented — Directory.jsx already renders blank for missing
+// rather than invented - Directory.jsx already renders blank for missing
 // values instead of a placeholder.
 export const employees = [
   { id: '10068', name: 'Nitish Kumar Sharma', designation: 'TL', department: 'Production', email: 'bangalore.fute@gmail.com', manager: 'Ms. Payel Saha', status: 'Active', photo: 'NS' },
@@ -51,7 +51,7 @@ export const employees = [
 ];
 
 // Bank details are shown only inside the employee profile drawer, never in
-// the directory list/cards — same principle as the login page's honest
+// the directory list/cards - same principle as the login page's honest
 // disabled states: don't surface sensitive data anywhere it isn't asked for.
 export const bankDetails = {
   'E-01': { accountHolder: 'Rahul Sen', bankName: 'HDFC Bank', accountNumber: 'XXXX XXXX 4821', ifsc: 'HDFC0001234', branch: 'Koramangala, Bengaluru' },
@@ -77,7 +77,7 @@ export const CANDIDATE_STAGES = [
 
 export const RESUME_SOURCES = ['LinkedIn', 'Naukri', 'Indeed', 'Monster', 'Internal Portal', 'Referral', 'Manual Upload', 'Company Website/Career Page'];
 
-// Only relevant when stage is 'Rejected' or 'Offer Declined' — a structured
+// Only relevant when stage is 'Rejected' or 'Offer Declined' - a structured
 // list (not free text) so HR can report on "why we lose candidates" later.
 export const REJECTION_REASONS = [
   'Salary Mismatch',
@@ -115,7 +115,7 @@ export const interviews = [
 
 export const meetings = [
   { id: 'MT-201', title: 'Weekly HR Sync', type: 'HR Meeting', agenda: 'Review open positions and pipeline health.', participants: ['Ms. Payel Saha', 'Nesamanikandan', 'Sangeetha KS'], date: '2026-08-06', time: '09:30 AM', notes: '' },
-  { id: 'MT-202', title: 'Offer discussion — Priya Nair', type: 'Candidate Meeting', agenda: 'Finalize compensation before sending offer.', participants: ['Ms. Payel Saha', 'Founder'], date: '2026-08-06', time: '04:00 PM', notes: 'Budget approved up to ₹15 LPA.' },
+  { id: 'MT-202', title: 'Offer discussion - Priya Nair', type: 'Candidate Meeting', agenda: 'Finalize compensation before sending offer.', participants: ['Ms. Payel Saha', 'Founder'], date: '2026-08-06', time: '04:00 PM', notes: 'Budget approved up to ₹15 LPA.' },
   { id: 'MT-203', title: 'Q3 Hiring Plan', type: 'Team Meeting', agenda: 'Headcount planning for Q3.', participants: ['Founder', 'Ms. Payel Saha', 'Department Managers'], date: '2026-08-10', time: '11:00 AM', notes: '' },
 ];
 
@@ -166,7 +166,7 @@ export const leaveBalances = [
 ];
 
 export const notifications = [
-  { id: 'N-1', type: 'Interview Scheduled', text: 'Technical round scheduled with Ananya Rao — Aug 7, 11:00 AM', time: '10 min ago', unread: true },
+  { id: 'N-1', type: 'Interview Scheduled', text: 'Technical round scheduled with Ananya Rao - Aug 7, 11:00 AM', time: '10 min ago', unread: true },
   { id: 'N-2', type: 'Leave Request', text: 'Sangeetha KS requested Casual Leave (Aug 12-13)', time: '32 min ago', unread: true },
   { id: 'N-3', type: 'New Candidate', text: 'Karan Mehta applied for Backend Developer', time: '2 hr ago', unread: true },
   { id: 'N-4', type: 'Employee Joined', text: 'Yogesh Kumar joined as Full stack developer intern', time: '1 day ago', unread: false },
@@ -188,7 +188,7 @@ export const emails = {
     ] },
   ],
   sent: [
-    { id: 'ES-1', to: 'priya.nair@mail.com', subject: 'Offer Letter — Product Designer', preview: 'We are excited to offer you the position of...', time: '3 days ago' },
+    { id: 'ES-1', to: 'priya.nair@mail.com', subject: 'Offer Letter - Product Designer', preview: 'We are excited to offer you the position of...', time: '3 days ago' },
     { id: 'ES-2', to: 'ananya.rao@mail.com', subject: 'Technical Round Confirmation', preview: 'Confirming your technical round on Aug 7...', time: 'Aug 5, 4:02 PM' },
   ],
   drafts: [
@@ -196,8 +196,8 @@ export const emails = {
   ],
   templates: [
     { id: 'ET-1', name: 'Interview Confirmation', subject: 'Your interview is confirmed' },
-    { id: 'ET-2', name: 'Offer Letter', subject: 'Offer of Employment — Fute Services' },
-    { id: 'ET-3', name: 'Rejection — Post Interview', subject: 'Update on your application' },
+    { id: 'ET-2', name: 'Offer Letter', subject: 'Offer of Employment - Fute Services' },
+    { id: 'ET-3', name: 'Rejection - Post Interview', subject: 'Update on your application' },
   ],
 };
 

@@ -13,7 +13,7 @@ function initials(name) {
     .toUpperCase();
 }
 
-/** Overdue and due-today read differently — that's the whole point of the column. */
+/** Overdue and due-today read differently - that's the whole point of the column. */
 function dueTone(dueDate, done) {
   if (done || !dueDate) return 'text-muted-foreground';
   if (dueDate < TODAY) return 'text-destructive font-medium';
@@ -24,7 +24,7 @@ function dueTone(dueDate, done) {
 function dueLabel(dueDate) {
   if (!dueDate) return 'No date';
   if (dueDate === TODAY) return 'Today';
-  return dueDate.slice(5); // MM-DD — the year is noise in a task list
+  return dueDate.slice(5); // MM-DD - the year is noise in a task list
 }
 
 /**
@@ -32,7 +32,7 @@ function dueLabel(dueDate) {
  * the left, the name as the primary hit target, and supporting metadata
  * right-aligned so the eye can scan a column of names uninterrupted.
  *
- * Deliberately a row rather than a card — cards make every task look equally
+ * Deliberately a row rather than a card - cards make every task look equally
  * important and waste vertical space at this density.
  */
 export default function TaskRow({ task, project, onToggle, onOpen, showProject = true }) {

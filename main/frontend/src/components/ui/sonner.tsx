@@ -3,7 +3,7 @@ import { Toaster as Sonner } from 'sonner';
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 /**
- * There's only one theme (dark — see index.html / styles/tokens.css), so the
+ * There's only one theme (dark - see index.html / styles/tokens.css), so the
  * toaster is pinned to it directly instead of reading a theme context that
  * no longer exists.
  */

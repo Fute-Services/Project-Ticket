@@ -155,25 +155,25 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
               key: 'date',
               label: 'Date',
               width: '80px',
-              render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '—'}</span>,
+              render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '-'}</span>,
             },
             {
               key: 'username',
               label: 'Username',
               width: '90px',
-              render: (t) => <span className="text-foreground font-medium text-xs truncate block">{t.username || t.user || '—'}</span>,
+              render: (t) => <span className="text-foreground font-medium text-xs truncate block">{t.username || t.user || '-'}</span>,
             },
             {
               key: 'employeeId',
               label: 'Employee ID',
               width: '90px',
-              render: (t) => <span className="font-semibold text-primary text-xs">{t.employeeId || '—'}</span>,
+              render: (t) => <span className="font-semibold text-primary text-xs">{t.employeeId || '-'}</span>,
             },
             {
               key: 'vpnNo',
               label: 'VPN ID',
               width: '80px',
-              render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '—'}</span>,
+              render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '-'}</span>,
             },
             {
               key: 'role',
@@ -302,7 +302,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
       <Drawer
         open={!!detailsTicket}
         onClose={() => setDetailsTicket(null)}
-        title={detailsTicket ? `Ticket Details — ${detailsTicket.token}` : 'Ticket Details'}
+        title={detailsTicket ? `Ticket Details - ${detailsTicket.token}` : 'Ticket Details'}
       >
         {detailsTicket && (
           <div className="flex flex-col gap-4 font-sans text-xs">
@@ -321,12 +321,12 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">Employee ID</div>
-                <div className="font-bold text-primary text-sm">{detailsTicket.employeeId || '—'}</div>
+                <div className="font-bold text-primary text-sm">{detailsTicket.employeeId || '-'}</div>
               </div>
 
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">Requester</div>
-                <div className="font-semibold text-foreground">{detailsTicket.user || '—'}</div>
+                <div className="font-semibold text-foreground">{detailsTicket.user || '-'}</div>
               </div>
 
               <div className="bg-card border border-border rounded-xl p-3">
@@ -361,12 +361,12 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
 
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">VPN No</div>
-                <div className="font-mono text-foreground">{detailsTicket.vpnNo || '—'}</div>
+                <div className="font-mono text-foreground">{detailsTicket.vpnNo || '-'}</div>
               </div>
 
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">Date</div>
-                <div className="text-foreground">{detailsTicket.date || '—'}</div>
+                <div className="text-foreground">{detailsTicket.date || '-'}</div>
               </div>
             </div>
 
@@ -401,7 +401,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
 const TODAY = '2026-08-06';
 
 function MyTasksView({ tasks, projects, onToggle, onOpen, onRefresh, lastUpdated, loading }) {
-  // Asana's My Tasks groups by when something is due, not by status — the
+  // Asana's My Tasks groups by when something is due, not by status - the
   // question a person opens this page to answer is "what do I do now".
   // Overdue is folded into Today so it can't be scrolled past.
   const buckets = useMemo(() => {
@@ -502,7 +502,7 @@ export default function EmployeeDashboardPage() {
   const [isExtraHoursOpen, setIsExtraHoursOpen] = useState(false);
   const [detailsTicket, setDetailsTicket] = useState(null);
 
-  // Every employee shares the same underlying ticket list as IT's queue —
+  // Every employee shares the same underlying ticket list as IT's queue -
   // scope the view to tickets this person raised.
   const myTickets = useMemo(
     () =>
@@ -517,7 +517,7 @@ export default function EmployeeDashboardPage() {
   );
 
   // Tasks/projects come from the same shared context the Coordinator
-  // assigns from — scope to this employee by name.
+  // assigns from - scope to this employee by name.
   const myTasks = useMemo(
     () => tasks.filter((t) => t.assignee === user?.full_name),
     [tasks, user]
@@ -537,12 +537,12 @@ export default function EmployeeDashboardPage() {
   );
 
   // Awaited by the modal, which only shows its success screen once this
-  // resolves — a rejection (addTicket now rethrows on failure) surfaces as
+  // resolves - a rejection (addTicket now rethrows on failure) surfaces as
   // an error in the modal instead of a false "success" plus this toast.
   async function handleNewTicket(req) {
     await addTicket(req, user?.full_name);
     toast.success('IT Ticket raised', {
-      description: "IT can see it now — you'll find it under My Tickets.",
+      description: "IT can see it now - you'll find it under My Tickets.",
     });
   }
 
@@ -557,7 +557,7 @@ export default function EmployeeDashboardPage() {
     toast.success('HR Ticket raised', {
       description: req.isConfidential
         ? 'Routed confidentially to Senior HR & Founder.'
-        : 'HR team has been notified — track it under My Tickets.',
+        : 'HR team has been notified - track it under My Tickets.',
     });
   }
 
@@ -571,7 +571,7 @@ export default function EmployeeDashboardPage() {
   }
 
   const searchIndex = useMemo(
-    () => myTickets.map((t) => ({ group: 'Tickets', label: `${t.token} — ${t.title}`, sub: `${t.dept} · ${t.status}`, tab: 'tickets' })),
+    () => myTickets.map((t) => ({ group: 'Tickets', label: `${t.token} - ${t.title}`, sub: `${t.dept} · ${t.status}`, tab: 'tickets' })),
     [myTickets]
   );
 
@@ -640,7 +640,7 @@ export default function EmployeeDashboardPage() {
             <HolidaysCard />
           </div>
 
-          <div className="bg-card border border-border rounded-lg p-4">
+          <div className="bg-card border border-border/80 rounded-2xl lg:rounded-3xl p-4 sm:p-5 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-sm text-foreground">Recent Tickets Queue</h3>
               <button
@@ -673,25 +673,25 @@ export default function EmployeeDashboardPage() {
                   key: 'date',
                   label: 'Date',
                   width: '80px',
-                  render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '—'}</span>,
+                  render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '-'}</span>,
                 },
                 {
                   key: 'username',
                   label: 'Username',
                   width: '90px',
-                  render: (t) => <span className="text-foreground font-medium text-xs truncate block">{t.username || t.user || '—'}</span>,
+                  render: (t) => <span className="text-foreground font-medium text-xs truncate block">{t.username || t.user || '-'}</span>,
                 },
                 {
                   key: 'employeeId',
                   label: 'Employee ID',
                   width: '90px',
-                  render: (t) => <span className="font-semibold text-primary text-xs">{t.employeeId || '—'}</span>,
+                  render: (t) => <span className="font-semibold text-primary text-xs">{t.employeeId || '-'}</span>,
                 },
                 {
                   key: 'vpnNo',
                   label: 'VPN ID',
                   width: '80px',
-                  render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '—'}</span>,
+                  render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '-'}</span>,
                 },
                 {
                   key: 'role',
@@ -838,7 +838,7 @@ export default function EmployeeDashboardPage() {
       <Drawer
         open={!!detailsTicket}
         onClose={() => setDetailsTicket(null)}
-        title={detailsTicket ? `Ticket Details — ${detailsTicket.token}` : 'Ticket Details'}
+        title={detailsTicket ? `Ticket Details - ${detailsTicket.token}` : 'Ticket Details'}
       >
         {detailsTicket && (
           <div className="flex flex-col gap-4 font-sans text-xs">
@@ -857,12 +857,12 @@ export default function EmployeeDashboardPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">Employee ID</div>
-                <div className="font-bold text-primary text-sm">{detailsTicket.employeeId || '—'}</div>
+                <div className="font-bold text-primary text-sm">{detailsTicket.employeeId || '-'}</div>
               </div>
 
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">Requester</div>
-                <div className="font-semibold text-foreground">{detailsTicket.user || '—'}</div>
+                <div className="font-semibold text-foreground">{detailsTicket.user || '-'}</div>
               </div>
 
               <div className="bg-card border border-border rounded-xl p-3">
@@ -897,12 +897,12 @@ export default function EmployeeDashboardPage() {
 
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">VPN No</div>
-                <div className="font-mono text-foreground">{detailsTicket.vpnNo || '—'}</div>
+                <div className="font-mono text-foreground">{detailsTicket.vpnNo || '-'}</div>
               </div>
 
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">Date</div>
-                <div className="text-foreground">{detailsTicket.date || '—'}</div>
+                <div className="text-foreground">{detailsTicket.date || '-'}</div>
               </div>
             </div>
 

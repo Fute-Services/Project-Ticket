@@ -4,7 +4,7 @@
  *
  * HR and IT have their own hand-built views because their data is real
  * (leaves, tickets, assets flow through context). These five are illustrative
- * only — same shape for all of them so one component can render any of them,
+ * only - same shape for all of them so one component can render any of them,
  * but the *content* is department-specific on purpose. A sales pipeline and a
  * sprint board don't measure the same things, and demo data that pretends they
  * do is worse than no demo data.
@@ -35,16 +35,16 @@ export const DEPT_DEMO = {
     itemsTitle: 'Deals needing a decision',
     itemsNote: 'Stalled or awaiting founder sign-off',
     items: [
-      { id: 'DEAL-2291', title: 'Kotak Retail — annual support retainer', meta: 'Negotiation · ₹8.4L ARR', owner: 'Shivani AS', status: 'Awaiting approval', tone: 'warning', age: '2 days' },
-      { id: 'DEAL-2274', title: 'Sundaram Logistics — fleet dashboard build', meta: 'Proposal sent · ₹6.2L', owner: 'Puja Thakur', status: 'Follow-up due', tone: 'warning', age: '5 days' },
-      { id: 'DEAL-2260', title: 'Aakash Diagnostics — pilot to production', meta: 'Verbal commit · ₹11.0L', owner: 'Shivani AS', status: 'Contract drafting', tone: 'primary', age: '1 day' },
-      { id: 'DEAL-2248', title: 'Meridian Hotels — POS integration', meta: 'Qualified · ₹3.9L', owner: 'Prathiti A C', status: 'Discovery call set', tone: 'muted', age: '1 week' },
+      { id: 'DEAL-2291', title: 'Kotak Retail - annual support retainer', meta: 'Negotiation · ₹8.4L ARR', owner: 'Shivani AS', status: 'Awaiting approval', tone: 'warning', age: '2 days' },
+      { id: 'DEAL-2274', title: 'Sundaram Logistics - fleet dashboard build', meta: 'Proposal sent · ₹6.2L', owner: 'Puja Thakur', status: 'Follow-up due', tone: 'warning', age: '5 days' },
+      { id: 'DEAL-2260', title: 'Aakash Diagnostics - pilot to production', meta: 'Verbal commit · ₹11.0L', owner: 'Shivani AS', status: 'Contract drafting', tone: 'primary', age: '1 day' },
+      { id: 'DEAL-2248', title: 'Meridian Hotels - POS integration', meta: 'Qualified · ₹3.9L', owner: 'Prathiti A C', status: 'Discovery call set', tone: 'muted', age: '1 week' },
     ],
     logTitle: 'Recent closes',
     log: [
-      { title: 'Bharat Textiles — CRM rollout', detail: 'Closed won · ₹5.1L', by: 'Puja Thakur', when: 'Yesterday', status: 'Won' },
-      { title: 'Vertex Media — analytics add-on', detail: 'Closed won · ₹2.3L', by: 'Prathiti A C', when: '3 days ago', status: 'Won' },
-      { title: 'Orbit Foods — inventory module', detail: 'Lost to incumbent vendor', by: 'Shivani AS', when: '4 days ago', status: 'Lost' },
+      { title: 'Bharat Textiles - CRM rollout', detail: 'Closed won · ₹5.1L', by: 'Puja Thakur', when: 'Yesterday', status: 'Won' },
+      { title: 'Vertex Media - analytics add-on', detail: 'Closed won · ₹2.3L', by: 'Prathiti A C', when: '3 days ago', status: 'Won' },
+      { title: 'Orbit Foods - inventory module', detail: 'Lost to incumbent vendor', by: 'Shivani AS', when: '4 days ago', status: 'Lost' },
     ],
   },
 
@@ -105,7 +105,7 @@ export const DEPT_DEMO = {
     items: [
       { id: 'CMP-114', title: 'Q3 enterprise webinar series', meta: 'LinkedIn + email · ₹68k spent', owner: 'Lavanya Rathi', status: 'Running', tone: 'primary', age: '3 weeks in' },
       { id: 'CMP-109', title: 'Logistics vertical case-study push', meta: 'Organic + PR · ₹22k spent', owner: 'Lavanya Rathi', status: 'Running', tone: 'primary', age: '2 weeks in' },
-      { id: 'CMP-107', title: 'Retargeting — abandoned demo requests', meta: 'Paid social · ₹41k spent', owner: 'Lavanya Rathi', status: 'Needs creative', tone: 'warning', age: '5 weeks in' },
+      { id: 'CMP-107', title: 'Retargeting - abandoned demo requests', meta: 'Paid social · ₹41k spent', owner: 'Lavanya Rathi', status: 'Needs creative', tone: 'warning', age: '5 weeks in' },
       { id: 'CMP-102', title: 'Founder thought-leadership newsletter', meta: 'Email · ₹0 spend', owner: 'Lavanya Rathi', status: 'Draft', tone: 'muted', age: 'Not launched' },
     ],
     logTitle: 'Last month at a glance',
@@ -137,10 +137,10 @@ export const DEPT_DEMO = {
     itemsTitle: 'Design requests in the queue',
     itemsNote: 'Incoming work from other departments',
     items: [
-      { id: 'BRD-341', title: 'Sales one-pager refresh — logistics vertical', meta: 'Requested by Sales · Print + PDF', owner: 'Lavanya Rathi', status: 'Overdue', tone: 'destructive', age: '9 days' },
+      { id: 'BRD-341', title: 'Sales one-pager refresh - logistics vertical', meta: 'Requested by Sales · Print + PDF', owner: 'Lavanya Rathi', status: 'Overdue', tone: 'destructive', age: '9 days' },
       { id: 'BRD-336', title: 'Webinar series key visual set', meta: 'Requested by Marketing · 6 formats', owner: 'Charan Billava', status: 'In design', tone: 'primary', age: '3 days' },
       { id: 'BRD-330', title: 'Careers page photography direction', meta: 'Requested by HR · Shoot brief', owner: 'Lavanya Rathi', status: 'Awaiting brief', tone: 'warning', age: '6 days' },
-      { id: 'BRD-322', title: 'Dashboard icon set — second pass', meta: 'Requested by Developers · 24 icons', owner: 'Charan Billava', status: 'In review', tone: 'muted', age: '2 days' },
+      { id: 'BRD-322', title: 'Dashboard icon set - second pass', meta: 'Requested by Developers · 24 icons', owner: 'Charan Billava', status: 'In review', tone: 'muted', age: '2 days' },
     ],
     logTitle: 'Recently published',
     log: [
@@ -171,16 +171,16 @@ export const DEPT_DEMO = {
     itemsTitle: 'Jobs on the floor',
     itemsNote: 'Current status and delivery date',
     items: [
-      { id: 'JOB-508', title: 'Kotak Retail — onboarding video set', meta: 'Build · due Thu', owner: 'Debashish Das', status: 'On track', tone: 'primary', age: '4 days in' },
-      { id: 'JOB-503', title: 'Aakash Diagnostics — training modules', meta: 'Quality check · due Fri', owner: 'Tilottama Paramanik', status: 'At risk', tone: 'warning', age: '9 days in' },
-      { id: 'JOB-497', title: 'Vertex Media — campaign film cut 3', meta: 'Client review · due next Mon', owner: 'Debashish Das', status: 'Awaiting client', tone: 'muted', age: '2 weeks in' },
-      { id: 'JOB-491', title: 'Bharat Textiles — product catalogue', meta: 'Ready to ship · due today', owner: 'Tilottama Paramanik', status: 'Ready', tone: 'primary', age: '3 weeks in' },
+      { id: 'JOB-508', title: 'Kotak Retail - onboarding video set', meta: 'Build · due Thu', owner: 'Debashish Das', status: 'On track', tone: 'primary', age: '4 days in' },
+      { id: 'JOB-503', title: 'Aakash Diagnostics - training modules', meta: 'Quality check · due Fri', owner: 'Tilottama Paramanik', status: 'At risk', tone: 'warning', age: '9 days in' },
+      { id: 'JOB-497', title: 'Vertex Media - campaign film cut 3', meta: 'Client review · due next Mon', owner: 'Debashish Das', status: 'Awaiting client', tone: 'muted', age: '2 weeks in' },
+      { id: 'JOB-491', title: 'Bharat Textiles - product catalogue', meta: 'Ready to ship · due today', owner: 'Tilottama Paramanik', status: 'Ready', tone: 'primary', age: '3 weeks in' },
     ],
     logTitle: 'Recently delivered',
     log: [
-      { title: 'Meridian Hotels — brand film', detail: 'Delivered 2 days early', by: 'Debashish Das', when: 'Last week', status: 'On time' },
-      { title: 'Orbit Foods — packaging shoot', detail: 'Delivered on schedule', by: 'Tilottama Paramanik', when: '2 weeks ago', status: 'On time' },
-      { title: 'Sundaram Logistics — explainer', detail: 'Delivered 3 days late (scope change)', by: 'Debashish Das', when: '3 weeks ago', status: 'Late' },
+      { title: 'Meridian Hotels - brand film', detail: 'Delivered 2 days early', by: 'Debashish Das', when: 'Last week', status: 'On time' },
+      { title: 'Orbit Foods - packaging shoot', detail: 'Delivered on schedule', by: 'Tilottama Paramanik', when: '2 weeks ago', status: 'On time' },
+      { title: 'Sundaram Logistics - explainer', detail: 'Delivered 3 days late (scope change)', by: 'Debashish Das', when: '3 weeks ago', status: 'Late' },
     ],
   },
 };

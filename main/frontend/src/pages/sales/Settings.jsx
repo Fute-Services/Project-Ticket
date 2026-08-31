@@ -58,7 +58,7 @@ export default function SalesSettings() {
 
         <Card>
           <h3 className="text-sm font-semibold text-foreground mb-1">Active Reps</h3>
-          <p className="text-xs text-muted-foreground mb-4">Derived from leads currently assigned — granting or revoking the Sales role itself happens from Super Admin's Users page.</p>
+          <p className="text-xs text-muted-foreground mb-4">Derived from leads currently assigned - granting or revoking the Sales role itself happens from Super Admin's Users page.</p>
           {reps.length === 0 ? (
             <p className="text-xs text-muted-foreground">No leads assigned to a rep yet.</p>
           ) : (

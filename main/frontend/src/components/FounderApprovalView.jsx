@@ -30,7 +30,7 @@ export default function FounderApprovalView() {
   const [itSearchQuery, setItSearchQuery] = useState('');
   const [hrComplaintSearchQuery, setHrComplaintSearchQuery] = useState('');
 
-  // Filter IT approvals — `source` scopes this to IT desk requests only;
+  // Filter IT approvals - `source` scopes this to IT desk requests only;
   // HR's ticket-queue "Send for Approval" requests (source: 'HR') have
   // their own panel below instead of being lumped in here.
   const filteredItApprovals = approvals.filter((item) => {
@@ -53,7 +53,7 @@ export default function FounderApprovalView() {
     return true;
   });
 
-  // Filter HR ticket-queue approvals — created automatically when HR sets a
+  // Filter HR ticket-queue approvals - created automatically when HR sets a
   // ticket's status to "Waiting Approval" (backend/controllers/hrController.js).
   const filteredHrComplaintApprovals = approvals.filter((item) => {
     if (item.source !== 'HR') return false;
@@ -130,15 +130,15 @@ export default function FounderApprovalView() {
             </div>
 
             {/* IT Filters */}
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border text-xs font-semibold">
+            <div className="flex items-center gap-1 bg-white/60 backdrop-blur-md p-1 rounded-xl border border-white/80 shadow-sm text-xs font-semibold">
               {['all', 'pending', 'approved', 'rejected'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setItFilter(f)}
-                  className={`px-3 py-1 rounded-lg capitalize transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg capitalize transition-all cursor-pointer ${
                     itFilter === f
-                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 font-bold'
-                      : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
+                      ? 'bg-[#0d1811] text-white shadow-md border border-white/15 font-bold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
                   }`}
                 >
                   {f === 'rejected' ? 'Not Approved' : f}
@@ -155,7 +155,7 @@ export default function FounderApprovalView() {
               value={itSearchQuery}
               onChange={(e) => setItSearchQuery(e.target.value)}
               placeholder="Search IT approvals by title, requester, department..."
-              className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full bg-white/65 backdrop-blur-md border border-white/85 rounded-xl pl-9 pr-8 py-2 text-xs text-foreground placeholder:text-muted-foreground hover:bg-white/80 focus-visible:bg-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50 shadow-sm transition-all"
             />
             {itSearchQuery && (
               <button
@@ -276,15 +276,15 @@ export default function FounderApprovalView() {
             </div>
 
             {/* HR Ticket Filters */}
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border text-xs font-semibold">
+            <div className="flex items-center gap-1 bg-white/60 backdrop-blur-md p-1 rounded-xl border border-white/80 shadow-sm text-xs font-semibold">
               {['all', 'pending', 'approved', 'rejected'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setHrComplaintFilter(f)}
-                  className={`px-3 py-1 rounded-lg capitalize transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg capitalize transition-all cursor-pointer ${
                     hrComplaintFilter === f
-                      ? 'bg-primary text-primary-foreground font-bold'
-                      : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
+                      ? 'bg-[#0d1811] text-white shadow-md border border-white/15 font-bold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
                   }`}
                 >
                   {f === 'rejected' ? 'Not Approved' : f}
@@ -301,7 +301,7 @@ export default function FounderApprovalView() {
               value={hrComplaintSearchQuery}
               onChange={(e) => setHrComplaintSearchQuery(e.target.value)}
               placeholder="Search HR ticket approvals by title, requester..."
-              className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full bg-white/65 backdrop-blur-md border border-white/85 rounded-xl pl-9 pr-8 py-2 text-xs text-foreground placeholder:text-muted-foreground hover:bg-white/80 focus-visible:bg-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50 shadow-sm transition-all"
             />
             {hrComplaintSearchQuery && (
               <button

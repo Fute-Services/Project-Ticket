@@ -59,7 +59,7 @@ export default function SuperAdminUsersPage() {
   }
 
   function toggleActive(u) {
-    // Deactivating is medium-risk (reversible, but locks someone out) — a
+    // Deactivating is medium-risk (reversible, but locks someone out) - a
     // typed reason via the confirm dialog; reactivating needs no gate.
     if (u.active !== false) {
       setDeactivateTarget(u);
@@ -112,7 +112,7 @@ export default function SuperAdminUsersPage() {
             Users
           </h1>
           <p className="text-xs text-muted-foreground">
-            Every account across every role — edit, promote/demote, deactivate, reset password, or delete.
+            Every account across every role - edit, promote/demote, deactivate, reset password, or delete.
           </p>
         </div>
 

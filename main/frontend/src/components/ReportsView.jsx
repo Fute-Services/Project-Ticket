@@ -5,7 +5,7 @@ import ItDatePicker from './ItDatePicker';
 import { BarChartCard, LineChartCard } from './charts';
 import { Card, SectionHeader, StatCard } from './ui';
 
-// Monday-anchored week bucket — real reporting weeks, not fabricated ones.
+// Monday-anchored week bucket - real reporting weeks, not fabricated ones.
 function weekStart(d) {
   const date = new Date(d);
   const day = (date.getDay() + 6) % 7;
@@ -31,7 +31,7 @@ export default function ReportsView() {
     : null;
   const openCount = itTickets.length - resolved.length;
 
-  // Last 6 real calendar weeks, oldest first — zero-filled where nothing
+  // Last 6 real calendar weeks, oldest first - zero-filled where nothing
   // happened rather than fabricated, same as a bank statement showing a
   // $0 day instead of skipping it.
   const weeks = useMemo(() => {
@@ -122,10 +122,10 @@ export default function ReportsView() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <StatCard icon={ShieldCheck} label="SLA Compliance" value={slaPct === null ? '—' : `${slaPct}%`} sub="resolved of raised" accent="#23734B" />
+        <StatCard icon={ShieldCheck} label="SLA Compliance" value={slaPct === null ? '-' : `${slaPct}%`} sub="resolved of raised" accent="#23734B" />
         <StatCard icon={CheckCircle2} label="Tickets Resolved" value={resolved.length} sub="all time" accent="#0C3515" />
         <StatCard icon={AlertTriangle} label="Still Open" value={openCount} sub="not yet resolved" accent="#ef4444" />
-        <StatCard icon={Clock} label="Avg Resolution" value={avgResolutionHours === null ? '—' : `${avgResolutionHours.toFixed(1)}h`} sub="mean time to resolve" accent="#6CA78B" />
+        <StatCard icon={Clock} label="Avg Resolution" value={avgResolutionHours === null ? '-' : `${avgResolutionHours.toFixed(1)}h`} sub="mean time to resolve" accent="#6CA78B" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

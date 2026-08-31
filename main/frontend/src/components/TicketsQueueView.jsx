@@ -9,7 +9,7 @@ import { getHrStaff, getItStaff } from '../utils/api';
 
 // Requests raised through NewHrTicketModal combine its separate Title +
 // Description fields into one string ("Title: Description") before they
-// ever reach the backend (TicketContext.addTicket — hr_complaints has no
+// ever reach the backend (TicketContext.addTicket - hr_complaints has no
 // title column of its own). The Issue column shows only the title part for
 // HR so the queue stays scannable; the drawer below still shows the full
 // combined text via `description`.
@@ -20,7 +20,7 @@ export function issueTitle(t) {
 }
 
 // Most recent approval record linked back to this ticket (approvals/{id}
-// has complaintRef: { collection, id } — set automatically by
+// has complaintRef: { collection, id } - set automatically by
 // itController.js/hrController.js when a ticket's status is set to
 // "Waiting Approval"). A ticket can only be sent for approval once at a
 // time, but sort by createdAt anyway in case a rejected-then-resent ticket
@@ -36,9 +36,9 @@ export const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Reso
 const DEFAULT_SOLVER = 'Unassigned';
 
 // The "Resolved By" dropdown used to be a hardcoded name/team list per
-// department — someone newly given the hr/it role never showed up until a
+// department - someone newly given the hr/it role never showed up until a
 // developer edited this file. Now it's whoever currently holds that role,
-// fetched from GET /api/{hr,it}/staff (staffController.js) — same source of
+// fetched from GET /api/{hr,it}/staff (staffController.js) - same source of
 // truth the Founder's Role Permissions page uses to grant the role itself.
 function useSolverOptions(deptLabel) {
   const [names, setNames] = useState([]);
@@ -51,7 +51,7 @@ function useSolverOptions(deptLabel) {
         if (!cancelled) setNames((data || []).map((u) => u.full_name).filter(Boolean));
       })
       .catch(() => {
-        // Queue still works with just "Unassigned" if this fails — not
+        // Queue still works with just "Unassigned" if this fails - not
         // worth surfacing a toast for a dropdown's option list.
       });
     return () => {
@@ -63,7 +63,7 @@ function useSolverOptions(deptLabel) {
 }
 
 // A Radix Select (not a native `<select>`) so the OPEN dropdown panel can be
-// fully skinned too — a native `<option>` list ignores almost all CSS, so
+// fully skinned too - a native `<option>` list ignores almost all CSS, so
 // getting a matching popover (rounded corners, shadow, hover/selected
 // highlight) needs a real custom listbox, not just a styled trigger. The
 // panel below picks up the same token palette as the trigger.
@@ -81,16 +81,16 @@ export function ColorSelect({ value, onChange, options, ariaLabel, textColorClas
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger
         aria-label={ariaLabel}
-        className={`h-auto w-full pl-3 pr-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide bg-card border border-border shadow-sm transition-all cursor-pointer hover:border-primary/45 focus:outline-none focus:border-primary/70 focus:ring-0 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-100 ${textColorClass}`}
+        className={`h-auto w-full pl-3 pr-2.5 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wide bg-white/70 backdrop-blur-md border border-white/85 shadow-sm transition-all cursor-pointer hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-primary/20 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-100 ${textColorClass}`}
       >
         <SelectValue />
       </SelectTrigger>
-      <SelectContent className="min-w-[--radix-select-trigger-width] bg-popover border border-border shadow-md rounded-xl p-1">
+      <SelectContent className="min-w-[--radix-select-trigger-width] apple-glass border border-white/90 shadow-2xl rounded-2xl p-1.5">
         {normalized.map((o) => (
           <SelectItem
             key={o.value}
             value={o.value}
-            className="text-foreground text-xs font-semibold uppercase tracking-wide rounded-lg py-1.5 pl-2.5 cursor-pointer focus:bg-accent focus:text-accent-foreground data-[state=checked]:bg-primary/15 data-[state=checked]:text-primary"
+            className="text-foreground text-xs font-semibold uppercase tracking-wide rounded-lg py-1.5 pl-2.5 cursor-pointer focus:bg-[#0d1811] focus:text-white data-[state=checked]:bg-[#0d1811] data-[state=checked]:text-white"
           >
             {o.label}
           </SelectItem>
@@ -103,11 +103,11 @@ export function ColorSelect({ value, onChange, options, ariaLabel, textColorClas
 // Shared by every department's Tickets Queue (IT's DashboardPage, HR's
 // pages/hr/Tickets.jsx) so they stay pixel-identical instead of drifting
 // into slightly different tables. `deptLabel` only changes the status
-// column's header text and whether the IT-only VPN ID column shows —
+// column's header text and whether the IT-only VPN ID column shows -
 // everything else (search, filters, drawer) is department-agnostic since
 // TicketContext already normalizes both collections to the same shape.
 // A ticket already marked Resolved/Closed sitting in the default queue view
-// forever was the complaint — this is the "history" it moves into instead:
+// forever was the complaint - this is the "history" it moves into instead:
 // still fully there, just not cluttering the active worklist. Picking the
 // Resolved or Closed filter tab explicitly still shows it.
 const HISTORY_STATUSES = ['Resolved', 'Closed'];
@@ -166,7 +166,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by ticket ID, user, issue, dept, status, resolved by..."
               aria-label="Search tickets queue"
-              className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-8 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full bg-white/65 backdrop-blur-md border border-white/85 rounded-xl pl-9 pr-8 py-2 text-xs text-foreground placeholder:text-muted-foreground hover:bg-white/80 focus-visible:bg-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50 shadow-sm transition-all"
             />
             {searchQuery && (
               <button
@@ -180,14 +180,16 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
             )}
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5 bg-white/60 backdrop-blur-md p-1 rounded-xl border border-white/80 shadow-sm">
             {['All', ...TICKET_STATUSES].map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setFilter(s)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                  filter === s ? 'bg-primary text-primary-foreground' : 'bg-muted border border-border text-muted-foreground hover:text-foreground'
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  filter === s
+                    ? 'bg-[#0d1811] text-white shadow-md border border-white/15 font-bold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
                 }`}
               >
                 {s}
@@ -218,25 +220,25 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
               key: 'token',
               label: 'Ticket ID',
               width: '95px',
-              render: (t) => <span className="font-bold text-primary text-xs font-mono">{t.token || '—'}</span>,
+              render: (t) => <span className="font-bold text-primary text-xs font-mono">{t.token || '-'}</span>,
             },
             {
               key: 'date',
               label: 'Date',
               width: '80px',
-              render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '—'}</span>,
+              render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '-'}</span>,
             },
             {
               key: 'username',
               label: 'Username',
               width: '90px',
-              render: (t) => <span className="text-foreground font-medium text-xs truncate block">{t.username || t.user || '—'}</span>,
+              render: (t) => <span className="text-foreground font-medium text-xs truncate block">{t.username || t.user || '-'}</span>,
             },
             {
               key: 'employeeId',
               label: 'Employee ID',
               width: '90px',
-              render: (t) => <span className="font-semibold text-primary text-xs">{t.employeeId || '—'}</span>,
+              render: (t) => <span className="font-semibold text-primary text-xs">{t.employeeId || '-'}</span>,
             },
             ...(showVpnNo
               ? [
@@ -244,7 +246,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                     key: 'vpnNo',
                     label: 'VPN ID',
                     width: '80px',
-                    render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '—'}</span>,
+                    render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '-'}</span>,
                   },
                 ]
               : []),
@@ -310,7 +312,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                 const currentSolver = t.solver || defaultSolver;
                 // A ticket resolved before this dropdown went dynamic can
                 // carry a value (e.g. a retired "Team 1") that's no longer in
-                // the live staff list — keep it selectable so the trigger
+                // the live staff list - keep it selectable so the trigger
                 // doesn't just render blank.
                 const options = solverOptions.includes(currentSolver) ? solverOptions : [currentSolver, ...solverOptions];
                 return (
@@ -369,7 +371,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                       const approval = findApproval(approvals, t.id);
                       // t.status flips to 'Waiting Approval' optimistically the
                       // instant onStatusChange is called (TicketContext updates
-                      // local state before the request resolves) — using it here
+                      // local state before the request resolves) - using it here
                       // too means the button locks immediately, not only once the
                       // approvals list next polls, so a second click can't fire a
                       // duplicate "send for approval" request.
@@ -396,7 +398,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                           </span>
                         );
                       }
-                      // Not sent yet — clicking sends the ticket to the
+                      // Not sent yet - clicking sends the ticket to the
                       // Founder's Approval Center, same as picking "Waiting
                       // Approval" from the status dropdown above (backend
                       // creates the approvals/{id} record either way).
@@ -435,8 +437,8 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
         )}
       </div>
 
-      {/* Full record — Drawer showing Category, Subcategory, and all details */}
-      <Drawer open={!!detailsTicket} onClose={() => setDetailsTicket(null)} title={detailsTicket ? `Ticket Details — ${detailsTicket.token}` : 'Ticket Details'}>
+      {/* Full record - Drawer showing Category, Subcategory, and all details */}
+      <Drawer open={!!detailsTicket} onClose={() => setDetailsTicket(null)} title={detailsTicket ? `Ticket Details - ${detailsTicket.token}` : 'Ticket Details'}>
         {detailsTicket && (
           <div className="flex flex-col gap-4 text-xs font-sans">
             <div className="bg-muted/60 border border-border rounded-xl p-3.5 flex flex-col gap-1.5">
@@ -454,12 +456,12 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">Employee ID</div>
-                <div className="font-bold text-primary text-sm">{detailsTicket.employeeId || '—'}</div>
+                <div className="font-bold text-primary text-sm">{detailsTicket.employeeId || '-'}</div>
               </div>
 
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">Requester Name</div>
-                <div className="font-semibold text-foreground">{detailsTicket.user || '—'}</div>
+                <div className="font-semibold text-foreground">{detailsTicket.user || '-'}</div>
               </div>
 
               <div className="bg-card border border-border rounded-xl p-3">
@@ -495,13 +497,13 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
               {showVpnNo && (
                 <div className="bg-card border border-border rounded-xl p-3">
                   <div className="text-muted-foreground font-semibold mb-0.5">VPN No</div>
-                  <div className="font-mono text-foreground">{detailsTicket.vpnNo || '—'}</div>
+                  <div className="font-mono text-foreground">{detailsTicket.vpnNo || '-'}</div>
                 </div>
               )}
 
               <div className="bg-card border border-border rounded-xl p-3">
                 <div className="text-muted-foreground font-semibold mb-0.5">Date</div>
-                <div className="text-foreground">{detailsTicket.date || '—'}</div>
+                <div className="text-foreground">{detailsTicket.date || '-'}</div>
               </div>
             </div>
 

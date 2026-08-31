@@ -7,12 +7,12 @@ import { useCursorPagination } from '../hooks/useCursorPagination';
 const AssetContext = createContext(null);
 
 // Own writes already update local state optimistically (create/update/
-// delete below) — this interval only exists to pick up changes made by
+// delete below) - this interval only exists to pick up changes made by
 // *other* sessions. Asset inventory changes far less often minute-to-minute
 // than tickets/approvals do, so this can afford to be looser (5min).
 const POLL_MS = 300000;
 
-// IT's Asset Management inventory — previously local state inside
+// IT's Asset Management inventory - previously local state inside
 // AssetsView (DashboardPage.jsx), now a shared context so an asset added
 // from one session is visible to any other IT/founder session too.
 export function AssetProvider({ children }) {
@@ -43,11 +43,11 @@ export function AssetProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on
     // id/role (stable primitives), not the `user` object itself, which
     // AuthContext replaces with a new reference on every login-state
-    // refresh even when the actual user hasn't changed — depending on the
+    // refresh even when the actual user hasn't changed - depending on the
     // object caused this refresh to needlessly refire and duplicate reads.
   }, [user?.id, user?.role, setCursor]);
 
-  // Appends the next 20 — resets back to page 1 on the next poll/refresh.
+  // Appends the next 20 - resets back to page 1 on the next poll/refresh.
   function loadMoreAssets() {
     return loadMore(getAssets, (items) => setAssets((prev) => [...prev, ...items]));
   }

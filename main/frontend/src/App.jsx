@@ -61,7 +61,7 @@ const SalesSettings = lazy(() => import('./pages/sales/Settings'));
 
 const DASHBOARD_ROUTES = [{ path: '/it/dashboard', allow: ['it'] }];
 
-// Developers, Marketing, Branding, Production — still demo-only roles with
+// Developers, Marketing, Branding, Production - still demo-only roles with
 // no backend of their own yet (see data/deptDemoData.js). Sales used to be
 // a fifth entry here; it now has a real backend/routes below instead.
 const DEPARTMENT_ROLES = ['developers', 'marketing', 'branding', 'production'];
@@ -99,12 +99,12 @@ const COORDINATOR_ROUTES = [
 
 // ponytail: every non-auth provider below already role-gates its own fetch
 // (e.g. AssetContext no-ops unless user.role is 'it'/'founder'), so an HR
-// user landing here triggers no wasted Asset/Render calls — but a role-gated
+// user landing here triggers no wasted Asset/Render calls - but a role-gated
 // context still fetches on login even if that role never visits the one page
 // consuming it this session (an IT user lands on Dashboard, Asset Management
 // data loads anyway). Fixing that fully means moving each context's initial
 // refresh() from provider-mount to first-consumer-mount across 6 contexts
-// and every page that reads them — upgrade if login-time latency or read
+// and every page that reads them - upgrade if login-time latency or read
 // volume actually becomes a problem, not preemptively.
 export default function App() {
   return (
@@ -234,7 +234,7 @@ export default function App() {
               </RequireAuth>
             }
           />
-          {/* Legacy path some links still point at — send it to the new HR home. */}
+          {/* Legacy path some links still point at - send it to the new HR home. */}
           <Route path="/hr/dashboard" element={<Navigate to="/hr/overview" replace />} />
           {HR_ROUTES.map(({ path, element }) => (
             <Route

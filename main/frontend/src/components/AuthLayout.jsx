@@ -1,4 +1,4 @@
-// Black backdrop for the auth screens only — everything else in the app
+// Black backdrop for the auth screens only - everything else in the app
 // stays on the light green theme. Overriding the token CSS variables here
 // (rather than editing tokens.css) means every child that already reads
 // bg-background/text-foreground/bg-muted/etc (IconField included, which is
@@ -33,7 +33,7 @@ export default function AuthLayout({ children }) {
         </div>
       </div>
 
-      {/* 3D House Visual Right Side — Seamless with Glowing Window Lights */}
+      {/* 3D House Visual Right Side - Seamless with Glowing Window Lights */}
       <div className="hidden lg:flex w-[50%] h-full relative items-center justify-center overflow-hidden shrink-0 z-10">
         {/* Pulsating Building Ambient Light Orbs */}
         <div className="absolute right-[20%] top-[25%] w-[180px] h-[180px] bg-[#6CA78B]/45 rounded-full blur-[45px] pointer-events-none animate-pulse z-0" />

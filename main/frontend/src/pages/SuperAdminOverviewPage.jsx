@@ -75,7 +75,7 @@ export default function SuperAdminOverviewPage() {
             subtitle={data.requiresAttention.length === 0 ? 'Nothing needs attention right now.' : `${data.requiresAttention.length} item(s)`}
           />
           {data.requiresAttention.length === 0 ? (
-            <EmptyState text="All clear — no SLA breaches, high-priority tickets, or pending approvals." />
+            <EmptyState text="All clear - no SLA breaches, high-priority tickets, or pending approvals." />
           ) : (
             <div className="flex flex-col gap-2">
               {data.requiresAttention.map((item) => (
@@ -110,7 +110,7 @@ export default function SuperAdminOverviewPage() {
               <StatCard label="Resolved" value={data.it.resolved} icon={CheckCircle2} />
               <StatCard label="Past SLA" value={data.it.overdue} icon={AlarmClockOff} accent={data.it.overdue > 0 ? 'hsl(var(--destructive))' : undefined} />
               <StatCard label="High Priority Open" value={data.it.highPriorityOpen} icon={AlertTriangle} />
-              <StatCard label="Avg Resolution" value={data.it.avgResolutionHours != null ? `${data.it.avgResolutionHours}h` : '—'} icon={Wrench} />
+              <StatCard label="Avg Resolution" value={data.it.avgResolutionHours != null ? `${data.it.avgResolutionHours}h` : '-'} icon={Wrench} />
             </div>
           </Card>
           <Card>
@@ -121,7 +121,7 @@ export default function SuperAdminOverviewPage() {
               <StatCard label="Resolved" value={data.hr.resolved} icon={CheckCircle2} />
               <StatCard label="Past SLA" value={data.hr.overdue} icon={AlarmClockOff} accent={data.hr.overdue > 0 ? 'hsl(var(--destructive))' : undefined} />
               <StatCard label="Pending Leave Requests" value={data.hr.pendingLeaveRequests} icon={HeartPulse} />
-              <StatCard label="Avg Resolution" value={data.hr.avgResolutionHours != null ? `${data.hr.avgResolutionHours}h` : '—'} icon={Wrench} />
+              <StatCard label="Avg Resolution" value={data.hr.avgResolutionHours != null ? `${data.hr.avgResolutionHours}h` : '-'} icon={Wrench} />
             </div>
           </Card>
         </div>
@@ -173,7 +173,7 @@ export default function SuperAdminOverviewPage() {
           <Card>
             <SectionHeader
               title="Customize dashboard"
-              subtitle="Reorder or hide sections — saved to your own account."
+              subtitle="Reorder or hide sections - saved to your own account."
               action={
                 <button
                   type="button"

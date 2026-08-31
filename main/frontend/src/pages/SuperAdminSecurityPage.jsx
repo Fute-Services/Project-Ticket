@@ -7,7 +7,7 @@ import ConfirmDangerousAction from '../components/ConfirmDangerousAction';
 import { getSessions, revokeSession, forceLogoutUser, getFailedLogins, getLockedAccounts, unlockAccount } from '../utils/api';
 
 function timeAgo(iso) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const ms = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(ms / 60000);
   if (mins < 1) return 'just now';

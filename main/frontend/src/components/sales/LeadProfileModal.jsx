@@ -16,7 +16,7 @@ export const LOST_REASON_VALUES = [
 ];
 const SOURCE_SUGGESTIONS = ['Referral', 'Existing Client', 'Outbound', 'Campaign', 'Email', 'Cold List'];
 
-// Pipeline (kanban) stage — derived from `status`, never stored separately,
+// Pipeline (kanban) stage - derived from `status`, never stored separately,
 // so there's one source of truth instead of two fields that can drift.
 export const STAGES = ['New leads', 'Contacted', 'Meeting', 'Proposal', 'Closure'];
 const STATUS_TO_STAGE = {
@@ -29,7 +29,7 @@ const STATUS_TO_STAGE = {
 export function stageForStatus(status) {
   return STATUS_TO_STAGE[status] || 'New leads';
 }
-// The one representative status a card moves to when advanced to a stage —
+// The one representative status a card moves to when advanced to a stage -
 // used by Pipeline's "advance" action, not by anything reading stage back out.
 export const STAGE_DEFAULT_STATUS = { 'New leads': 'Yet to be Called', Contacted: 'Contacted', Meeting: 'Meeting Arranged', Proposal: 'Proposal', Closure: 'Converted' };
 
@@ -47,13 +47,13 @@ function Detail({ label, value, wrap }) {
   return (
     <div className="min-w-0">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground/80">{label}</div>
-      <div className={`text-xs text-foreground font-medium ${wrap ? 'break-words' : 'truncate'}`}>{value || value === 0 ? value : '—'}</div>
+      <div className={`text-xs text-foreground font-medium ${wrap ? 'break-words' : 'truncate'}`}>{value || value === 0 ? value : '-'}</div>
     </div>
   );
 }
 
 // Single Lead Profile popup, reused everywhere a list needs "click a row to
-// see everything" — Directory, Daily Calls, Follow-ups, Meetings, Pipeline.
+// see everything" - Directory, Daily Calls, Follow-ups, Meetings, Pipeline.
 // Same view<->edit toggle pattern already shipped for HR's Candidates.
 export default function LeadProfileModal({ lead, onClose }) {
   const { setLeads, leads } = useSalesDesk();

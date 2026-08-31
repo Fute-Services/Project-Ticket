@@ -7,13 +7,13 @@ import { useCursorPagination } from '../hooks/useCursorPagination';
 const RenderContext = createContext(null);
 
 // Own writes already update local state optimistically (addRender/
-// updateRender below) — this interval only exists to pick up changes made
+// updateRender below) - this interval only exists to pick up changes made
 // by *other* sessions. Render job status doesn't change minute-to-minute,
 // so this can afford to be looser (5min).
 const POLL_MS = 300000;
 
 // Shared between the Production dashboard (writes) and IT's read-only
-// Rendering Status view (reads) — both now read the same backend collection.
+// Rendering Status view (reads) - both now read the same backend collection.
 export function RenderProvider({ children }) {
   const { user } = useAuth();
   const [renders, setRenders] = useState([]);
@@ -42,11 +42,11 @@ export function RenderProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on
     // id/role (stable primitives), not the `user` object itself, which
     // AuthContext replaces with a new reference on every login-state
-    // refresh even when the actual user hasn't changed — depending on the
+    // refresh even when the actual user hasn't changed - depending on the
     // object caused this refresh to needlessly refire and duplicate reads.
   }, [user?.id, user?.role, setCursor]);
 
-  // Appends the next 20 — resets back to page 1 on the next poll/refresh.
+  // Appends the next 20 - resets back to page 1 on the next poll/refresh.
   function loadMoreRenders() {
     return loadMore(getRenders, (items) => setRenders((prev) => [...prev, ...items]));
   }

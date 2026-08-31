@@ -8,7 +8,7 @@ const POLL_MS = 15 * 1000;
 
 const AuthContext = createContext(null);
 
-// Where each role lands after signing in (PRD §4.1 — one login UI, role-based routing)
+// Where each role lands after signing in (PRD §4.1 - one login UI, role-based routing)
 export const HOME_FOR_ROLE = {
   founder: '/founder/dashboard',
   superadmin: '/superadmin/overview',
@@ -16,11 +16,11 @@ export const HOME_FOR_ROLE = {
   it: '/it/dashboard',
   coordinator: '/coordinator/overview',
   employee: '/employee/dashboard',
-  // Sales Desk — real backend (sales_leads collection, /api/sales-desk),
+  // Sales Desk - real backend (sales_leads collection, /api/sales-desk),
   // not the illustrative department view the other four still use below.
   sales: '/sales/overview',
   // Demo-only roles: same illustrative data the Founder already sees when
-  // browsing these departments (see data/deptDemoData.js) — these accounts
+  // browsing these departments (see data/deptDemoData.js) - these accounts
   // exist so anyone can preview that view without going through the
   // Founder's dashboard. There's no dedicated backend or workflow behind
   // them yet, same as when a founder views them.
@@ -35,7 +35,7 @@ export function homeFor(role) {
 }
 
 // The session itself now lives entirely in an httpOnly cookie (see
-// authController.js) — invisible to this JS, by design. This cache is just a
+// authController.js) - invisible to this JS, by design. This cache is just a
 // cosmetic optimization so a page refresh doesn't flash the login screen
 // before GET /api/auth/me resolves; it's never trusted on its own, only ever
 // used to pre-paint while that request is in flight below.
@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(readCachedUser); // { id, email, role, full_name, department }
   const [loading, setLoading] = useState(true);
 
-  // The only real source of truth for "am I logged in" — the cookie is
+  // The only real source of truth for "am I logged in" - the cookie is
   // invisible to JS, so this is the one way to ask. A 401 here means the
   // cookie is missing/expired/revoked, which really does mean logged out.
   // Any other failure (offline, a flaky request) leaves whatever session
@@ -102,7 +102,7 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
-    // Revoke server-side and clear the cookie — best-effort, since the user
+    // Revoke server-side and clear the cookie - best-effort, since the user
     // is leaving either way and shouldn't be blocked by a flaky network.
     logoutUser().catch(() => {});
     setUser(null);

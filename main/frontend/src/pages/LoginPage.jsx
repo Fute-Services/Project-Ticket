@@ -7,16 +7,16 @@ import AuthLayout from '../components/AuthLayout';
 import IconField from '../components/IconField';
 
 /**
- * Sign-in. Per PRD §4.1 there is one login UI for every role — the role comes
+ * Sign-in. Per PRD §4.1 there is one login UI for every role - the role comes
  * from the account, and routing after sign-in follows from it.
  *
  * Forgot-password is shown disabled rather than left out: there's no
  * password-reset endpoint on the backend, so a click would 404. A visible,
  * honestly disabled control beats one that looks live and silently fails.
- * Google/Apple sign-in isn't shown at all — no OAuth is wired up, and unlike
+ * Google/Apple sign-in isn't shown at all - no OAuth is wired up, and unlike
  * a disabled state, an entire missing feature has no honest way to display.
  */
-// Toggle: flip to `true` to bring the password field back — mirrors
+// Toggle: flip to `true` to bring the password field back - mirrors
 // authController's PASSWORD_LOGIN_ENABLED on the backend. Both must agree,
 // since the backend already ignores/doesn't require password when its own
 // flag is off.
@@ -54,7 +54,7 @@ export default function LoginPage() {
     setError('');
     try {
       // `remember` decides the session cookie's own lifetime server-side now
-      // (authController.js) — it no longer picks between two Web Storage
+      // (authController.js) - it no longer picks between two Web Storage
       // areas on this end.
       const { data } = await loginUser({ ...form, remember });
       signInWithSession(data);

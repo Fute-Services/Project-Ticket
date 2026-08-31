@@ -21,7 +21,7 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
     }
   }, [user]);
 
-  // Escape must not yank the modal away mid-submit — the success panel is the
+  // Escape must not yank the modal away mid-submit - the success panel is the
   // only confirmation the user gets that the ticket was created.
   useEscapeToClose(isOpen && !submitted && !submitting, onClose);
 
@@ -33,7 +33,7 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   }
 
   // Only shows the success screen (and clears/closes) once the ticket has
-  // actually been created — previously this fired unconditionally on a
+  // actually been created - previously this fired unconditionally on a
   // timer, so a failed/offline submission still told the user it worked.
   async function handleSubmit(e) {
     e.preventDefault();

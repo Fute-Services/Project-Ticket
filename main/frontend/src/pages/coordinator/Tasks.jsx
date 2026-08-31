@@ -21,7 +21,7 @@ const EMPTY_FORM = (projects, employees) => ({
   pr: '',
 });
 
-// Link fields are pasted as either a bare domain or a full URL — normalise
+// Link fields are pasted as either a bare domain or a full URL - normalise
 // so href always works without doubling up the scheme.
 function toHref(link) {
   return /^https?:\/\//i.test(link) ? link : `https://${link}`;
@@ -29,7 +29,7 @@ function toHref(link) {
 
 export default function Tasks() {
   const { tasks, projects, addTask, moveTask, updateTask, toggleComplete, hasMoreTasks, loadMoreTasks, loadingMore } = useTaskProject();
-  // Real roster, not a hardcoded mock list — a task assigned to a name that
+  // Real roster, not a hardcoded mock list - a task assigned to a name that
   // doesn't match any real signed-in user's full_name never shows up in
   // that person's "My Tasks" (EmployeeDashboardPage matches by exact name).
   const { employees } = useHrDesk();
@@ -39,7 +39,7 @@ export default function Tasks() {
   const [openTaskId, setOpenTaskId] = useState(null);
 
   // The form's default assignee only has a real name to fall back to once
-  // the roster has loaded — backfill it the same way the default project
+  // the roster has loaded - backfill it the same way the default project
   // does once `projects` arrives.
   useEffect(() => {
     if (employees.length) setForm((f) => (f.assignee ? f : { ...f, assignee: employees[0].name }));
@@ -48,7 +48,7 @@ export default function Tasks() {
   const visible = projectFilter === 'All' ? tasks : tasks.filter((t) => t.projectId === projectFilter);
   const projectOf = (t) => projects.find((p) => p.id === t.projectId);
 
-  // Track the open task by id, not by object — otherwise the pane keeps
+  // Track the open task by id, not by object - otherwise the pane keeps
   // rendering a stale copy after an edit.
   const openTask = openTaskId ? tasks.find((t) => t.id === openTaskId) : null;
 
@@ -123,7 +123,7 @@ export default function Tasks() {
             <TabsTrigger value="board">Board</TabsTrigger>
           </TabsList>
 
-          {/* List — the default, because scanning names top-to-bottom is
+          {/* List - the default, because scanning names top-to-bottom is
               faster than reading across columns once there are more than a
               handful of tasks. */}
           <TabsContent value="list" className="mt-4">

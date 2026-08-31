@@ -20,7 +20,7 @@ function todayStr() {
 }
 
 // Rebuilt to match the reference CRM's Dashboard depth (see
-// docs/SALES_DESK_BUILD_PLAN.md §10) — same layout, our theme, our data.
+// docs/SALES_DESK_BUILD_PLAN.md §10) - same layout, our theme, our data.
 export default function SalesOverview() {
   const { leads, settings, loading } = useSalesDesk();
   const navigate = useNavigate();
@@ -175,8 +175,8 @@ export default function SalesOverview() {
                     <div className="text-xs text-muted-foreground truncate">{l.contactName || 'No contact'} · {l.assignedTo || 'Unassigned'}</div>
                   </div>
                   <Badge value={l.status} />
-                  <div className="text-xs font-semibold text-foreground w-20 text-right shrink-0">{l.dealValue > 0 ? `₹${Number(l.dealValue).toLocaleString('en-IN')}` : '—'}</div>
-                  <div className="text-xs text-muted-foreground w-24 text-right shrink-0">{l.nextCallDate || l.meetingDate || '—'}</div>
+                  <div className="text-xs font-semibold text-foreground w-20 text-right shrink-0">{l.dealValue > 0 ? `₹${Number(l.dealValue).toLocaleString('en-IN')}` : '-'}</div>
+                  <div className="text-xs text-muted-foreground w-24 text-right shrink-0">{l.nextCallDate || l.meetingDate || '-'}</div>
                 </button>
               ))}
             </div>

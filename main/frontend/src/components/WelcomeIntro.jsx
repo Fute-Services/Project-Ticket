@@ -2,13 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Apple's iPhone/Mac setup "hello" screen, adapted: shown once right after
-// signing in — RequireAuth renders this on top of the already-mounted
+// signing in - RequireAuth renders this on top of the already-mounted
 // dashboard (see its showIntro flag). The app's normal font, revealed
 // left-to-right via clip-path. "Welcome" writes first, a short pause/fade
 // beat, then the name writes on the same line. Two phases: "hello" (the
 // write-on, holds), then the panels split and slide apart, revealing the
 // real dashboard underneath. A tap/click at any point skips straight to
-// onDone() — this is a welcome, not a gate.
+// onDone() - this is a welcome, not a gate.
 const WELCOME_TEXT = 'Welcome, ';
 const WELCOME_DRAW_S = 2;
 const PAUSE_S = 0.25;
@@ -16,14 +16,14 @@ const OPEN_DURATION_S = 1;
 const READ_PAUSE_MS = 1000;
 
 // A short name draws fast; a long one gets more time so it doesn't look
-// rushed — clamped so neither extreme feels off.
+// rushed - clamped so neither extreme feels off.
 function nameDrawDurationFor(nameText) {
   return Math.min(3.5, Math.max(1, nameText.length * 0.1));
 }
 
 export default function WelcomeIntro({ name, onDone }) {
   const [phase, setPhase] = useState('hello');
-  // null until the rendered width is measured — kept invisible until then
+  // null until the rendered width is measured - kept invisible until then
   // so nobody sees an unscaled flash before the fit-to-one-line scale is
   // known (matters most for a long full name).
   const [layout, setLayout] = useState(null);
@@ -37,7 +37,7 @@ export default function WelcomeIntro({ name, onDone }) {
   const holdMs = totalDrawS * 1000 + READ_PAUSE_MS;
 
   // Scales the whole line down to fit within one row instead of wrapping or
-  // overflowing — matters for a long full name. Runs after layout so the
+  // overflowing - matters for a long full name. Runs after layout so the
   // refs' real rendered widths (the app's normal font, already loaded by
   // the time anyone reaches this screen) are available to measure.
   useLayoutEffect(() => {
@@ -61,7 +61,7 @@ export default function WelcomeIntro({ name, onDone }) {
   }, []);
 
   // Drives onDone off a plain timer matched to OPEN_DURATION_S rather than
-  // Framer's onAnimationComplete — that fired inconsistently (sometimes
+  // Framer's onAnimationComplete - that fired inconsistently (sometimes
   // right as the 'open' phase started rather than once the slide actually
   // finished), which looked like an instant jump straight to the dashboard
   // with no visible curtain-up animation at all.

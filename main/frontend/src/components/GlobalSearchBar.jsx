@@ -4,7 +4,7 @@ import { Search, UserRound, Ticket, HardDrive, Building2, X } from 'lucide-react
 import { globalSearch } from '../utils/api';
 
 const TYPE_ICON = { user: UserRound, ticket: Ticket, asset: HardDrive, department: Building2 };
-// Only these two types have a real page to land on — tickets/assets have no
+// Only these two types have a real page to land on - tickets/assets have no
 // dedicated Super Admin detail view yet, so those results show as
 // informational rows only, not fabricated links to nowhere.
 const TYPE_ROUTE = { user: '/superadmin/users', department: '/superadmin/departments' };

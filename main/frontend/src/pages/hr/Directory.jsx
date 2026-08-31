@@ -32,7 +32,7 @@ const EMPLOYMENT_TYPE_OPTIONS = ['Full time'];
 const BG_VERIFICATION_OPTIONS = ['Pending', 'Verified', 'Not Verified'];
 const BLOOD_GROUP_OPTIONS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
-// Document Template module — full names shown to HR (not the OL/NDA/LP/COC
+// Document Template module - full names shown to HR (not the OL/NDA/LP/COC
 // shorthand from the original notes), each paired with the Storage URL +
 // filename fields the upload endpoint writes onto the employee record.
 const DOCUMENT_TYPES = [
@@ -49,7 +49,7 @@ const DOCUMENT_TYPES = [
 ];
 const DOCUMENT_ACCEPT = '.pdf,.jpg,.jpeg,.doc,.docx';
 
-// Payslip — Indian numbering (Lakh/Crore), matching how Zoho's free payslip
+// Payslip - Indian numbering (Lakh/Crore), matching how Zoho's free payslip
 // generator (zoho.com/in/payroll/free-payslip-generator) renders "amount in
 // words" on the template this is deliberately matching, not integrating with.
 const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
@@ -78,9 +78,9 @@ function numberToWordsINR(amount) {
   return parts.join(' ') + ' Rupees Only';
 }
 
-// Generate Payslip — HR now edits an Employee Pay Summary + Income Details
+// Generate Payslip - HR now edits an Employee Pay Summary + Income Details
 // form (pre-filled from the employee record/attendance, matching Zoho's free
-// payslip generator's edit step — see docs/HR-Portal-Build-Plan.pdf, §07: that
+// payslip generator's edit step - see docs/HR-Portal-Build-Plan.pdf, §07: that
 // tool has no account/API, it's a template to match, not a service to call)
 // before the final payslip document is generated from whatever HR edited.
 function defaultPayslipForm(employee, attendanceRecords) {
@@ -132,7 +132,7 @@ function printPayslip(payslipForm) {
   if (!win) return;
   win.document.write(`
     <html>
-      <head><title>Payslip — ${payslipForm.employeeName} — ${monthLabel}</title></head>
+      <head><title>Payslip - ${payslipForm.employeeName} - ${monthLabel}</title></head>
       <body style="font-family:sans-serif;padding:28px;color:#1a1a1a;">
         <div style="max-width:640px;margin:auto;border:1px solid #ddd;border-radius:10px;padding:24px;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
@@ -149,7 +149,7 @@ function printPayslip(payslipForm) {
           </div>
           <table style="width:100%;font-size:13px;margin-bottom:14px;">
             <tr><td style="padding:3px 0;color:#777;">Employee Name</td><td style="text-align:right;font-weight:600;">${payslipForm.employeeName}</td></tr>
-            <tr><td style="padding:3px 0;color:#777;">Employee ID</td><td style="text-align:right;">${payslipForm.employeeId || '—'}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Employee ID</td><td style="text-align:right;">${payslipForm.employeeId || '-'}</td></tr>
             <tr><td style="padding:3px 0;color:#777;">Pay Period</td><td style="text-align:right;">${monthLabel}</td></tr>
             <tr><td style="padding:3px 0;color:#777;">Paid Days</td><td style="text-align:right;">${payslipForm.paidDays}</td></tr>
             <tr><td style="padding:3px 0;color:#777;">Loss of Pay Days</td><td style="text-align:right;">${payslipForm.lopDays}</td></tr>
@@ -178,7 +178,7 @@ function printPayslip(payslipForm) {
 
 // Real employees created through this form have no `photo` field (the
 // backend only stores what's in editableFields, and "photo" here is just
-// initials, not an actual image) — legacy/seeded records that do have one
+// initials, not an actual image) - legacy/seeded records that do have one
 // keep it, everyone else gets initials computed from their name instead.
 function initialsOf(name) {
   const parts = (name || '').trim().split(/\s+/).filter(Boolean);
@@ -282,7 +282,7 @@ export default function Directory() {
   const DEPARTMENTS = useMemo(() => ['All', ...new Set(employees.map((e) => e.department))], [employees]);
 
   // Dropdown-driven per the requirements doc, sourced from whatever
-  // departments/designations already exist in real records — no hardcoded
+  // departments/designations already exist in real records - no hardcoded
   // list to keep in sync as the org's actual departments/designations grow.
   const DEPARTMENT_OPTIONS = useMemo(
     () => [...new Set(employees.map((e) => e.department).filter(Boolean))].sort(),
@@ -294,7 +294,7 @@ export default function Directory() {
   );
 
   // Same reduce-and-count logic the old "Headcount by Department" card used
-  // (pages/hr/Overview.jsx) — 'All' isn't a real department value, so it's
+  // (pages/hr/Overview.jsx) - 'All' isn't a real department value, so it's
   // looked up separately as the full employee count rather than falling
   // through the reduce and showing 0/undefined.
   const departmentCounts = useMemo(
@@ -320,7 +320,7 @@ export default function Directory() {
 
   const bank = selected ? bankDetails[selected.id] : null;
 
-  // Document approval status — the most recent 'document' approval for this
+  // Document approval status - the most recent 'document' approval for this
   // employee+docType (ApprovalContext already loads a shared, paginated
   // feed; this just filters what's already in memory, no extra fetch).
   function approvalFor(docKey) {
@@ -336,8 +336,8 @@ export default function Directory() {
     );
   }
 
-  // "Taken" is stored one row per (employeeId, periodKey) in leave_entries —
-  // same shape/pattern as performance_entries below — so HR can set a
+  // "Taken" is stored one row per (employeeId, periodKey) in leave_entries -
+  // same shape/pattern as performance_entries below - so HR can set a
   // different taken count per month/quarter. Total is always the employee's
   // leaveEntitlement; Remaining is entitlement minus the sum of taken across
   // every period on file (not just whichever one the dropdown is showing).
@@ -358,7 +358,7 @@ export default function Directory() {
   }, [selected, leaveEntries]);
 
   // Re-sync the editable "Taken" input whenever the employee, period type,
-  // or the specific month/quarter changes — pulls the existing entry for
+  // or the specific month/quarter changes - pulls the existing entry for
   // that exact period if one exists, otherwise resets to 0.
   useEffect(() => {
     setLeaveTakenInput(String(leaveEntry?.taken ?? 0));
@@ -421,7 +421,7 @@ export default function Directory() {
   }
 
   // Performance is manual entry (decided: not derived from the Production
-  // render-job tracker) — one performance_entries doc per (employeeId,
+  // render-job tracker) - one performance_entries doc per (employeeId,
   // periodKey, category), so Walkthrough/Floor Plan/Masterplan/3D Views each
   // carry their own independent Target/Delivered for the same period.
   // "YYYY-MM" for Monthly, "YYYY-Q<n>" for Quarterly.
@@ -435,7 +435,7 @@ export default function Directory() {
     : null;
 
   // Re-sync the editable form whenever the employee, category, period type,
-  // or the specific month/quarter changes — pulls the existing entry for
+  // or the specific month/quarter changes - pulls the existing entry for
   // that exact (category, period) if one exists, otherwise resets to zeros
   // rather than leaving the previous selection's numbers on screen.
   useEffect(() => {
@@ -623,7 +623,7 @@ export default function Directory() {
                     ].map(([label, value]) => (
                       <div key={label} className="flex items-center justify-between gap-3 px-3 py-1.5">
                         <span className="text-muted-foreground shrink-0">{label}</span>
-                        <span className="text-foreground font-medium text-right truncate">{value || '—'}</span>
+                        <span className="text-foreground font-medium text-right truncate">{value || '-'}</span>
                       </div>
                     ))}
                     <div className="flex items-center justify-between gap-3 px-3 py-1.5">
@@ -631,16 +631,16 @@ export default function Directory() {
                       {selected.driveLink ? (
                         <a href={selected.driveLink} target="_blank" rel="noreferrer" className="text-primary font-medium hover:underline truncate">Open folder</a>
                       ) : (
-                        <span className="text-foreground font-medium">—</span>
+                        <span className="text-foreground font-medium">-</span>
                       )}
                     </div>
                     <div className="flex items-center justify-between gap-3 px-3 py-1.5">
                       <span className="text-muted-foreground shrink-0">Permanent Address</span>
-                      <span className="text-foreground font-medium text-right truncate">{selected.permanentAddress || '—'}</span>
+                      <span className="text-foreground font-medium text-right truncate">{selected.permanentAddress || '-'}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3 px-3 py-1.5">
                       <span className="text-muted-foreground shrink-0">Present Address</span>
-                      <span className="text-foreground font-medium text-right truncate">{selected.presentAddress || '—'}</span>
+                      <span className="text-foreground font-medium text-right truncate">{selected.presentAddress || '-'}</span>
                     </div>
                   </div>
                 </div>

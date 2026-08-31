@@ -1,4 +1,4 @@
-/* Design tokens — green on off-white.
+/* Design tokens - green on off-white.
    Edit here, not in component files.
 
    The palette is a green ramp (from a reference brand image) over a light
@@ -11,32 +11,32 @@
    can't carry that difference when green is also the primary action colour.
 
    Light-only: there is no dark theme, so these are the only values that
-   exist — no `.dark` class or toggle needed, `<html>` carries no theme class
-   (see index.html). Values are bare HSL triplets — no hsl() wrapper — so
+   exist - no `.dark` class or toggle needed, `<html>` carries no theme class
+   (see index.html). Values are bare HSL triplets - no hsl() wrapper - so
    Tailwind can compose them as hsl(var(--x) / <alpha>) and opacity modifiers
    like bg-primary/90 keep working. */
 
 :root {
-  --background: 120 6% 97%;
+  --background: 138 28% 93%;
   --foreground: 131 68% 5%;
 
-  --card: 0 0% 100%;
+  --card: 138 35% 97%;
   --card-foreground: 131 68% 5%;
 
-  --popover: 0 0% 100%;
+  --popover: 138 35% 97%;
   --popover-foreground: 131 68% 5%;
 
-  --muted: 140 5% 89%;
+  --muted: 138 20% 88%;
   --muted-foreground: 112 7% 40%;
 
-  --secondary: 140 5% 89%;
+  --secondary: 138 20% 88%;
   --secondary-foreground: 131 68% 5%;
 
-  --accent: 151 30% 92%;
+  --accent: 140 32% 90%;
   --accent-foreground: 150 50% 21%;
 
-  --border: 140 5% 89%;
-  --input: 140 3% 81%;
+  --border: 138 18% 85%;
+  --input: 138 15% 82%;
   --ring: 150 53% 29%;
 
   --primary: 150 53% 29%;
@@ -59,14 +59,17 @@
   --chart-5: 112 7% 40%;
   --chart-6: 140 3% 81%;
 
-  --radius: 12px;
-  --radius-sm: 8px;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
 
-  --font-heading: 'Inter', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", -apple-system, system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", -apple-system, system-ui, sans-serif;
   --heading-weight: 600;
 
-  --shadow: 0 1px 3px rgba(4, 21, 7, 0.08);
+  --shadow: 0 4px 16px -2px rgba(4, 21, 7, 0.05), 0 1px 3px rgba(4, 21, 7, 0.03);
+  --shadow-lg: 0 16px 40px -6px rgba(4, 21, 7, 0.08), 0 4px 16px -2px rgba(4, 21, 7, 0.04);
 
   --space-1: 4px;
   --space-2: 8px;

@@ -7,11 +7,11 @@ import { relativeTime } from '../utils/tickets';
 // Shared by HrLayout's notification bell and the Overview dashboard's
 // "Notifications" stat card, so both read the exact same live list instead
 // of one polling real data and the other showing a static mock count.
-// Real events, not seeded mock notifications — anything HR still needs to
+// Real events, not seeded mock notifications - anything HR still needs to
 // act on: tickets nobody's started yet, leave requests still awaiting a
 // decision, and HR's own approval requests still waiting on the founder's
 // sign-off. There's no persisted "read" state for any of these (no backend
-// model for it), so "unread" here just means "still pending" — it clears
+// model for it), so "unread" here just means "still pending" - it clears
 // itself the moment the ticket/leave/approval is actually handled.
 export function useHrNotifications() {
   const { tickets } = useTickets();
@@ -31,7 +31,7 @@ export function useHrNotifications() {
       }));
     const leaveNotifs = leaveRequests
       // Admin/Ops and IT leave routes to the Founder to decide, not HR (see
-      // isFounderApproval) — surfacing it here would look actionable when
+      // isFounderApproval) - surfacing it here would look actionable when
       // HR actually can't do anything with it.
       .filter((l) => l.status === 'Pending' && !isFounderApproval(l))
       .map((l) => ({
@@ -43,7 +43,7 @@ export function useHrNotifications() {
         path: '/hr/approvals',
       }));
     const approvalNotifs = approvals
-      // Only HR's own submitted requests — the Founder's queue, not HR's.
+      // Only HR's own submitted requests - the Founder's queue, not HR's.
       .filter((a) => a.source === 'HR' && a.status === 'pending_founder')
       .map((a) => ({
         id: `approval-${a.id}`,

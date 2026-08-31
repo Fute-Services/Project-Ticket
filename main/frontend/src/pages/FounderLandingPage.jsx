@@ -102,7 +102,7 @@ export default function FounderLandingPage() {
           Welcome back, {user?.full_name?.split(' ')[0] || 'Founder'}
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-10 max-w-xl">
-          One unified command center for every department — approvals, projects, reports, and people, all under a single governance layer.
+          One unified command center for every department - approvals, projects, reports, and people, all under a single governance layer.
         </p>
 
         <button

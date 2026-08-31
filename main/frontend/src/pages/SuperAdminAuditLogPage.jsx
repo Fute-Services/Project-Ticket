@@ -53,7 +53,7 @@ export default function SuperAdminAuditLogPage() {
             <ScrollText size={20} className="text-primary" />
             Audit Log
           </h1>
-          <p className="text-xs text-muted-foreground">Every Super Admin action — who, what, and when.</p>
+          <p className="text-xs text-muted-foreground">Every Super Admin action - who, what, and when.</p>
         </div>
 
         <Card>
@@ -71,7 +71,7 @@ export default function SuperAdminAuditLogPage() {
                     <div className="text-sm text-foreground">
                       <span className="font-semibold">{log.actor_name || log.actor_email || 'Unknown'}</span>{' '}
                       <span className="text-muted-foreground">{ACTION_LABEL[log.action] || log.action}</span>
-                      {log.target?.email && <span className="font-medium"> — {log.target.email}</span>}
+                      {log.target?.email && <span className="font-medium"> - {log.target.email}</span>}
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-0.5">{formatWhen(log.created_at)}</div>
                   </div>

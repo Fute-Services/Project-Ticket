@@ -81,7 +81,7 @@ export default function HrLayout({ children }) {
     setMobileNavOpen(false);
   }
 
-  // Real, live events (ticket/leave/approval activity) — see useHrNotifications
+  // Real, live events (ticket/leave/approval activity) - see useHrNotifications
   // for what counts as "unread" and why. Shared with Overview.jsx's
   // Notifications stat card so both show the exact same live count.
   const notifications = useHrNotifications();
@@ -100,20 +100,20 @@ export default function HrLayout({ children }) {
   }, [navItems, location.pathname, navigate]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex font-sans selection:bg-primary/30 selection:text-primary">
-      {/* Sidebar — Fixed Height with Zero Scrollbar */}
+    <div className="min-h-screen bg-[#090f0c] text-foreground flex font-sans selection:bg-primary/30 selection:text-primary p-2.5 lg:p-3 gap-3 overflow-x-hidden">
+      {/* Sidebar - Fixed Height with Zero Scrollbar (Preserved) */}
       <aside
-        className={`fixed lg:sticky top-3 left-3 lg:left-auto lg:ml-3 z-40 ${
+        className={`fixed lg:sticky top-3 left-3 lg:left-auto z-40 ${
           collapsed ? 'w-[195px] lg:w-[64px]' : 'w-[195px] xl:w-[200px]'
-        } h-[calc(100vh-1.5rem)] bg-card border border-border rounded-lg flex flex-col justify-between shrink-0 p-3 overflow-hidden transition-all duration-300 lg:translate-x-0 ${
+        } h-[calc(100vh-1.5rem)] sidebar-glass rounded-2xl flex flex-col justify-between shrink-0 p-3 overflow-hidden transition-all duration-300 lg:translate-x-0 shadow-2xl text-white ${
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div>
-          {/* Brand Header — hidden when collapsed so the rail stays icon-width */}
+          {/* Brand Header */}
           {!collapsed && (
-            <div className="px-3 py-2 mb-3 border-b border-border">
-              <div className="font-bold text-sm tracking-tight text-foreground leading-none">
+            <div className="px-3 py-2 mb-3 border-b border-white/10">
+              <div className="font-bold text-sm tracking-tight text-white leading-none">
                 HR Dashboard
               </div>
             </div>
@@ -131,15 +131,15 @@ export default function HrLayout({ children }) {
                   onClick={() => goTo(item.path)}
                   title={collapsed ? item.label : undefined}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`mx-1 flex items-center py-1.5 rounded-xl text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
-                    collapsed ? 'lg:justify-center lg:px-0 gap-2.5 px-2.5' : 'gap-2.5 px-2.5'
+                  className={`mx-1 flex items-center py-2 px-2.5 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
+                    collapsed ? 'lg:justify-center lg:px-0 gap-2.5' : 'gap-2.5'
                   } ${
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow border border-primary/40 font-semibold'
-                      : 'bg-muted text-muted-foreground border border-border hover:border-muted-foreground/40 hover:text-foreground hover:bg-accent'
+                      ? 'bg-white/[0.14] text-white shadow-sm border border-white/20 font-semibold backdrop-blur-md'
+                      : 'text-white/70 hover:text-white hover:bg-white/[0.07] border border-transparent'
                   }`}
                 >
-                  <Icon size={14} className={`shrink-0 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                  <Icon size={15} className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-white/60'}`} />
                   <span className={`truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
                 </button>
               );
@@ -148,37 +148,37 @@ export default function HrLayout({ children }) {
         </div>
 
         {/* Profile Footer */}
-        <div className="flex flex-col gap-2 pt-3 border-t border-border">
+        <div className="flex flex-col gap-2 pt-3 border-t border-white/10">
           <div className="relative">
             <button
               type="button"
               onClick={() => setShowProfileMenu((p) => !p)}
               title={collapsed ? user?.full_name || 'Account' : undefined}
-              className={`w-full flex items-center rounded-xl bg-muted border border-border hover:border-muted-foreground/40 transition-colors text-left cursor-pointer ${
+              className={`w-full flex items-center rounded-lg bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 transition-colors text-left cursor-pointer text-white ${
                 collapsed ? 'lg:justify-center lg:p-1.5 justify-between p-2.5' : 'justify-between p-2.5'
               }`}
             >
               <div className={`flex items-center min-w-0 ${collapsed ? 'lg:justify-center gap-2.5' : 'gap-2.5'}`}>
                 <div className="relative shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center font-bold text-xs text-primary">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-xs text-emerald-300">
                     {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'H'}
                   </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary border-2 border-muted" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0c1611]" />
                 </div>
                 <div className={`min-w-0 flex-1 ${collapsed ? 'lg:hidden' : ''}`}>
-                  <div className="text-xs font-semibold text-foreground truncate">{user?.full_name || 'HR Manager'}</div>
-                  <div className="text-[10px] text-muted-foreground truncate">{ROLE_LABEL[user?.role] || 'HR Manager'}</div>
+                  <div className="text-xs font-semibold text-white truncate">{user?.full_name || 'HR Manager'}</div>
+                  <div className="text-[10px] text-white/50 truncate">{ROLE_LABEL[user?.role] || 'HR Manager'}</div>
                 </div>
               </div>
-              <ChevronDown size={14} className={`text-muted-foreground shrink-0 ${collapsed ? 'lg:hidden' : ''}`} />
+              <ChevronDown size={14} className={`text-white/60 shrink-0 ${collapsed ? 'lg:hidden' : ''}`} />
             </button>
 
             {showProfileMenu && (
-              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-muted border border-border rounded-xl p-1.5 shadow-2xl z-50">
+              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-[#0e1a14]/95 backdrop-blur-xl border border-white/15 rounded-xl p-1.5 shadow-2xl z-50">
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-colors text-left cursor-pointer whitespace-nowrap"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors text-left cursor-pointer whitespace-nowrap"
                 >
                   <LogOut size={14} className="shrink-0" />
                   <span>Sign out</span>
@@ -187,13 +187,13 @@ export default function HrLayout({ children }) {
             )}
           </div>
 
-          {/* Collapse toggle — desktop only; on mobile the sidebar is a drawer */}
+          {/* Collapse toggle */}
           <button
             type="button"
             onClick={() => setCollapsed((p) => !p)}
             aria-expanded={!collapsed}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden lg:flex w-full p-2 rounded-xl bg-muted border border-border text-muted-foreground hover:text-foreground items-center justify-center gap-2 text-xs font-medium transition-colors cursor-pointer"
+            className="hidden lg:flex w-full p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/70 hover:text-white items-center justify-center gap-2 text-xs font-medium transition-colors cursor-pointer"
           >
             {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
             {!collapsed && <span>Collapse</span>}
@@ -204,16 +204,15 @@ export default function HrLayout({ children }) {
       {mobileNavOpen && (
         <div className="fixed inset-0 bg-background/80 z-30 lg:hidden" onClick={() => setMobileNavOpen(false)} />
       )}
-
-      {/* Main Workspace */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen max-h-screen overflow-hidden">
-        <header className="h-14 border border-border/60 rounded-xl mx-3 mt-3 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-card/60 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)] sticky top-3 z-20">
+      
+      <div className="flex-1 flex flex-col min-w-0 h-[calc(100vh-1.5rem)] bg-[#eaf3ec] rounded-[24px] lg:rounded-[28px] border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden">
+        <header className="h-14 border-b border-border/70 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#eaf3ec]/85 backdrop-blur-xl sticky top-0 z-20">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               type="button"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Open navigation menu"
-              className="lg:hidden p-2 rounded-xl bg-muted backdrop-blur-md border border-border text-muted-foreground cursor-pointer shrink-0"
+              className="lg:hidden p-2 rounded-xl bg-muted border border-border text-muted-foreground cursor-pointer shrink-0"
             >
               <Menu size={16} />
             </button>
@@ -231,16 +230,16 @@ export default function HrLayout({ children }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search employees, candidates, tickets..."
-                className="h-9 bg-muted backdrop-blur-md border border-border rounded-xl pl-9 pr-4 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:bg-muted w-full transition-colors"
+                className="h-9 bg-muted/60 hover:bg-muted focus:bg-white border border-border/80 rounded-full pl-9 pr-4 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-full transition-all"
               />
               {results.length > 0 && (
-                <div className="absolute top-full left-0 mt-2 w-full bg-muted border border-border rounded-xl shadow-xl overflow-hidden z-30">
+                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-border rounded-2xl shadow-xl overflow-hidden z-30">
                   {results.map((r, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => goTo(r.path)}
-                      className="w-full flex items-center justify-between px-3.5 py-2 text-left hover:bg-accent transition-colors cursor-pointer border-b border-border last:border-0"
+                      className="w-full flex items-center justify-between px-3.5 py-2 text-left hover:bg-muted/40 transition-colors cursor-pointer border-b border-border/60 last:border-0"
                     >
                       <div className="min-w-0">
                         <div className="text-xs font-semibold text-foreground truncate">{r.label}</div>
@@ -256,27 +255,27 @@ export default function HrLayout({ children }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0 ml-3">
-            {/* Notification Bell */}
+          <div className="flex items-center gap-2">
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowNotifs((p) => !p)}
-                className="relative w-9 h-9 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-muted-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                aria-label="Open notifications"
+                className="relative w-9 h-9 rounded-full bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
               >
                 <Bell size={15} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full flex items-center justify-center border-2 border-background">
+                  <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full flex items-center justify-center border-2 border-white">
                     {unreadCount}
                   </span>
                 )}
               </button>
               {showNotifs && (
-                <div className="absolute top-full right-0 mt-2 w-[300px] bg-muted border border-border rounded-lg shadow-xl overflow-hidden z-30">
-                  <div className="px-4 py-2.5 border-b border-border text-xs font-bold text-foreground">Notifications</div>
+                <div className="absolute top-full right-0 mt-2 w-[300px] bg-white border border-border rounded-2xl shadow-xl overflow-hidden z-30">
+                  <div className="px-4 py-2.5 border-b border-border/60 text-xs font-bold text-foreground">Notifications</div>
                   <div className="max-h-[300px] overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-[11px] text-muted-foreground">All caught up — nothing pending.</div>
+                      <div className="px-4 py-6 text-center text-[11px] text-muted-foreground">All caught up - nothing pending.</div>
                     ) : (
                       notifications.map((n) => (
                         <button
@@ -286,7 +285,7 @@ export default function HrLayout({ children }) {
                             goTo(n.path);
                             setShowNotifs(false);
                           }}
-                          className="w-full text-left px-4 py-2.5 border-b border-border last:border-0 hover:bg-accent cursor-pointer"
+                          className="w-full text-left px-4 py-2.5 border-b border-border/60 last:border-0 hover:bg-muted/40 cursor-pointer"
                         >
                           <div className="flex items-start gap-2">
                             {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />}
@@ -303,19 +302,17 @@ export default function HrLayout({ children }) {
               )}
             </div>
 
-            {/* Email Inbox Quick Action */}
             <button
               type="button"
               onClick={() => goTo('/hr/email')}
               aria-label="Open email inbox"
               title="Email inbox"
-              className="relative w-9 h-9 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-muted-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
+              className="relative w-9 h-9 rounded-full bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
             >
               <Mail size={15} />
             </button>
 
-            {/* User Profile Pill — display only; sign out lives in the sidebar profile card */}
-            <div className="h-9 flex items-center gap-2 px-2.5 rounded-xl bg-muted backdrop-blur-md border border-border shrink-0">
+            <div className="h-9 flex items-center gap-2 px-2.5 rounded-full bg-muted/60 border border-border shrink-0">
               <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center font-bold text-[10px] text-primary">
                 {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'H'}
               </div>
@@ -327,9 +324,8 @@ export default function HrLayout({ children }) {
           </div>
         </header>
 
-        <main className="flex-1 p-3 lg:p-4 min-w-0 overflow-y-auto flex flex-col h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)]">{children}</main>
+        <main className="flex-1 p-3.5 lg:p-5 min-w-0 overflow-y-auto flex flex-col">{children}</main>
       </div>
     </div>
   );
 }
-

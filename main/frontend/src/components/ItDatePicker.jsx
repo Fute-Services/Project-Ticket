@@ -126,8 +126,8 @@ export default function ItDatePicker() {
   const label = !rangeStart
     ? 'Select date range'
     : !rangeEnd
-    ? `${formatShort(rangeStart)} – Select end`
-    : `${formatShort(rangeStart)} – ${formatShort(rangeEnd)}`;
+    ? `${formatShort(rangeStart)} - Select end`
+    : `${formatShort(rangeStart)} - ${formatShort(rangeEnd)}`;
 
   function handlePick(dateStr) {
     // No range yet, or a full range already picked → start a fresh one.

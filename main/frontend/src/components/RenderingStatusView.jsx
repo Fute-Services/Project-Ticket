@@ -6,7 +6,7 @@ import ItDatePicker from './ItDatePicker';
 import DataTable from './DataTable';
 import { Card, SectionHeader, StatCard, Modal, Field, inputClass } from './ui';
 
-// Read-only for IT — Production owns adding jobs and marking them complete
+// Read-only for IT - Production owns adding jobs and marking them complete
 // (ProductionDashboardView), so this mirrors that same shared RenderContext
 // list rather than giving IT its own editable copy of someone else's queue.
 function AddRenderModal({ isOpen, onClose, onAdd }) {
@@ -225,7 +225,7 @@ export default function RenderingStatusView() {
               key: 'date',
               label: 'Date',
               width: '100px',
-              render: (r) => <span className="text-muted-foreground text-xs whitespace-nowrap">{r.date || '—'}</span>,
+              render: (r) => <span className="text-muted-foreground text-xs whitespace-nowrap">{r.date || '-'}</span>,
             },
             {
               key: 'sequence',

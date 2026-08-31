@@ -41,7 +41,7 @@ import { DEPT_DEMO } from '../data/deptDemoData';
 import { tint } from '../styles/seriesColors';
 import { employees, candidates, attendanceRecords } from '../data/hrMockData';
 
-// One accent hex per department — used as a left-border stripe and tinted
+// One accent hex per department - used as a left-border stripe and tinted
 // icon badge instead of a full gradient fill, so a department reads as
 // "this is HR" at a glance without every card looking like a lit-up tile.
 const DEPT_ACCENT = {
@@ -51,7 +51,7 @@ const DEPT_ACCENT = {
   developers: 'hsl(var(--chart-4))',
   marketing: 'hsl(var(--chart-5))',
   branding: 'hsl(var(--chart-6))',
-  /* Seven departments, six ramp steps — production doubles up with HR.
+  /* Seven departments, six ramp steps - production doubles up with HR.
      They never appear adjacent in the grid, so the repeat isn't visible. */
   production: 'hsl(var(--chart-1))',
 };
@@ -200,7 +200,7 @@ export default function FounderDashboardPage() {
   // ItDeskLayout): a fixed nav list of icon+label rows. Founder switches
   // between views via activeDept rather than real routes, so "navigating"
   // here means setActiveDept, not react-router's navigate(). AI Agent Hub
-  // isn't in this list — it keeps its own "Fute AI+" entry point.
+  // isn't in this list - it keeps its own "Fute AI+" entry point.
   const SIDEBAR_ORDER = ['overview', 'approvals', 'projects', 'reports', 'hr', 'it', 'sales', 'developers', 'marketing', 'branding', 'production', 'chat'];
   const { canAccess } = usePermissions();
   const sidebarItems = SIDEBAR_ORDER.map((id) => departments.find((d) => d.id === id))
@@ -208,7 +208,7 @@ export default function FounderDashboardPage() {
     .filter((d) => canAccess('founder', d.id));
 
   // A page Super Admin revokes while Founder is sitting on it shouldn't
-  // leave them stranded there — same pattern as ItDeskLayout/HrLayout.
+  // leave them stranded there - same pattern as ItDeskLayout/HrLayout.
   useEffect(() => {
     if (sidebarItems.length && !sidebarItems.some((d) => d.id === activeDept)) {
       setActiveDept(sidebarItems[0].id);
@@ -233,7 +233,7 @@ export default function FounderDashboardPage() {
 
   const { tasks: allTasks, projects: allProjects } = useTaskProject();
 
-  // Founder's own rollup (Founder's Own View gap) — real data, same
+  // Founder's own rollup (Founder's Own View gap) - real data, same
   // HrDeskContext every HR page already shares (founder is already granted
   // read access there), just not surfaced on this dashboard until now.
   const { employees: hrEmployees, attendanceRecords: hrAttendance, extraHours: hrExtraHours } = useHrDesk();
@@ -254,20 +254,20 @@ export default function FounderDashboardPage() {
   const salesActiveReps = new Set(salesLeads.map((l) => l.assignedTo).filter(Boolean)).size;
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex font-sans selection:bg-primary/30 selection:text-primary">
-      {/* Sidebar — same fixed-height, collapsible, mobile-drawer pattern as
+    <div className="min-h-screen bg-[#090f0c] text-foreground flex font-sans selection:bg-primary/30 selection:text-primary p-2.5 lg:p-3 gap-3 overflow-x-hidden">
+      {/* Sidebar - same fixed-height, collapsible, mobile-drawer pattern as
           every other dashboard (HrLayout, CoordinatorLayout, ItDeskLayout). */}
       <aside
-        className={`fixed lg:sticky top-3 left-3 lg:left-auto lg:ml-3 z-40 ${
+        className={`fixed lg:sticky top-3 left-3 lg:left-auto z-40 ${
           collapsed ? 'w-[195px] lg:w-[64px]' : 'w-[195px] xl:w-[200px]'
-        } h-[calc(100vh-1.5rem)] bg-card border border-border rounded-lg flex flex-col justify-between shrink-0 p-3 overflow-hidden transition-all duration-300 lg:translate-x-0 ${
+        } h-[calc(100vh-1.5rem)] sidebar-glass rounded-2xl flex flex-col justify-between shrink-0 p-3 overflow-hidden transition-all duration-300 lg:translate-x-0 shadow-2xl text-white ${
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div>
           {!collapsed && (
-            <div className="px-3 py-2 mb-3 border-b border-border">
-              <div className="font-bold text-sm tracking-tight text-foreground leading-none">
+            <div className="px-3 py-2 mb-3 border-b border-white/10">
+              <div className="font-bold text-sm tracking-tight text-white leading-none">
                 Founder
               </div>
             </div>
@@ -284,15 +284,15 @@ export default function FounderDashboardPage() {
                   onClick={() => goToDept(item.id)}
                   title={collapsed ? item.shortLabel : undefined}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`mx-1 flex items-center py-1.5 rounded-xl text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
-                    collapsed ? 'lg:justify-center lg:px-0 gap-2.5 px-2.5' : 'gap-2.5 px-2.5'
+                  className={`mx-1 flex items-center py-2 px-2.5 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
+                    collapsed ? 'lg:justify-center lg:px-0 gap-2.5' : 'gap-2.5'
                   } ${
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow border border-primary/40 font-semibold'
-                      : 'bg-muted text-muted-foreground border border-border hover:border-muted-foreground/40 hover:text-foreground hover:bg-accent'
+                      ? 'bg-white/[0.14] text-white shadow-sm border border-white/20 font-semibold backdrop-blur-md'
+                      : 'text-white/70 hover:text-white hover:bg-white/[0.07] border border-transparent'
                   }`}
                 >
-                  <Icon size={14} className={`shrink-0 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                  <Icon size={14} className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-white/60'}`} />
                   <span className={`truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.shortLabel}</span>
                 </button>
               );
@@ -300,17 +300,16 @@ export default function FounderDashboardPage() {
           </nav>
         </div>
 
-        <div className="flex flex-col gap-2 pt-3 border-t border-border">
-          {/* Fute AI+ — kept visually distinct from the regular nav rows,
-              same emphasis it had as its own dock button. */}
+        <div className="flex flex-col gap-2 pt-3 border-t border-white/10 shrink-0">
+          {/* Fute AI+ */}
           <button
             type="button"
             onClick={() => goToDept('ai-agents')}
             title={collapsed ? 'Fute AI+' : undefined}
             aria-current={activeDept === 'ai-agents' ? 'page' : undefined}
-            className={`mx-1 flex items-center py-1.5 rounded-xl text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer bg-gradient-to-br from-primary via-primary-hover to-[#0C3515] text-white shadow ${
+            className={`mx-1 flex items-center py-2 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-950/40 ${
               collapsed ? 'lg:justify-center lg:px-0 gap-2.5 px-2.5' : 'gap-2.5 px-2.5'
-            } ${activeDept === 'ai-agents' ? 'ring-2 ring-offset-2 ring-offset-background ring-primary' : ''}`}
+            } ${activeDept === 'ai-agents' ? 'ring-2 ring-emerald-400' : ''}`}
           >
             <Sparkles size={14} className="shrink-0" />
             <span className={`truncate ${collapsed ? 'lg:hidden' : ''}`}>Fute AI+</span>
@@ -321,31 +320,31 @@ export default function FounderDashboardPage() {
               type="button"
               onClick={() => setShowProfileMenu((p) => !p)}
               title={collapsed ? user?.full_name || 'Account' : undefined}
-              className={`w-full flex items-center rounded-xl bg-muted border border-border hover:border-muted-foreground/40 transition-colors text-left cursor-pointer ${
+              className={`w-full flex items-center rounded-lg bg-white/[0.05] hover:bg-white/[0.09] border border-white/10 transition-colors text-left cursor-pointer text-white ${
                 collapsed ? 'lg:justify-center lg:p-1.5 justify-between p-2.5' : 'justify-between p-2.5'
               }`}
             >
               <div className={`flex items-center min-w-0 ${collapsed ? 'lg:justify-center gap-2.5' : 'gap-2.5'}`}>
                 <div className="relative shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center font-bold text-xs text-primary">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-xs text-emerald-300">
                     {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'F'}
                   </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary border-2 border-muted" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0c1611]" />
                 </div>
                 <div className={`min-w-0 flex-1 ${collapsed ? 'lg:hidden' : ''}`}>
-                  <div className="text-xs font-semibold text-foreground truncate">{user?.full_name || 'Founder'}</div>
-                  <div className="text-[10px] text-muted-foreground truncate">Founder</div>
+                  <div className="text-xs font-semibold text-white truncate">{user?.full_name || 'Founder'}</div>
+                  <div className="text-[10px] text-white/50 truncate">Founder</div>
                 </div>
               </div>
-              <ChevronDown size={14} className={`text-muted-foreground shrink-0 ${collapsed ? 'lg:hidden' : ''}`} />
+              <ChevronDown size={14} className={`text-white/60 shrink-0 ${collapsed ? 'lg:hidden' : ''}`} />
             </button>
 
             {showProfileMenu && (
-              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-muted border border-border rounded-xl p-1.5 shadow-2xl z-50">
+              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-[#0e1a14]/95 backdrop-blur-xl border border-white/15 rounded-xl p-1.5 shadow-2xl z-50">
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-colors text-left cursor-pointer whitespace-nowrap"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors text-left cursor-pointer whitespace-nowrap"
                 >
                   <LogOut size={14} className="shrink-0" />
                   <span>Sign out</span>
@@ -354,13 +353,13 @@ export default function FounderDashboardPage() {
             )}
           </div>
 
-          {/* Collapse toggle — desktop only; on mobile the sidebar is a drawer */}
+          {/* Collapse toggle */}
           <button
             type="button"
             onClick={() => setCollapsed((p) => !p)}
             aria-expanded={!collapsed}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden lg:flex w-full p-2 rounded-xl bg-muted border border-border text-muted-foreground hover:text-foreground items-center justify-center gap-2 text-xs font-medium transition-colors cursor-pointer"
+            className="hidden lg:flex w-full p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/70 hover:text-white items-center justify-center gap-2 text-xs font-medium transition-colors cursor-pointer"
           >
             {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
             {!collapsed && <span>Collapse</span>}
@@ -372,33 +371,32 @@ export default function FounderDashboardPage() {
         <div className="fixed inset-0 bg-background/80 z-30 lg:hidden" onClick={() => setMobileNavOpen(false)} />
       )}
 
-      {/* Main Workspace Column */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-      {/* Top Bar — breadcrumb, notifications, profile. */}
-      <div className="sticky top-3 z-30 w-full max-w-[1700px] mx-auto px-4 lg:px-6 mt-3 shrink-0">
-        <header className="h-12 rounded-full px-5 flex items-center justify-between border border-border/60 bg-card/60 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)]">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium pl-2">
+      {/* Main Workspace Column - Framed Rounded Tablet Canvas */}
+      <div className="flex-1 flex flex-col min-w-0 h-[calc(100vh-1.5rem)] bg-[#eaf3ec] rounded-[24px] lg:rounded-[28px] border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden">
+        {/* Top Bar inside rounded canvas */}
+        <header className="h-14 border-b border-border/70 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#eaf3ec]/85 backdrop-blur-xl sticky top-0 z-30">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
             <button
               type="button"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Open navigation menu"
-              className="lg:hidden p-1.5 -ml-1 rounded-lg bg-muted border border-border text-muted-foreground cursor-pointer shrink-0 mr-1"
+              className="lg:hidden p-1.5 rounded-lg bg-muted border border-border text-muted-foreground cursor-pointer shrink-0 mr-1"
             >
               <Menu size={14} />
             </button>
             <span>Founder</span>
             <span className="text-muted-foreground">/</span>
-            <span className="text-muted-foreground">{currentDept.label}</span>
+            <span className="font-semibold text-foreground">{currentDept.label}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setShowNotifs((p) => !p)}
-              className="relative w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 flex items-center justify-center transition-colors cursor-pointer"
+              className="relative w-9 h-9 rounded-full bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
             >
               <Bell size={14} />
               {(pendingApprovals.length + pendingLeaves.length) > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center border-2 border-background">
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center border-2 border-white">
                   {pendingApprovals.length + pendingLeaves.length}
                 </span>
               )}
@@ -407,40 +405,51 @@ export default function FounderDashboardPage() {
               <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">
                 {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'F'}
               </div>
-              <span className="hidden sm:block text-xs font-semibold text-muted-foreground">{user?.full_name || 'Founder'}</span>
+              <span className="hidden sm:block text-xs font-semibold text-foreground">{user?.full_name || 'Founder'}</span>
             </div>
           </div>
         </header>
-      </div>
 
-      {showNotifs && (
-        <div className="fixed top-16 right-4 lg:right-6 z-40 w-[300px] bg-muted border border-border rounded-lg shadow-xl overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border text-xs font-bold text-foreground">Needs your attention</div>
-          <div className="max-h-[280px] overflow-y-auto">
-            {pendingApprovals.length === 0 && pendingLeaves.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-6 text-center">Nothing waiting on you.</p>
-            ) : (
-              <>
-                {pendingApprovals.map((a) => (
-                  <button key={`a-${a.id}`} type="button" onClick={() => { setActiveDept('approvals'); setShowNotifs(false); }} className="w-full text-left px-4 py-2.5 border-b border-border last:border-0 hover:bg-accent cursor-pointer">
-                    <div className="text-xs font-semibold text-foreground">{a.title}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">Approval · {a.source}</div>
-                  </button>
-                ))}
-                {pendingLeaves.map((l) => (
-                  <button key={`l-${l.id}`} type="button" onClick={() => { setActiveDept('approvals'); setShowNotifs(false); }} className="w-full text-left px-4 py-2.5 border-b border-border last:border-0 hover:bg-accent cursor-pointer">
-                    <div className="text-xs font-semibold text-foreground">{l.employee}'s leave request</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">Leave · {l.type}</div>
-                  </button>
-                ))}
-              </>
-            )}
+        {showNotifs && (
+          <div className="absolute top-14 right-4 z-50 w-[320px] apple-glass rounded-2xl shadow-2xl overflow-hidden border border-white/80 animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-4 py-3 border-b border-black/5 text-xs font-bold text-foreground flex items-center justify-between">
+              <span>Needs your attention</span>
+              {(pendingApprovals.length + pendingLeaves.length) > 0 && (
+                <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  {pendingApprovals.length + pendingLeaves.length} pending
+                </span>
+              )}
+            </div>
+            <div className="max-h-[280px] overflow-y-auto">
+              {pendingApprovals.length === 0 && pendingLeaves.length === 0 ? (
+                <div className="py-7 text-center flex flex-col items-center justify-center">
+                  <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center mb-2 text-emerald-600">
+                    <CheckCircle size={18} />
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium">Nothing waiting on you.</p>
+                </div>
+              ) : (
+                <>
+                  {pendingApprovals.map((a) => (
+                    <button key={`a-${a.id}`} type="button" onClick={() => { setActiveDept('approvals'); setShowNotifs(false); }} className="w-full text-left px-4 py-2.5 border-b border-black/5 last:border-0 hover:bg-white/40 cursor-pointer transition-colors">
+                      <div className="text-xs font-semibold text-foreground">{a.title}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">Approval · {a.source}</div>
+                    </button>
+                  ))}
+                  {pendingLeaves.map((l) => (
+                    <button key={`l-${l.id}`} type="button" onClick={() => { setActiveDept('approvals'); setShowNotifs(false); }} className="w-full text-left px-4 py-2.5 border-b border-black/5 last:border-0 hover:bg-white/40 cursor-pointer transition-colors">
+                      <div className="text-xs font-semibold text-foreground">{l.employee}'s leave request</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">Leave · {l.type}</div>
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Workspace Body */}
-      <main className="flex-1 p-4 lg:p-6 pb-10 max-w-[1700px] w-full mx-auto flex flex-col gap-6">
+        {/* Main Workspace Body */}
+        <main className="flex-1 p-3.5 lg:p-5 min-w-0 overflow-y-auto flex flex-col gap-6">
         {/* Dynamic Container View - Overview Hero Page */}
         {activeDept === 'overview' ? (
           <div className="w-full flex flex-col gap-4">
@@ -476,7 +485,7 @@ export default function FounderDashboardPage() {
               </div>
             </div>
 
-            {/* HR Portal Rollup — Founder's own view into Employee Details,
+            {/* HR Portal Rollup - Founder's own view into Employee Details,
                 Leave, Performance, Documents, Attendance/Extra Hours */}
             <div className="w-full">
               <h2 className="text-xs font-bold text-muted-foreground mb-2.5 uppercase tracking-wider">HR Portal</h2>
@@ -500,7 +509,7 @@ export default function FounderDashboardPage() {
               </div>
             </div>
 
-            {/* Sales Desk Rollup — Founder's own view into the Sales
+            {/* Sales Desk Rollup - Founder's own view into the Sales
                 Directory (leads, pipeline, reps), same shared SalesDeskContext
                 the Sales role's own Overview/Directory pages read. */}
             <div className="w-full">
@@ -646,11 +655,11 @@ export default function FounderDashboardPage() {
           /* IT Service Desk View */
           <FounderItView />
         ) : DEPT_DEMO[activeDept] ? (
-          /* Sales / Developers / Marketing / Branding / Production — demo data,
+          /* Sales / Developers / Marketing / Branding / Production - demo data,
              labelled as such inside the view so it can't read as live numbers */
           <FounderDeptView dept={currentDept} />
         ) : (
-          /* Not built yet — an honest empty state, not a generic filler message */
+          /* Not built yet - an honest empty state, not a generic filler message */
           <div className="bg-card border border-border rounded-2xl p-10 flex flex-col items-center justify-center text-center min-h-[320px]">
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"

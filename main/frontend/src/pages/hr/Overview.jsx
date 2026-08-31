@@ -11,7 +11,7 @@ import { CANDIDATE_STAGES } from '../../data/hrMockData';
 const TODAY = '2026-08-06';
 
 // Fixed color per stage/status so a value always renders the same color
-// wherever it shows up — same principle as ui.jsx's Badge STATUS_COLORS.
+// wherever it shows up - same principle as ui.jsx's Badge STATUS_COLORS.
 const STAGE_COLOR = {
   Applied: 'hsl(var(--chart-1))',
   Screening: 'hsl(var(--chart-2))',
@@ -42,9 +42,9 @@ const PRIORITY_STYLE = {
   Low: 'bg-muted/20 text-muted-foreground border-muted/30',
 };
 
-// Days since `dateStr` (yyyy-mm-dd). Tickets are real, live-created data —
+// Days since `dateStr` (yyyy-mm-dd). Tickets are real, live-created data -
 // unlike the seeded interview/attendance mock data elsewhere on this page,
-// which is anchored to the fixed demo TODAY — so this deliberately uses the
+// which is anchored to the fixed demo TODAY - so this deliberately uses the
 // real current date. Comparing a real ticket's submission date against the
 // hardcoded TODAY (2026-08-06, in the past) always produced a negative day
 // count, so the "N tickets open 3+ days" alert below could never fire.
@@ -127,7 +127,7 @@ export default function HrOverview() {
               ))}
             </div>
 
-            {/* Aging alert — only shown when something is actually overdue */}
+            {/* Aging alert - only shown when something is actually overdue */}
             {agingTickets.length > 0 && (
               <div className="flex items-center gap-1.5 text-xs font-semibold text-warning bg-warning/10 border border-warning/20 rounded-lg px-2.5 py-1.5 mb-2.5">
                 <AlertTriangle size={12} />
@@ -137,7 +137,7 @@ export default function HrOverview() {
 
             <div className="flex flex-col gap-1.5">
               {urgentTickets.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-3 text-center">No open tickets — all caught up.</p>
+                <p className="text-xs text-muted-foreground py-3 text-center">No open tickets - all caught up.</p>
               ) : (
                 urgentTickets.map((t) => (
                   <div key={t.id} className="p-2 rounded-xl bg-muted border border-border flex items-center justify-between">

@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 import api from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 
-// One entry per real nav item across the app — kept in sync by hand with
+// One entry per real nav item across the app - kept in sync by hand with
 // IT_NAV_ITEMS/EMPLOYEE_NAV_ITEMS (ItDeskLayout.jsx) and the NAV_ITEMS
 // arrays in HrLayout.jsx / CoordinatorLayout.jsx, since those own the
 // canonical id/path + label for each page.
@@ -38,7 +38,7 @@ export const PAGE_REGISTRY = {
     { id: '/coordinator/projects', label: 'Projects' },
     { id: '/coordinator/tasks', label: 'Tasks' },
   ],
-  // Founder's own sidebar (FounderDashboardPage.jsx SIDEBAR_ORDER) — no
+  // Founder's own sidebar (FounderDashboardPage.jsx SIDEBAR_ORDER) - no
   // longer auto-granted; Super Admin is the one role that bypasses this
   // registry entirely (see canAccess below).
   founder: [
@@ -58,11 +58,11 @@ export const PAGE_REGISTRY = {
 };
 
 // Demo-only department roles (sales/developers/marketing/branding/production)
-// have no dedicated layout/nav of their own yet — same single department
-// view a founder browses — so they aren't in the registry until they do.
+// have no dedicated layout/nav of their own yet - same single department
+// view a founder browses - so they aren't in the registry until they do.
 export const TOGGLABLE_ROLES = Object.keys(PAGE_REGISTRY);
 
-// Granular action-level matrix — mirrors the resources actually wired to
+// Granular action-level matrix - mirrors the resources actually wired to
 // `requirePermission` on the backend (main/backend/middleware/permissionMiddleware.js).
 // Not every resource has every action: e.g. leave/approvals are decided, not deleted.
 export const RESOURCE_REGISTRY = {
@@ -112,7 +112,7 @@ const PermissionsContext = createContext(null);
 export function PermissionsProvider({ children }) {
   const { user } = useAuth();
   const [permissions, setPermissions] = useState(seedPermissions);
-  // { [role]: { [resource]: [action, ...] } } — undefined role/resource means
+  // { [role]: { [resource]: [action, ...] } } - undefined role/resource means
   // "not configured yet", which defaults to allowed (see `can` below).
   const [actionPermissions, setActionPermissions] = useState({});
 
@@ -128,7 +128,7 @@ export function PermissionsProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on user id
     // (a stable primitive), not the `user` object itself, which AuthContext
     // replaces with a new reference on every login-state refresh even when
-    // the actual user hasn't changed — depending on the object caused this
+    // the actual user hasn't changed - depending on the object caused this
     // refresh to needlessly refire and duplicate the network request.
   }, [user?.id]);
 
@@ -177,10 +177,10 @@ export function PermissionsProvider({ children }) {
     }
   }
 
-  // Super Admin always has full access — never gated, so Super Admin can
+  // Super Admin always has full access - never gated, so Super Admin can
   // never lock themselves out. Founder is a regular gate-able role now (see
   // the 'founder' entry in PAGE_REGISTRY above). A per-user override (only
-  // meaningful for the currently logged-in user — nobody else's overrides
+  // meaningful for the currently logged-in user - nobody else's overrides
   // need to be known client-side) wins over the role default when both
   // apply to the same page.
   function canAccess(role, pageId) {
