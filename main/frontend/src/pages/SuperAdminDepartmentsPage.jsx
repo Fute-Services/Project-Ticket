@@ -85,7 +85,7 @@ export default function SuperAdminDepartmentsPage() {
             Departments
           </h1>
           <p className="text-xs text-muted-foreground">
-            Organization units — create, rename, deactivate, or delete. Deleting is blocked while any user is still assigned to it.
+            Organization units - create, rename, deactivate, or delete. Deleting is blocked while any user is still assigned to it.
           </p>
         </div>
 

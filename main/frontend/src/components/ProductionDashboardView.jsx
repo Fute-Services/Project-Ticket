@@ -19,9 +19,9 @@ const EMPTY_FORM = () => ({
 });
 
 /**
- * Interactive Production Floor dashboard — replaces the read-only demo view
+ * Interactive Production Floor dashboard - replaces the read-only demo view
  * (FounderDeptView + deptDemoData) for anyone logged in with the production
- * role specifically. Render jobs live in RenderContext, not local state —
+ * role specifically. Render jobs live in RenderContext, not local state -
  * the IT desk's read-only "Rendering Status" view reads the exact same list,
  * so a job logged here shows up there immediately (same pattern as
  * TicketContext for the "Report to IT" ticket below).
@@ -67,7 +67,7 @@ export default function ProductionDashboardView() {
     setReporting(true);
     try {
       await addTicket(
-        { description: issueDetails.trim() ? `${issueTitle.trim()} — ${issueDetails.trim()}` : issueTitle.trim(), department: 'Production' },
+        { description: issueDetails.trim() ? `${issueTitle.trim()} - ${issueDetails.trim()}` : issueTitle.trim(), department: 'Production' },
         user?.full_name
       );
       toast.success('Reported to IT', { description: 'The ticket is in the IT Service Desk queue now.' });
@@ -170,7 +170,7 @@ export default function ProductionDashboardView() {
         <DataTable
           rows={renders}
           pageSize={10}
-          emptyMessage="No render jobs yet — add one above."
+          emptyMessage="No render jobs yet - add one above."
           columns={[
             { key: 'projectCode', label: 'Project Code', render: (r) => <span className="font-bold text-primary">{r.projectCode}</span> },
             { key: 'sequenceType', label: 'Sequence', render: (r) => <span className="text-foreground">{r.sequenceType}</span> },

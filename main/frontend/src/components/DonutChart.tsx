@@ -3,7 +3,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 type Slice = {
   label: string;
   value: number;
-  /** Optional. Ignored for geometry — kept so existing callers still compile. */
+  /** Optional. Ignored for geometry - kept so existing callers still compile. */
   percent?: number;
   color: string;
 };

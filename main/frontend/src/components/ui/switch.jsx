@@ -1,4 +1,4 @@
-// Discord-style pill toggle — no radix-switch dependency installed, and
+// Discord-style pill toggle - no radix-switch dependency installed, and
 // every other interactive control in this app (ItDeskLayout nav buttons,
 // FounderHrView, etc.) is a plain styled element rather than a shadcn
 // primitive, so this matches that convention instead of introducing one.

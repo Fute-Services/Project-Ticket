@@ -9,7 +9,7 @@ import { useEffect } from 'react';
  * click on the backdrop closes it. Once open they could only be dismissed by
  * finding the X, and Escape did nothing at all.
  *
- * This adds only behaviour — no markup and no styling — so the overlays look
+ * This adds only behaviour - no markup and no styling - so the overlays look
  * exactly as they did.
  */
 export function useEscapeToClose(open, onClose) {
@@ -25,7 +25,7 @@ export function useEscapeToClose(open, onClose) {
 
 /**
  * Spread onto the full-screen backdrop element. The target check is what keeps
- * a click *inside* the panel — or a drag that happens to end on the backdrop —
+ * a click *inside* the panel - or a drag that happens to end on the backdrop -
  * from closing the overlay.
  */
 export function backdropProps(onClose) {

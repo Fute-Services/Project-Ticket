@@ -7,22 +7,22 @@ import { useCursorPagination } from '../hooks/useCursorPagination';
 const LeaveContext = createContext(null);
 
 // HR's job is staff management, not approving its own department's time
-// off — so a leave request from someone in Admin/Ops or IT routes to the
+// off - so a leave request from someone in Admin/Ops or IT routes to the
 // Founder for approval instead of showing up in HR's own approve/reject
 // queue. Enforced server-side too (backend/controllers/leaveController.js).
 export function isFounderApproval(request) {
   return request?.department === 'Admin/Ops' || request?.department === 'IT';
 }
 
-// HR/Founder see the shared "decide on everyone's leave" queue — worth
+// HR/Founder see the shared "decide on everyone's leave" queue - worth
 // polling since a pending request sitting unseen delays someone's time off.
 // Everyone else only ever sees their own leave history, which already
-// updates instantly via optimistic local state on applyLeave — no
+// updates instantly via optimistic local state on applyLeave - no
 // background poll needed there, manual refresh only.
 const SHARED_QUEUE_ROLES = ['hr', 'founder'];
 const SHARED_POLL_MS = 300000;
 
-// Shared with the Founder's Pending Leaves Approval view — HR no longer has
+// Shared with the Founder's Pending Leaves Approval view - HR no longer has
 // its own leave-approval page, so the Founder is currently the only place
 // any leave request (from any department) gets decided.
 export function LeaveProvider({ children }) {
@@ -60,11 +60,11 @@ export function LeaveProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on
     // id/role (stable primitives), not the `user` object itself, which
     // AuthContext replaces with a new reference on every login-state
-    // refresh even when the actual user hasn't changed — depending on the
+    // refresh even when the actual user hasn't changed - depending on the
     // object caused this refresh to needlessly refire and duplicate reads.
   }, [user?.id, user?.role, setCursor]);
 
-  // Appends the next 20 — resets back to page 1 on the next poll/refresh.
+  // Appends the next 20 - resets back to page 1 on the next poll/refresh.
   function loadMoreLeaves() {
     return loadMore(getAllLeaves, (items) => setLeaveRequests((prev) => [...prev, ...items]));
   }
@@ -94,7 +94,7 @@ export function LeaveProvider({ children }) {
       console.error('Failed to apply for leave:', e.response?.data?.error || e.message);
       // Rethrow (matching addTicket/submitApproval's convention) so a caller
       // awaiting this can show its own failure state instead of a false
-      // success — swallowing it here made the caller's .then() run either way.
+      // success - swallowing it here made the caller's .then() run either way.
       throw e;
     }
   }

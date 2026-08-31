@@ -8,7 +8,7 @@ import { useCursorPagination } from '../hooks/useCursorPagination';
 const ApprovalContext = createContext(null);
 
 // Approvals refresh on this interval so a ticket another user (IT/HR desk)
-// just sent to "Waiting Approval" shows up here without a manual reload —
+// just sent to "Waiting Approval" shows up here without a manual reload -
 // TicketContext and ApprovalContext are siblings, not nested, so there's no
 // direct call path between them; the backend is the shared source of truth.
 // Own decides/submits already update local state optimistically below, so
@@ -22,7 +22,7 @@ function fromBackend(doc) {
 }
 
 // Shared across IT's Approval Center, the Founder's Approval System, and
-// HR's read-only approvals feed — IT/HR propose (submitApproval), the
+// HR's read-only approvals feed - IT/HR propose (submitApproval), the
 // Founder decides (decide). Tickets whose status is set to "Waiting
 // Approval" also land here automatically (backend/controllers/{hr,it}Controller.js
 // creates the record), so this isn't the only way an approval appears.
@@ -43,7 +43,7 @@ export function ApprovalProvider({ children }) {
     try {
       const { data } = await getApprovals();
       // Defensive: a response caught mid-deploy can come back without the
-      // expected shape — fall back to empty rather than crash the page.
+      // expected shape - fall back to empty rather than crash the page.
       setApprovals((data?.items || []).map(fromBackend));
       setCursor(data?.nextCursor || null);
       setLastUpdated(new Date().toISOString());
@@ -55,11 +55,11 @@ export function ApprovalProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on
     // id/role (stable primitives), not the `user` object itself, which
     // AuthContext replaces with a new reference on every login-state
-    // refresh even when the actual user hasn't changed — depending on the
+    // refresh even when the actual user hasn't changed - depending on the
     // object caused this refresh to needlessly refire and duplicate reads.
   }, [user?.id, user?.role, setCursor]);
 
-  // Appends the next 20 — resets back to page 1 on the next poll/refresh.
+  // Appends the next 20 - resets back to page 1 on the next poll/refresh.
   function loadMoreApprovals() {
     return loadMore(getApprovals, (items) => setApprovals((prev) => [...prev, ...items.map(fromBackend)]));
   }
@@ -68,7 +68,7 @@ export function ApprovalProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  // Gated to the same roles as refresh() itself — otherwise an
+  // Gated to the same roles as refresh() itself - otherwise an
   // employee/coordinator session (which always gets an empty list here)
   // would still poll every interval for nothing.
   useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user) && ['it', 'hr', 'founder'].includes(user.role));

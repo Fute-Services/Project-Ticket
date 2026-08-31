@@ -7,7 +7,7 @@ import { useSalesDesk } from '../../context/SalesDeskContext';
 
 // Everything Overview already computes (funnel, leaderboard), plus what's
 // specifically a "look back over time" view: conversion trend and win/loss
-// reasons — Overview stays the live at-a-glance page, this is the digging-in page.
+// reasons - Overview stays the live at-a-glance page, this is the digging-in page.
 export default function Reports() {
   const { leads } = useSalesDesk();
 

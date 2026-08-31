@@ -8,7 +8,7 @@ function toHref(link) {
 }
 
 /**
- * Task detail as a right-side pane — Asana's model, where opening a task
+ * Task detail as a right-side pane - Asana's model, where opening a task
  * never takes you off the list you were scanning.
  *
  * `readOnly` renders the same layout without inputs, which is what the
@@ -58,7 +58,7 @@ export default function TaskDetailPane({ task, project, open, onClose, onChange,
         <div className="grid grid-cols-2 gap-4">
           <Field label="Assignee">
             {readOnly ? (
-              <p className="text-sm text-foreground">{task.assignee || '—'}</p>
+              <p className="text-sm text-foreground">{task.assignee || '-'}</p>
             ) : (
               <select value={task.assignee} onChange={(e) => set({ assignee: e.target.value })} className={inputClass}>
                 {employees.map((e) => (
@@ -72,7 +72,7 @@ export default function TaskDetailPane({ task, project, open, onClose, onChange,
 
           <Field label="Due date">
             {readOnly ? (
-              <p className="text-sm text-foreground">{task.dueDate || '—'}</p>
+              <p className="text-sm text-foreground">{task.dueDate || '-'}</p>
             ) : (
               <input
                 type="date"
@@ -113,7 +113,7 @@ export default function TaskDetailPane({ task, project, open, onClose, onChange,
 
           <Field label="Duration">
             {readOnly ? (
-              <p className="text-sm text-foreground">{task.duration || '—'}</p>
+              <p className="text-sm text-foreground">{task.duration || '-'}</p>
             ) : (
               <input
                 value={task.duration || ''}
@@ -125,7 +125,7 @@ export default function TaskDetailPane({ task, project, open, onClose, onChange,
           </Field>
 
           <Field label="Project">
-            <p className="text-sm text-foreground">{project?.name || '—'}</p>
+            <p className="text-sm text-foreground">{project?.name || '-'}</p>
           </Field>
         </div>
 

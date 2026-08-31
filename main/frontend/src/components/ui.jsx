@@ -5,7 +5,7 @@
 // which brings focus trapping, Esc-to-close, scroll locking and proper
 // dialog roles that the hand-rolled versions never had.
 //
-// For new UI prefer the shadcn primitives directly — `@/components/ui/button`,
+// For new UI prefer the shadcn primitives directly - `@/components/ui/button`,
 // `@/components/ui/input`, and so on.
 
 import { cloneElement, isValidElement, useId } from 'react';
@@ -77,13 +77,13 @@ export function Badge({ value, className = '' }) {
 
 export function Card({ children, className = '' }) {
   return (
-    <div className={`bg-card border border-border rounded-lg shadow p-6 ${className}`}>{children}</div>
+    <div className={`apple-glass-card border border-white/80 rounded-2xl lg:rounded-3xl p-4 sm:p-5 transition-all ${className}`}>{children}</div>
   );
 }
 
 export function SectionHeader({ title, subtitle, action }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
       <div>
         <h2 className="text-base font-semibold text-foreground tracking-tight">{title}</h2>
         {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
@@ -94,20 +94,17 @@ export function SectionHeader({ title, subtitle, action }) {
 }
 
 // `sub` is a plain caption line; `change` adds a trend figure. `icon` +
-// `accent` render a tinted icon badge — accent defaults to the brand token
+// `accent` render a tinted icon badge - accent defaults to the brand token
 // rather than a literal hex so it follows the theme.
-export function StatCard({ label, value, sub, change, icon: Icon, accent }) {
-  // Not named `tint` — that would shadow the imported tint() helper this
-  // component calls two lines down, and the badge would crash on any card
-  // that passes an accent.
+export function StatCard({ label, value, sub, change, icon: Icon, accent, progress }) {
   const accentColor = accent || 'hsl(var(--primary))';
   return (
-    <div className="bg-card border border-border rounded-lg shadow p-4 flex flex-col justify-between min-h-[76px] hover:border-muted-foreground/40 transition-colors">
+    <div className="apple-glass-card border border-white/80 rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between min-h-[82px] hover:border-primary/40 hover:shadow-lg transition-all">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-xs font-medium text-muted-foreground truncate leading-tight">{label}</div>
+        <div className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate leading-tight">{label}</div>
         {Icon && (
           <div
-            className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+            className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
             style={{
               backgroundColor: accent ? tint(accent, 0.1) : 'hsl(var(--primary) / 0.1)',
               color: accentColor,
@@ -120,15 +117,55 @@ export function StatCard({ label, value, sub, change, icon: Icon, accent }) {
 
       <div className="flex items-baseline gap-2 mt-2 min-w-0">
         <span
-          className="text-2xl font-semibold text-foreground tracking-tight leading-none shrink-0"
+          className="text-xl sm:text-2xl font-bold text-foreground tracking-tight leading-none shrink-0"
           style={accent ? { color: accent } : undefined}
         >
           {value}
         </span>
-        {sub && <span className="text-xs text-muted-foreground truncate leading-none">{sub}</span>}
+        {sub && <span className="text-[11px] sm:text-xs text-muted-foreground truncate leading-none">{sub}</span>}
         {change && (
-          <span className="text-xs text-success font-medium leading-none ml-auto shrink-0">{change}</span>
+          <span className="text-[11px] text-emerald-600 font-semibold leading-none ml-auto shrink-0 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200/50">{change}</span>
         )}
+      </div>
+      {typeof progress === 'number' && (
+        <div className="w-full bg-muted/60 h-1.5 rounded-full mt-2.5 overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-500"
+            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Dark highlight widget matching the reference design (top-left card)
+export function DarkMetricCard({ label, value, unit = '', change, trend = 'up', bars = [40, 65, 30, 85, 55, 95] }) {
+  return (
+    <div className="bg-[#0b140f] border border-emerald-500/20 rounded-2xl p-4 text-white shadow-lg shadow-black/20 flex items-center justify-between gap-4 min-w-[220px]">
+      <div className="min-w-0">
+        <div className="text-[11px] text-emerald-300/80 font-medium truncate">{label}</div>
+        <div className="flex items-baseline gap-1 mt-1">
+          <span className="text-xl sm:text-2xl font-bold tracking-tight text-white">{value}</span>
+          {unit && <span className="text-xs text-emerald-400 font-normal">{unit}</span>}
+        </div>
+        {change && (
+          <div className="flex items-center gap-1 mt-1 text-[10px] text-emerald-400 font-medium">
+            <span>{trend === 'up' ? '↗' : '↘'} {change}</span>
+          </div>
+        )}
+      </div>
+      {/* Live animated sparkline bars */}
+      <div className="flex items-end gap-1 h-9 shrink-0 px-1">
+        {bars.map((h, i) => (
+          <div
+            key={i}
+            className={`w-1 rounded-full transition-all duration-300 ${
+              i === bars.length - 1 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-emerald-600/60'
+            }`}
+            style={{ height: `${h}%` }}
+          />
+        ))}
       </div>
     </div>
   );
@@ -146,8 +183,8 @@ export function EmptyState({ text = 'Nothing here yet.', title, action }) {
   );
 }
 
-// For views that no longer auto-poll (personal "My X" lists — see
-// TicketContext/TaskProjectContext/LeaveContext's SHARED_*_ROLES) — makes
+// For views that no longer auto-poll (personal "My X" lists - see
+// TicketContext/TaskProjectContext/LeaveContext's SHARED_*_ROLES) - makes
 // the manual-only refresh an explicit, visible action instead of a page
 // that silently never updates itself.
 export function RefreshBar({ lastUpdated, loading, onRefresh }) {
@@ -189,10 +226,10 @@ export function Pill({ active, onClick, children }) {
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
         active
-          ? 'bg-primary text-primary-foreground'
-          : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-accent'
+          ? 'bg-[#0d1811] text-white shadow-md border border-white/15 font-bold'
+          : 'bg-white/50 border border-white/80 text-muted-foreground hover:text-foreground hover:bg-black/5'
       }`}
     >
       {children}
@@ -222,7 +259,7 @@ export function Drawer({ open, onClose, title, children, wide = false }) {
 }
 
 /**
- * Centred modal. Radix Dialog — same a11y wins as Drawer above.
+ * Centred modal. Radix Dialog - same a11y wins as Drawer above.
  * `description` is optional but worth passing: without it screen readers get
  * only the title.
  */
@@ -248,7 +285,7 @@ export function Modal({ open, onClose, title, description, children, className }
 
 /**
  * Most call sites pass a label and a bare `<input>`/`<select>` without an id,
- * which left the control with no accessible name — "Title" and "Due Date" in
+ * which left the control with no accessible name - "Title" and "Due Date" in
  * the Assign Task dialog were both announced as an unlabelled textbox. When no
  * `htmlFor` is supplied we generate one and stamp it onto the single child, so
  * every existing call site gets a real association for free. An explicit

@@ -12,16 +12,16 @@ import { useCursorPagination } from '../hooks/useCursorPagination';
 
 const TaskProjectContext = createContext(null);
 
-// Coordinator/Founder see the team-wide task/project board — a shared view
+// Coordinator/Founder see the team-wide task/project board - a shared view
 // multiple people act on, so it's worth polling for changes made by others.
 // Employee only ever sees their own assigned tasks, which already update
-// instantly via optimistic local state on their own actions — no background
+// instantly via optimistic local state on their own actions - no background
 // poll needed there, manual refresh only.
 const SHARED_BOARD_ROLES = ['coordinator', 'founder'];
 const SHARED_POLL_MS = 180000;
 
 // Shared across the Coordinator's Tasks/Projects pages, the Founder's
-// Project Details view, and the Employee dashboard's "My Tasks" view — a
+// Project Details view, and the Employee dashboard's "My Tasks" view - a
 // task the coordinator assigns shows up immediately on the assigned
 // employee's own list, since all three now read the same backend
 // collections instead of separate local copies.
@@ -45,7 +45,7 @@ export function TaskProjectProvider({ children }) {
     try {
       const [taskRes, projectRes] = await Promise.all([getTasks(), getProjects()]);
       // Defensive: a response caught mid-deploy (stale serverless instance,
-      // proxy hiccup) can come back without the expected shape — fall back
+      // proxy hiccup) can come back without the expected shape - fall back
       // to empty rather than let `undefined` propagate into .filter/.map
       // and crash the whole dashboard.
       setTasks(taskRes.data?.items || []);
@@ -60,11 +60,11 @@ export function TaskProjectProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on
     // id/role (stable primitives), not the `user` object itself, which
     // AuthContext replaces with a new reference on every login-state
-    // refresh even when the actual user hasn't changed — depending on the
+    // refresh even when the actual user hasn't changed - depending on the
     // object caused this refresh to needlessly refire and duplicate reads.
   }, [user?.id, user?.role, setCursor]);
 
-  // Appends the next 20 tasks — resets back to page 1 on the next poll/refresh.
+  // Appends the next 20 tasks - resets back to page 1 on the next poll/refresh.
   function loadMoreTasks() {
     return loadMore(getTasks, (items) => setTasks((prev) => [...prev, ...items]));
   }
@@ -96,7 +96,7 @@ export function TaskProjectProvider({ children }) {
     }
   }
 
-  /** Patch any subset of a task's fields — used by the task detail pane. */
+  /** Patch any subset of a task's fields - used by the task detail pane. */
   async function updateTask(id, patch) {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
     try {
@@ -109,7 +109,7 @@ export function TaskProjectProvider({ children }) {
   }
 
   /**
-   * Asana-style completion toggle. There's no separate `completed` flag —
+   * Asana-style completion toggle. There's no separate `completed` flag -
    * "Completed" is one of TASK_STATUSES, so toggling off has to pick
    * something to return to, and Pending is the safe choice.
    */

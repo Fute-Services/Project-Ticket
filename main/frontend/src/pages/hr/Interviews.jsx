@@ -104,7 +104,7 @@ export default function Interviews() {
                       <td className="py-3.5 px-3 text-muted-foreground">
                         <span className="flex items-center gap-1.5">
                           {i.link ? <Video size={12} className="text-primary" /> : <MapPin size={12} className="text-primary" />}
-                          {i.link || i.location || '—'}
+                          {i.link || i.location || '-'}
                         </span>
                       </td>
                       <td className="py-3.5 px-3">
@@ -133,7 +133,7 @@ export default function Interviews() {
                     {items.map((i) => (
                       <div key={i.id} className="p-3 rounded-xl bg-muted border border-border flex items-center justify-between">
                         <div>
-                          <div className="text-xs font-bold text-foreground">{i.candidate} — {i.type}</div>
+                          <div className="text-xs font-bold text-foreground">{i.candidate} - {i.type}</div>
                           <div className="text-xs text-muted-foreground">{i.time} · {i.interviewer}</div>
                         </div>
                         <Badge value={i.status} />

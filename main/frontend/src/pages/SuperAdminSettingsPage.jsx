@@ -12,7 +12,7 @@ const NOTIFICATION_TRIGGER_LABEL = {
   hr_new_complaint: 'New HR ticket submitted',
   hr_status_update: 'HR ticket status changed (notifies submitter)',
 };
-// Only "new ticket" triggers have a configurable recipient — status-update
+// Only "new ticket" triggers have a configurable recipient - status-update
 // mail always goes to the ticket's own submitter, so there's nothing to
 // override there.
 const RECIPIENT_OVERRIDABLE = ['it_new_complaint', 'hr_new_complaint'];
@@ -154,7 +154,7 @@ export default function SuperAdminSettingsPage() {
             <Card className="lg:col-span-2">
               <SectionHeader
                 title="Notification rules"
-                subtitle="Ticket emails — turn a trigger off to stop sending it entirely, not just hide it in the UI"
+                subtitle="Ticket emails - turn a trigger off to stop sending it entirely, not just hide it in the UI"
                 action={
                   <button
                     type="button"

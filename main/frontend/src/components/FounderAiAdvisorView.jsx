@@ -284,7 +284,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
   };
 
   // Snapshot of the live Context data, sized down to what the Cabinet
-  // discussion actually needs — full employee/candidate rosters would bloat
+  // discussion actually needs - full employee/candidate rosters would bloat
   // every request for no benefit, since the dialogue only ever cites counts
   // and a handful of named examples.
   const buildDashboardContext = () => ({
@@ -307,14 +307,14 @@ export default function FounderAiAdvisorView({ onNavigate }) {
   });
 
   // Both the local simulation and a real Gemini response resolve to the same
-  // { agent, text }[] shape, so everything downstream — the typing animation,
-  // skip-to-end, and the report trigger — is identical either way.
+  // { agent, text }[] shape, so everything downstream - the typing animation,
+  // skip-to-end, and the report trigger - is identical either way.
   const stepsQueueRef = useRef([]);
   const stepIndexRef = useRef(0);
 
   // The typing animation schedules its own setTimeout chain, so skipping (or
   // starting a new query before the old chain finishes) doesn't cancel the
-  // timers already in flight — it only updates state and refs. Without this
+  // timers already in flight - it only updates state and refs. Without this
   // token, a stale timer from a skipped or superseded run fires later, reads
   // the (by-then-reused) refs, and wrongly finishes whatever simulation is
   // currently running. Every run gets its own token; a callback whose token
@@ -359,7 +359,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
     stepIndexRef.current = 0;
 
     const triggerNextAgent = () => {
-      if (simulationTokenRef.current !== token) return; // superseded or skipped — stale timer, do nothing
+      if (simulationTokenRef.current !== token) return; // superseded or skipped - stale timer, do nothing
       const idx = stepIndexRef.current;
       if (idx < stepsQueueRef.current.length) {
         const step = stepsQueueRef.current[idx];
@@ -384,7 +384,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
     setTimeout(triggerNextAgent, 1000);
   };
 
-  // Skip simulation straight to report — flushes whatever's left in the same
+  // Skip simulation straight to report - flushes whatever's left in the same
   // queue that's mid-animation, rather than recomputing dialogue from scratch
   // (which could produce content that doesn't match what's already on screen,
   // especially for an AI-sourced or custom-query conversation).

@@ -1,4 +1,4 @@
-// Local, in-memory demo data for the Project Coordinator role — task
+// Local, in-memory demo data for the Project Coordinator role - task
 // assignment/tracking isn't HR's job, so it lives separately from
 // hrMockData.js even though the coordinator still assigns tasks to the
 // same staff directory HR maintains (see `employees` in hrMockData.js).

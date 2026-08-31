@@ -27,6 +27,8 @@
     line-height: 1.5;
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   h1,
@@ -38,44 +40,113 @@
     font-family: var(--font-heading);
     font-weight: var(--heading-weight);
     line-height: 1.25;
-    letter-spacing: -0.011em;
+    letter-spacing: -0.015em;
     margin: 0 0 var(--space-2);
   }
 
   a {
     color: hsl(var(--primary));
     text-underline-offset: 3px;
+    transition: color 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
   a:hover {
     color: hsl(var(--primary-hover));
+  }
+
+  button, a {
+    -webkit-tap-highlight-color: transparent;
   }
 
   :focus {
     outline: none;
   }
   :focus-visible {
-    outline: 2px solid hsl(var(--ring));
+    outline: 2px solid hsl(var(--primary) / 0.3);
     outline-offset: 2px;
   }
   ::selection {
-    background: hsl(var(--primary) / 0.25);
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--primary-hover));
   }
 
+  /* Apple-style minimalist smooth scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.22);
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   4 Apple Color Themes (Emerald Mint, Ocean Sapphire, Amethyst Purple, Warm Amber)
+   ══════════════════════════════════════════════════════════════════════ */
+:root, [data-theme="emerald"] {
+  --theme-bg-canvas: #eaf3ec;
+  --theme-shell-bg: radial-gradient(circle at 50% 0%, #0d1a13 0%, #080f0c 60%, #040806 100%);
+  --theme-sidebar: linear-gradient(180deg, rgba(15, 26, 19, 0.82) 0%, rgba(8, 15, 11, 0.90) 100%);
+  --theme-glass: rgba(235, 246, 238, 0.84);
+  --theme-glass-card: rgba(242, 250, 244, 0.86);
+}
+
+[data-theme="ocean"] {
+  --background: 215 30% 93%;
+  --card: 215 35% 97%;
+  --popover: 215 35% 97%;
+  --muted: 215 20% 88%;
+  --accent: 215 32% 90%;
+  --primary: 217 91% 60%;
+  --primary-hover: 217 91% 50%;
+  --ring: 217 91% 60%;
+  --theme-bg-canvas: #e8eef6;
+  --theme-shell-bg: radial-gradient(circle at 50% 0%, #0a1322 0%, #060b14 60%, #03060a 100%);
+  --theme-sidebar: linear-gradient(180deg, rgba(12, 22, 38, 0.85) 0%, rgba(6, 11, 20, 0.92) 100%);
+  --theme-glass: rgba(232, 238, 246, 0.84);
+  --theme-glass-card: rgba(242, 246, 250, 0.86);
+}
+
+[data-theme="purple"] {
+  --background: 265 25% 94%;
+  --card: 265 30% 98%;
+  --popover: 265 30% 98%;
+  --muted: 265 20% 89%;
+  --accent: 265 30% 91%;
+  --primary: 262 83% 58%;
+  --primary-hover: 262 83% 48%;
+  --ring: 262 83% 58%;
+  --theme-bg-canvas: #f1ecf7;
+  --theme-shell-bg: radial-gradient(circle at 50% 0%, #150d22 0%, #0d0714 60%, #06030a 100%);
+  --theme-sidebar: linear-gradient(180deg, rgba(24, 15, 38, 0.85) 0%, rgba(13, 7, 20, 0.92) 100%);
+  --theme-glass: rgba(241, 236, 247, 0.84);
+  --theme-glass-card: rgba(249, 247, 252, 0.86);
+}
+
+[data-theme="amber"] {
+  --background: 36 30% 93%;
+  --card: 36 35% 97%;
+  --popover: 36 35% 97%;
+  --muted: 36 20% 88%;
+  --accent: 36 32% 90%;
+  --primary: 32 85% 45%;
+  --primary-hover: 32 85% 38%;
+  --ring: 32 85% 45%;
+  --theme-bg-canvas: #f5efe6;
+  --theme-shell-bg: radial-gradient(circle at 50% 0%, #1c140a 0%, #120c06 60%, #080503 100%);
+  --theme-sidebar: linear-gradient(180deg, rgba(30, 20, 10, 0.85) 0%, rgba(16, 10, 5, 0.92) 100%);
+  --theme-glass: rgba(245, 239, 230, 0.84);
+  --theme-glass-card: rgba(250, 246, 240, 0.86);
+}
+
 @layer utilities {
-  /* Scrolls if content overflows, but never shows a scrollbar — used on the
+  /* Scrolls if content overflows, but never shows a scrollbar - used on the
      dashboard sidebars so the nav can still reach every item on short
      viewports without a visible scroll track. */
   .no-scrollbar,
@@ -87,17 +158,70 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+
+  /* Ambient dark shell background */
+  .bg-dashboard-shell {
+    background: var(--theme-shell-bg, radial-gradient(circle at 50% 0%, #0d1a13 0%, #080f0c 60%, #040806 100%));
+  }
+
+  /* Rounded dashboard card canvas */
+  .dashboard-canvas {
+    background-color: var(--theme-bg-canvas, #eaf3ec);
+    border-radius: 28px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  /* Sleek dark highlight widget matching reference */
+  .widget-dark-card {
+    background: linear-gradient(145deg, #0f1c15 0%, #08110c 100%);
+    border: 1px solid rgba(40, 199, 111, 0.18);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Dark Glassmorphism Sidebar matching reference */
+  .sidebar-glass {
+    background: var(--theme-sidebar, linear-gradient(180deg, rgba(15, 26, 19, 0.82) 0%, rgba(8, 15, 11, 0.90) 100%));
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  }
+
+  /* Apple-style Light Green Glassmorphism Popover & Cards */
+  .apple-glass {
+    background: var(--theme-glass, rgba(235, 246, 238, 0.84));
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 16px 40px -10px rgba(10, 30, 15, 0.1), 0 4px 12px 0 rgba(10, 30, 15, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
+
+  .apple-glass-card {
+    background: var(--theme-glass-card, rgba(242, 250, 244, 0.86));
+    backdrop-filter: blur(20px) saturate(170%);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 30px -4px rgba(10, 30, 15, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
+
+  .apple-glass-dark {
+    background: rgba(12, 22, 16, 0.85);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
 }
 
 @layer components {
   /* ══════════════════════════════════════════════════════════════════════
      Legacy component classes. shadcn/ui primitives in src/components/ui/
-     supersede these — prefer those for anything new. These stay until the
+     supersede these - prefer those for anything new. These stay until the
      screens still using them are migrated, and are kept token-driven so they
      theme correctly in the meantime.
      ══════════════════════════════════════════════════════════════════════ */
 
-  /* — kicker: the small uppercase label above a heading — */
+  /* - kicker: the small uppercase label above a heading - */
   .kicker {
     font-size: 11px;
     letter-spacing: 0.08em;
@@ -105,7 +229,7 @@
     color: hsl(var(--muted-foreground));
   }
 
-  /* — buttons — */
+  /* - buttons - */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -157,7 +281,7 @@
     padding: 12px 14px;
   }
 
-  /* — sign-in button (LoginPage) — user-supplied design, kept as its own
+  /* - sign-in button (LoginPage) - user-supplied design, kept as its own
      scoped classes rather than Tailwind utilities since the hover-arrow
      keyframe isn't expressible that way. */
   .signin-btn {
@@ -232,7 +356,7 @@
     }
   }
 
-  /* — forms — */
+  /* - forms - */
   .field {
     display: flex;
     flex-direction: column;
@@ -246,25 +370,31 @@
   .input {
     width: 100%;
     font: inherit;
-    font-size: 14px;
-    padding: 9px 12px;
+    font-size: 13px;
+    padding: 8px 12px;
     color: hsl(var(--foreground));
     caret-color: hsl(var(--primary));
-    background: hsl(var(--background));
-    border: 1px solid hsl(var(--input));
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.85);
     border-radius: var(--radius-sm);
-    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    transition: all 150ms ease-out;
   }
   .input::placeholder {
     color: hsl(var(--muted-foreground));
   }
   .input:hover {
-    border-color: hsl(var(--muted-foreground) / 0.5);
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(255, 255, 255, 1);
   }
-  .input:focus-visible {
-    border-color: hsl(var(--ring));
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 1px;
+  .input:focus-visible, .input:focus {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: hsl(var(--primary) / 0.5);
+    outline: 2px solid hsl(var(--primary) / 0.15);
+    outline-offset: 0px;
+    box-shadow: 0 4px 12px -2px rgba(10, 30, 15, 0.08);
   }
   textarea.input {
     min-height: 90px;
@@ -274,7 +404,7 @@
     cursor: pointer;
   }
 
-  /* — surfaces — */
+  /* - surfaces - */
   .panel {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
@@ -289,7 +419,7 @@
     background: hsl(var(--border));
   }
 
-  /* — tags — */
+  /* - tags - */
   .tag {
     display: inline-flex;
     align-items: center;
@@ -300,7 +430,7 @@
     border-radius: 999px;
   }
 
-  /* — tables — */
+  /* - tables - */
   .table {
     width: 100%;
     border-collapse: collapse;

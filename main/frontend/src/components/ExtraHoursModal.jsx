@@ -5,10 +5,10 @@ import { extraHoursApi } from '../utils/api';
 
 const EMPTY = { projectCode: '', hours: '', date: new Date().toISOString().slice(0, 10), time: '', teammates: '' };
 
-// Extra Hours Logging — self-service submit, approved through the same
+// Extra Hours Logging - self-service submit, approved through the same
 // Payel→Soma (HR→Founder) chain as Document Template uploads (see
 // submitExtraHours in hrDeskController.js). Not a live timer like
-// CheckInWidget — this is a one-off log entry for hours already worked.
+// CheckInWidget - this is a one-off log entry for hours already worked.
 export default function ExtraHoursModal({ open, onClose, onSubmitted }) {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -24,7 +24,7 @@ export default function ExtraHoursModal({ open, onClose, onSubmitted }) {
         time: form.time,
         teammates: form.teammates.split(',').map((t) => t.trim()).filter(Boolean),
       });
-      toast.success('Extra hours submitted', { description: 'Sent for sign-off — HR will review it.' });
+      toast.success('Extra hours submitted', { description: 'Sent for sign-off - HR will review it.' });
       setForm(EMPTY);
       onSubmitted?.(data);
       onClose();

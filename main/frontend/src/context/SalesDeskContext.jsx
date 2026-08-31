@@ -56,7 +56,7 @@ export function SalesDeskProvider({ children }) {
     Promise.all([refreshLeads(), refreshCampaigns(), refreshSettings()]).finally(() => setLoading(false));
   }, [refreshLeads, refreshCampaigns, refreshSettings]);
 
-  // Live "N follow-ups need attention" badge count — same query Follow-ups
+  // Live "N follow-ups need attention" badge count - same query Follow-ups
   // itself runs, computed once here from the already-loaded list so
   // SalesLayout's sidebar badge doesn't need its own request.
   const followUpCount = useMemo(() => {

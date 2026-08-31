@@ -8,7 +8,7 @@ import { getAllLeaves } from '../../utils/api';
 
 // Leave requests now come from LeaveContext 20 at a time (see
 // LeaveContext.jsx) so the poll that keeps HR's queue fresh doesn't re-read
-// the whole collection every cycle — but a report export needs every row,
+// the whole collection every cycle - but a report export needs every row,
 // not just whatever page happens to be loaded. Walks the same cursor
 // straight against the API (bypassing context state) so exporting doesn't
 // depend on how many "Load More" clicks happened to occur first.
@@ -103,7 +103,7 @@ function downloadCsv(filename, headers, rows) {
 // dependency: Excel has long supported opening an HTML table saved with an
 // .xls extension + the ms-excel MIME type (the `xmlns:x` block below just
 // names the sheet). Not a true .xlsx, but it opens as an actual spreadsheet
-// with real columns/rows — unlike the "Excel" button before this, which
+// with real columns/rows - unlike the "Excel" button before this, which
 // silently produced the same file as "CSV".
 function downloadExcel(filename, headers, rows) {
   const escape = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

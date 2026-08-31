@@ -47,7 +47,7 @@ const DEPARTMENTS = [
 ];
 
 // One accent hex per department, used as a tinted icon/left-border instead
-// of a full gradient fill — same device as the Founder Overview page.
+// of a full gradient fill - same device as the Founder Overview page.
 const DEPT_ACCENT_HEX = {
   all: 'hsl(var(--chart-1))',
   hr: 'hsl(var(--chart-2))',
@@ -248,7 +248,7 @@ export default function FounderReportsView() {
   // Construct CSV content string
   const buildCsvContent = () => {
     const lines = [];
-    lines.push(`"FUTE SERVICES — EXECUTIVE REPORT"`);
+    lines.push(`"FUTE SERVICES - EXECUTIVE REPORT"`);
     lines.push(`"Department","${currentDeptConfig.label}"`);
     lines.push(`"Timeframe","${currentTimeframeConfig.label}"`);
     lines.push(`"Generated Date","${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}"`);

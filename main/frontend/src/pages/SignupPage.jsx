@@ -9,13 +9,13 @@ import IconField from '../components/IconField';
 const DEPARTMENTS = ['Sales', 'Marketing', 'Human Resources', 'IT', 'Engineering', 'Finance'];
 
 /**
- * Create an account. Mirrors LoginPage — the accent panel sits on the left
+ * Create an account. Mirrors LoginPage - the accent panel sits on the left
  * here, so moving between the two reads as the layout flipping rather than
  * reloading.
  *
  * Role isn't asked for: authController.detectRole derives it from the email,
  * and founder is set by hand in the database. Nothing asks the user for what
- * the account already knows — department is asked because nothing else can
+ * the account already knows - department is asked because nothing else can
  * infer it.
  */
 export default function SignupPage() {

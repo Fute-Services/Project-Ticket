@@ -52,7 +52,7 @@ export default function AssetsView() {
       });
   }, [assets, typeFilter, searchQuery]);
 
-  // Warranty is "expiring" if it lapses within 90 days of the demo date —
+  // Warranty is "expiring" if it lapses within 90 days of the demo date -
   // the whole point of tracking it is catching that before it lapses.
   const soon = new Date('2026-08-06');
   soon.setDate(soon.getDate() + 90);
@@ -98,7 +98,7 @@ export default function AssetsView() {
   }
 
   // A confirm step first (this is a real delete, not just hiding a row),
-  // then the toast still carries an Undo — belt and suspenders for
+  // then the toast still carries an Undo - belt and suspenders for
   // something that can't be recovered from this screen otherwise.
   async function handleDelete(id) {
     const removed = await removeAsset(id);
@@ -198,7 +198,7 @@ export default function AssetsView() {
               render: (a) => <span className="font-bold text-primary">{a.id}</span>,
             },
             { key: 'model', label: 'Model', render: (a) => <span className="text-foreground">{a.model}</span> },
-            { key: 'serialNo', label: 'Serial No', render: (a) => <span className="text-muted-foreground font-mono text-xs">{a.serialNo || '—'}</span> },
+            { key: 'serialNo', label: 'Serial No', render: (a) => <span className="text-muted-foreground font-mono text-xs">{a.serialNo || '-'}</span> },
             { key: 'assignedTo', label: 'Assigned To', render: (a) => <span className="text-muted-foreground">{a.assignedTo}</span> },
             { key: 'department', label: 'Department', render: (a) => <span className="text-muted-foreground">{a.department}</span> },
             { key: 'purchaseDate', label: 'Purchased', render: (a) => <span className="text-muted-foreground">{a.purchaseDate}</span> },
@@ -348,7 +348,7 @@ export default function AssetsView() {
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">Serial Number</span>
-                  <span className="font-mono text-foreground">{auditAsset.serialNo || '—'}</span>
+                  <span className="font-mono text-foreground">{auditAsset.serialNo || '-'}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">Status</span>
@@ -364,27 +364,27 @@ export default function AssetsView() {
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">Assigned To</span>
-                  <span className="font-semibold text-foreground">{auditAsset.assignedTo || '—'}</span>
+                  <span className="font-semibold text-foreground">{auditAsset.assignedTo || '-'}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">Department</span>
-                  <span className="font-semibold text-foreground">{auditAsset.department || '—'}</span>
+                  <span className="font-semibold text-foreground">{auditAsset.department || '-'}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">Purchase Date</span>
-                  <span className="font-semibold text-foreground">{auditAsset.purchaseDate || '—'}</span>
+                  <span className="font-semibold text-foreground">{auditAsset.purchaseDate || '-'}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">Warranty Until</span>
-                  <span className="font-semibold text-foreground">{auditAsset.warrantyEnd || '—'}</span>
+                  <span className="font-semibold text-foreground">{auditAsset.warrantyEnd || '-'}</span>
                 </div>
                 <div className="col-span-2">
                   <span className="text-muted-foreground block text-[11px]">Hard Disk</span>
-                  <span className="font-semibold text-foreground">{auditAsset.hardDisk || '—'}</span>
+                  <span className="font-semibold text-foreground">{auditAsset.hardDisk || '-'}</span>
                 </div>
                 <div className="col-span-2">
                   <span className="text-muted-foreground block text-[11px]">Components Changes</span>
-                  <span className="font-semibold text-foreground whitespace-pre-wrap">{auditAsset.componentsChanges || '—'}</span>
+                  <span className="font-semibold text-foreground whitespace-pre-wrap">{auditAsset.componentsChanges || '-'}</span>
                 </div>
               </div>
             </div>
@@ -419,12 +419,12 @@ export default function AssetsView() {
         open={!!deleteAsset}
         onClose={() => setDeleteAsset(null)}
         title="Delete asset?"
-        description={deleteAsset ? `${deleteAsset.id} — ${deleteAsset.model} will be removed from inventory.` : undefined}
+        description={deleteAsset ? `${deleteAsset.id} - ${deleteAsset.model} will be removed from inventory.` : undefined}
       >
         {deleteAsset && (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
-              Delete <span className="font-semibold text-foreground">{deleteAsset.id} — {deleteAsset.model}</span>?
+              Delete <span className="font-semibold text-foreground">{deleteAsset.id} - {deleteAsset.model}</span>?
               This can be undone right after, but not once you navigate away.
             </p>
             <div className="flex items-center justify-end gap-2">

@@ -1,4 +1,4 @@
-// Local, in-memory demo data for the IT service desk — mirrors
+// Local, in-memory demo data for the IT service desk - mirrors
 // hrMockData.js's pattern so the ticket-category taxonomy isn't hardcoded
 // inline inside the "New Ticket" modal component.
 
@@ -31,7 +31,7 @@ export const TICKET_CATEGORIES = {
 export const TICKET_PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
 // ── Tickets (shared between the IT Service Desk queue and the Employee
-// "My Tickets" view — both read/write the same list via TicketContext) ────
+// "My Tickets" view - both read/write the same list via TicketContext) ────
 export const TICKET_STATUS_COLOR = {
   Open: 'bg-[#6CA78B]/15 text-[#1B5136] border-[#6CA78B]/40',
   'In Progress': 'bg-primary/10 text-primary border-primary/20',
@@ -143,13 +143,13 @@ export const assets = [
     history: [{ date: '2025-06-05', event: 'Assigned to Sofiya K N' }],
   },
   {
-    id: 'AST-1003', type: 'Laptop', model: 'Lenovo ThinkPad T14', serialNo: 'SN-LNVT14-7741', assignedTo: '—', department: 'IT Store', purchaseDate: '2023-09-20', warrantyEnd: '2026-09-20', status: 'Available', approvalStatus: 'not_approved',
+    id: 'AST-1003', type: 'Laptop', model: 'Lenovo ThinkPad T14', serialNo: 'SN-LNVT14-7741', assignedTo: '-', department: 'IT Store', purchaseDate: '2023-09-20', warrantyEnd: '2026-09-20', status: 'Available', approvalStatus: 'not_approved',
     hardDisk: '256GB SSD',
     componentsList: ['8GB RAM', 'Intel Core i5-1235U', 'Integrated UHD Graphics'],
     componentsLog: [],
     history: [
       { date: '2023-09-22', event: 'Assigned to Kapil Chauhan' },
-      { date: '2025-11-30', event: 'Returned to IT Store — role change' },
+      { date: '2025-11-30', event: 'Returned to IT Store - role change' },
     ],
   },
   {
@@ -160,13 +160,13 @@ export const assets = [
     history: [{ date: '2023-04-20', event: 'Assigned to Sonali Das' }],
   },
   {
-    id: 'AST-2002', type: 'Desktop', model: 'Dell OptiPlex 7010', serialNo: 'SN-OPT70-1120', assignedTo: '—', department: 'IT Store', purchaseDate: '2022-11-05', warrantyEnd: '2025-11-05', status: 'Under Repair', approvalStatus: 'none',
+    id: 'AST-2002', type: 'Desktop', model: 'Dell OptiPlex 7010', serialNo: 'SN-OPT70-1120', assignedTo: '-', department: 'IT Store', purchaseDate: '2022-11-05', warrantyEnd: '2025-11-05', status: 'Under Repair', approvalStatus: 'none',
     hardDisk: '1TB HDD',
     componentsList: ['8GB RAM', 'Intel Core i5-13500', 'Intel UHD Graphics 770'],
     componentsLog: [{ date: '2026-07-28', change: 'PSU flagged as failing during diagnostics' }],
     history: [
       { date: '2022-11-08', event: 'Assigned to Debashish Das' },
-      { date: '2026-07-28', event: 'Sent for repair — power supply fault' },
+      { date: '2026-07-28', event: 'Sent for repair - power supply fault' },
     ],
   },
   {
@@ -192,33 +192,33 @@ export const assets = [
   },
   {
     id: 'AST-4001', type: 'Network', model: 'Cisco Catalyst 9200 Switch', serialNo: 'SN-CS9200-5510', assignedTo: 'Infrastructure', department: 'IT', purchaseDate: '2024-05-09', warrantyEnd: '2029-05-09', status: 'In Use',
-    hardDisk: '—',
+    hardDisk: '-',
     componentsList: ['48-port PoE+', '4x 10G SFP+ uplinks'],
     componentsLog: [],
     history: [{ date: '2024-05-12', event: 'Installed in main server room rack' }],
   },
   {
     id: 'AST-4002', type: 'Network', model: 'Ubiquiti UniFi AP 6 Pro', serialNo: 'SN-UAP6P-8832', assignedTo: 'Floor 2', department: 'IT', purchaseDate: '2025-01-12', warrantyEnd: '2028-01-12', status: 'In Use',
-    hardDisk: '—',
+    hardDisk: '-',
     componentsList: ['Wi-Fi 6', '2.5GbE uplink'],
     componentsLog: [],
-    history: [{ date: '2025-01-14', event: 'Mounted — Floor 2 east wing' }],
+    history: [{ date: '2025-01-14', event: 'Mounted - Floor 2 east wing' }],
   },
   {
     id: 'AST-5001', type: 'Printer', model: 'HP LaserJet Pro M404', serialNo: 'SN-HPM404-2201', assignedTo: 'Floor 1 Common', department: 'Admin', purchaseDate: '2022-08-14', warrantyEnd: '2025-08-14', status: 'In Use',
-    hardDisk: '—',
+    hardDisk: '-',
     componentsList: ['Standard 250-sheet tray'],
     componentsLog: [{ date: '2026-06-01', change: 'Fuser unit replaced' }],
-    history: [{ date: '2022-08-16', event: 'Installed — Floor 1 common area' }],
+    history: [{ date: '2022-08-16', event: 'Installed - Floor 1 common area' }],
   },
   {
-    id: 'AST-5002', type: 'Printer', model: 'Canon imageRUNNER 2630', serialNo: 'SN-CN2630-1090', assignedTo: '—', department: 'IT Store', purchaseDate: '2020-10-02', warrantyEnd: '2023-10-02', status: 'Retired',
-    hardDisk: '—',
+    id: 'AST-5002', type: 'Printer', model: 'Canon imageRUNNER 2630', serialNo: 'SN-CN2630-1090', assignedTo: '-', department: 'IT Store', purchaseDate: '2020-10-02', warrantyEnd: '2023-10-02', status: 'Retired',
+    hardDisk: '-',
     componentsList: [],
     componentsLog: [],
     history: [
-      { date: '2020-10-05', event: 'Installed — Floor 1 common area' },
-      { date: '2025-09-01', event: 'Retired — replaced by AST-5001' },
+      { date: '2020-10-05', event: 'Installed - Floor 1 common area' },
+      { date: '2025-09-01', event: 'Retired - replaced by AST-5001' },
     ],
   },
 ];
@@ -252,7 +252,7 @@ export const engineerPerformance = [
 
 // ── Settings (Settings tab) ───────────────────────────────────────────────
 // Defaults the Settings tab initialises its form state from. Nothing here
-// persists yet — there's no settings endpoint on the backend — so the tab
+// persists yet - there's no settings endpoint on the backend - so the tab
 // says so rather than implying it saved.
 export const defaultItSettings = {
   slaCriticalHours: 4,

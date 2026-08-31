@@ -14,7 +14,7 @@ export default function Meetings() {
     const withMeeting = leads.filter((l) => l.meetingDate);
     return {
       upcoming: withMeeting.filter((l) => l.meetingDate >= today).sort((a, b) => a.meetingDate.localeCompare(b.meetingDate)),
-      // "Past, no outcome yet" — a meeting that happened but the lead is
+      // "Past, no outcome yet" - a meeting that happened but the lead is
       // still sitting at Meeting Arranged is a lead quietly going cold.
       past: withMeeting.filter((l) => l.meetingDate < today && l.status === 'Meeting Arranged').sort((a, b) => b.meetingDate.localeCompare(a.meetingDate)),
     };

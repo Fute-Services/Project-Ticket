@@ -33,7 +33,7 @@ function FollowUpRow({ lead, onClick, overdueDays }) {
 }
 
 // Same "N overdue, N due today, prioritise hot leads first" framing as the
-// reference CRM's banner — this screen is what that banner links into.
+// reference CRM's banner - this screen is what that banner links into.
 export default function FollowUps() {
   const { leads } = useSalesDesk();
   const [selected, setSelected] = useState(null);

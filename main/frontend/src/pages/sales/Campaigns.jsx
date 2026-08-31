@@ -8,7 +8,7 @@ import { useSalesDesk } from '../../context/SalesDeskContext';
 
 const EMPTY_FORM = { name: '', sourceTag: '', targetCity: '', sentDate: new Date().toISOString().slice(0, 10) };
 
-// Records only, not a mass-mailer (see docs/SALES_DESK_BUILD_PLAN.md §16) —
+// Records only, not a mass-mailer (see docs/SALES_DESK_BUILD_PLAN.md §16) -
 // the actual send is the CSV export already shipped in Part 2. This tracks
 // that a campaign happened so response rate has something to measure against.
 export default function Campaigns() {
@@ -90,7 +90,7 @@ export default function Campaigns() {
 
         <Card>
           {withResponseRate.length === 0 ? (
-            <EmptyState text="No campaigns yet — log one after your next email or outreach push." />
+            <EmptyState text="No campaigns yet - log one after your next email or outreach push." />
           ) : (
             <div className="flex flex-col gap-2.5">
               {withResponseRate.map((c) => (

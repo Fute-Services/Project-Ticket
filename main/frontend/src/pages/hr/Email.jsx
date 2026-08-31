@@ -19,7 +19,7 @@ export default function Email() {
   const [selected, setSelected] = useState(SEED.inbox[0]?.id || null);
   const [replyText, setReplyText] = useState('');
 
-  // Sent mail is real (backend/utils/mailer.js over SMTP) — inbox/drafts/
+  // Sent mail is real (backend/utils/mailer.js over SMTP) - inbox/drafts/
   // templates stay simulated below since actually receiving mail would need
   // separate IMAP/webhook infrastructure this app doesn't have.
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function Email() {
   }
 
   // Appends the reply to the thread (and clears the input) only once the
-  // send has actually succeeded — previously this happened first, so a
+  // send has actually succeeded - previously this happened first, so a
   // failed send still left a reply in the thread looking delivered, with
   // only an easy-to-miss toast as the only sign it never went out.
   function sendReply() {
@@ -77,7 +77,7 @@ export default function Email() {
     }));
   }
 
-  // Only deletes the draft once it's actually sent — this used to delete
+  // Only deletes the draft once it's actually sent - this used to delete
   // first, so a failed send permanently lost the composed content with no
   // undo, leaving only a toast as the trace.
   function sendDraft() {

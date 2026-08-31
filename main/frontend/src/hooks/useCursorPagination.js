@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 // The nextCursor/loadingMore state + guard/try/catch/finally boilerplate was
 // duplicated near-identically across TicketContext, ApprovalContext, and
 // TaskProjectContext, each with its own state pair. This is the shared
-// mechanics only — each context still owns its own `refresh()` (role gating,
+// mechanics only - each context still owns its own `refresh()` (role gating,
 // polling, per-item shape) and just calls `setCursor`/`loadMore` from here.
 export function useCursorPagination() {
   const [cursor, setCursor] = useState(null);

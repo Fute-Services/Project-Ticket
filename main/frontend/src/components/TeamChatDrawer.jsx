@@ -57,7 +57,7 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
   });
   const [inputText, setInputText] = useState('');
 
-  // Only the overlay form is dismissable — the full-page view has nothing to
+  // Only the overlay form is dismissable - the full-page view has nothing to
   // close and no onClose to call.
   useEscapeToClose(!isFullPage && isOpen, onClose);
 
@@ -92,24 +92,24 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
       role={isFullPage ? undefined : 'dialog'}
       aria-modal={isFullPage ? undefined : 'true'}
       aria-label={isFullPage ? undefined : 'Team Collaboration Hub'}
-      className={`w-full bg-card border border-border rounded-2xl flex flex-col shadow-lg text-foreground font-sans overflow-hidden ${isFullPage ? 'h-[750px]' : 'relative w-full max-w-2xl h-[85vh] max-h-[720px]'}`}
+      className={`w-full apple-glass border border-white/85 rounded-3xl flex flex-col shadow-2xl text-foreground font-sans overflow-hidden ${isFullPage ? 'h-[750px]' : 'relative w-full max-w-2xl h-[85vh] max-h-[720px]'}`}
     >
       {/* Top Header */}
-      <div className="h-14 px-5 border-b border-border flex items-center justify-between bg-muted shrink-0">
+      <div className="h-14 px-5 border-b border-black/5 flex items-center justify-between bg-white/50 backdrop-blur-xl shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
             <MessageSquare size={18} />
           </div>
           <div>
             <div className="font-semibold text-sm text-foreground leading-none">Team Collaboration Hub</div>
-            <div className="text-xs text-muted-foreground leading-none mt-1">Real-time Slack & Discord style Channel Chat</div>
+            <div className="text-[11px] text-muted-foreground leading-none mt-1">Real-time Slack & Discord style Channel Chat</div>
           </div>
         </div>
         {!isFullPage && (
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-white/60 hover:bg-white border border-white/80 text-muted-foreground hover:text-foreground transition-all cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -119,7 +119,7 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
       {/* Chat Body: Sidebar channels + Chat conversation */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Left Channel Sidebar */}
-        <div className="w-56 bg-background border-r border-border p-3.5 flex flex-col gap-3 shrink-0">
+        <div className="w-56 bg-white/40 border-r border-black/5 p-3.5 flex flex-col gap-3 shrink-0">
           <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2">CHANNELS</div>
           <div className="flex flex-col gap-1.5">
             {channels.map((ch) => {
@@ -131,11 +131,11 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
                   onClick={() => setActiveChannel(ch.id)}
                   className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-all text-left cursor-pointer ${
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 font-bold'
-                      : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
+                      ? 'bg-white text-foreground shadow-sm border border-white/90 font-bold'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-white/50'
                   }`}
                 >
-                  <Hash size={15} className={isActive ? 'text-white' : 'text-muted-foreground'} />
+                  <Hash size={15} className={isActive ? 'text-primary' : 'text-muted-foreground'} />
                   <span className="truncate">{ch.name}</span>
                 </button>
               );
@@ -144,9 +144,9 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
         </div>
 
         {/* Right Message Feed */}
-        <div className="flex-1 flex flex-col justify-between bg-card min-w-0">
+        <div className="flex-1 flex flex-col justify-between bg-white/20 min-w-0">
           {/* Channel Top Banner */}
-          <div className="p-3.5 border-b border-border bg-muted/60 shrink-0">
+          <div className="p-3.5 border-b border-black/5 bg-white/40 backdrop-blur-md shrink-0">
             <div className="flex items-center gap-2 text-xs font-bold text-foreground">
               <Hash size={15} className="text-primary" />
               <span>{currentChannelObj?.name}</span>
@@ -155,42 +155,42 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
           </div>
 
           {/* Messages Scroll Area */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 min-h-0">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 min-h-0">
             {channelMessages.map((msg) => (
               <div
                 key={msg.id}
-                className={`p-3.5 rounded-2xl border text-xs flex flex-col gap-1.5 ${
+                className={`p-3 rounded-2xl border text-xs flex flex-col gap-1.5 backdrop-blur-sm ${
                   msg.isAlert
                     ? 'bg-destructive/10 border-destructive/20 text-destructive'
-                    : 'bg-muted/80 border-border text-foreground'
+                    : 'bg-white/70 border-white/80 text-foreground shadow-sm'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-foreground leading-none">{msg.sender}</span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border font-mono">
+                    <span className="font-semibold text-foreground leading-none">{msg.sender}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/80 text-muted-foreground border border-black/5 font-mono">
                       {msg.role}
                     </span>
                   </div>
-                  <span className="text-[11px] text-muted-foreground font-mono">{msg.time}</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">{msg.time}</span>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">{msg.text}</p>
+                <p className="text-xs text-foreground/80 leading-relaxed mt-0.5">{msg.text}</p>
               </div>
             ))}
           </div>
 
           {/* Message Input Box */}
-          <form onSubmit={handleSend} className="p-3.5 border-t border-border bg-muted shrink-0 flex items-center gap-2.5">
+          <form onSubmit={handleSend} className="p-3.5 border-t border-black/5 bg-white/50 backdrop-blur-xl shrink-0 flex items-center gap-2.5">
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder={`Message #${currentChannelObj?.name}...`}
-              className="flex-1 h-10 bg-background border border-border rounded-xl px-3.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors"
+              className="flex-1 h-10 bg-white/70 border border-white/85 rounded-xl px-3.5 text-xs text-foreground placeholder-muted-foreground hover:bg-white/85 focus-visible:bg-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50 shadow-sm transition-all"
             />
             <button
               type="submit"
-              className="h-10 px-4 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-bold text-xs flex items-center gap-2 shadow-md shadow-primary/20 transition-all cursor-pointer shrink-0"
+              className="h-10 px-4 rounded-xl bg-primary hover:bg-primary-hover active:scale-[0.98] text-primary-foreground font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
             >
               <span>Send</span>
               <Send size={14} />
@@ -206,7 +206,7 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm transition-opacity">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md transition-opacity">
       <div className="absolute inset-0" onClick={onClose} />
       {content}
     </div>

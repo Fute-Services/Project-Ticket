@@ -12,11 +12,11 @@ const CATEGORY_LABELS = {
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const QUARTER_NAMES = ['Q1 (Jan-Mar)', 'Q2 (Apr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Oct-Dec)'];
 
-// Employee's Own Leave & Performance — self-scoped reads (see myLeaveSummary
+// Employee's Own Leave & Performance - self-scoped reads (see myLeaveSummary
 // /myPerformance in hrDeskController.js), reusing the same Taken/Remaining
 // math Directory.jsx already runs for HR, just for the logged-in employee.
 // "Taken" is read-only here (HR edits it from Directory.jsx's Leave card,
-// one row per month/quarter) — this just lets the employee pick which
+// one row per month/quarter) - this just lets the employee pick which
 // period to view; Total/Remaining always stay entitlement/cumulative.
 export default function MyLeavePerformanceCard() {
   const [leave, setLeave] = useState(null);
@@ -25,7 +25,7 @@ export default function MyLeavePerformanceCard() {
   const [leaveMonth, setLeaveMonth] = useState(() => new Date().getMonth());
   const [leaveQuarter, setLeaveQuarter] = useState(() => Math.floor(new Date().getMonth() / 3));
 
-  // Polls rather than fetching once — HR can edit "Taken" (see Directory.jsx's
+  // Polls rather than fetching once - HR can edit "Taken" (see Directory.jsx's
   // Leave card) at any time, and this card should reflect that without the
   // employee needing to reload the page.
   useEffect(() => {

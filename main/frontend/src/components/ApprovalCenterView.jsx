@@ -5,6 +5,7 @@ import ItDatePicker from './ItDatePicker';
 import { Card, SectionHeader } from './ui';
 import { DateField } from './ui/date-field';
 import { Search, X } from 'lucide-react';
+import AppleSelect from './AppleSelect';
 
 const APPROVAL_CATEGORIES_BY_SOURCE = {
   IT: ['General', 'Software', 'Hardware', 'System Access', 'Data Transfer'],
@@ -44,7 +45,7 @@ function FieldLabel({ n, text }) {
 }
 
 // Shared by every desk's own Approval Center (IT's DashboardPage, HR's
-// pages/hr/Approvals.jsx) — `source` is the only thing that changes what
+// pages/hr/Approvals.jsx) - `source` is the only thing that changes what
 // shows up here vs. in the Founder's Approval Center, which splits its
 // panels by approvals/{id}.source ('IT' vs 'HR').
 export default function ApprovalCenterView({ source = 'IT', defaultDepartment = source === 'HR' ? 'HR' : 'IT Support', defaultRequestedByLabel = source === 'HR' ? 'HR Desk' : 'IT Support' }) {
@@ -117,15 +118,15 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
         <ItDatePicker />
       </div>
 
-      {/* Form on the left, Awaiting Founder Sign-off list on the right —
+      {/* Form on the left, Awaiting Founder Sign-off list on the right -
           side by side instead of stacked, so the form can stay compact.
           Both cards stretch to the row's tallest so the shorter one (usually
           the list, especially when empty) doesn't leave a half-filled box
           next to a full one. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-        <Card>
+        <Card className="relative z-20 overflow-visible">
           <h3 className="font-semibold text-sm text-foreground mb-3">Send for Founder Approval</h3>
-          <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-visible">
             {/* 1. Date */}
             <DateField
               label={<FieldLabel n={1} text="Date" />}
@@ -148,16 +149,12 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
             {/* 3. Department */}
             <div className="flex flex-col gap-1">
               <FieldLabel n={3} text="Department" />
-              <select
+              <AppleSelect
                 value={form.department || defaultDepartment}
-                onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
-                aria-label="Department"
-                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-              >
-                {departmentOptions.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+                onChange={(val) => setForm((f) => ({ ...f, department: val }))}
+                options={departmentOptions}
+                ariaLabel="Department"
+              />
             </div>
 
             {/* 4. Details */}
@@ -167,7 +164,7 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
                 value={form.sub}
                 onChange={(e) => setForm((f) => ({ ...f, sub: e.target.value }))}
                 placeholder="Details"
-                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="bg-white/70 backdrop-blur-md border border-white/85 rounded-xl px-3.5 py-2 text-xs text-foreground placeholder-muted-foreground hover:bg-white/85 focus-visible:bg-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50 shadow-sm transition-all"
               />
             </div>
 
@@ -178,7 +175,7 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
                 value={form.employeeId}
                 onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
                 placeholder="Employee ID (e.g. EMP-2001)"
-                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="bg-white/70 backdrop-blur-md border border-white/85 rounded-xl px-3.5 py-2 text-xs text-foreground placeholder-muted-foreground hover:bg-white/85 focus-visible:bg-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50 shadow-sm transition-all"
               />
             </div>
 
@@ -189,43 +186,39 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
                 value={form.username}
                 onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
                 placeholder="Username (e.g. john.doe)"
-                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="bg-white/70 backdrop-blur-md border border-white/85 rounded-xl px-3.5 py-2 text-xs text-foreground placeholder-muted-foreground hover:bg-white/85 focus-visible:bg-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50 shadow-sm transition-all"
               />
             </div>
 
             {/* 7. Category */}
             <div className="flex flex-col gap-1">
               <FieldLabel n={7} text="Category" />
-              <select
+              <AppleSelect
                 value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                aria-label="Category"
-                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-              >
-                {approvalCategories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+                onChange={(val) => setForm((f) => ({ ...f, category: val }))}
+                options={approvalCategories}
+                ariaLabel="Category"
+              />
             </div>
 
             {/* 8. Priority */}
             <div className="flex flex-col gap-1">
               <FieldLabel n={8} text="Priority" />
-              <select
+              <AppleSelect
                 value={form.priority}
-                onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
-                aria-label="Priority"
-                className="bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
+                onChange={(val) => setForm((f) => ({ ...f, priority: val }))}
+                options={[
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' },
+                ]}
+                ariaLabel="Priority"
+              />
             </div>
 
             <button
               type="submit"
-              className="sm:col-span-2 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs transition-colors cursor-pointer mt-1"
+              className="sm:col-span-2 bg-primary hover:bg-primary-hover active:scale-[0.98] text-primary-foreground font-semibold px-4 py-2.5 rounded-xl text-xs shadow-sm transition-all cursor-pointer mt-1"
             >
               Send for Founder Approval
             </button>

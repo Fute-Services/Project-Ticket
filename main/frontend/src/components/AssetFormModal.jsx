@@ -32,7 +32,7 @@ export default function AssetFormModal({ isOpen, onClose, onSubmit, initialAsset
     }
   }, [isOpen, initialAsset, nextId]);
 
-  // Only closes the modal once the save has actually succeeded — it used
+  // Only closes the modal once the save has actually succeeded - it used
   // to close unconditionally, so a failed create/edit still looked
   // successful with the real error only in the console.
   async function submit(e) {

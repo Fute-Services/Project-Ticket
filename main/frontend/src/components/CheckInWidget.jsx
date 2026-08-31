@@ -29,13 +29,13 @@ function formatElapsed(ms) {
   return [h, m, s];
 }
 
-// Self-service Check-in/Check-out — Attendance/Check-in module (Employee
+// Self-service Check-in/Check-out - Attendance/Check-in module (Employee
 // Details area). Only ever acts on the current user's own attendance record
 // (backend resolves it from the authenticated user, not a client-supplied
-// id — see checkIn/checkOut in hrDeskController.js), so this is safe to drop
+// id - see checkIn/checkOut in hrDeskController.js), so this is safe to drop
 // onto the Employee/HR/Founder dashboards without any per-employee wiring.
 //
-// Dropdown intentionally offers only Office/WFH — "Leave" was pulled back
+// Dropdown intentionally offers only Office/WFH - "Leave" was pulled back
 // out of this widget on request, even though the backend/Directory/Founder
 // side of Leave tracking is still fully in place (see checkIn()'s workMode
 // === 'Leave' branch in hrDeskController.js) for whenever it comes back.
@@ -57,7 +57,7 @@ export default function CheckInWidget() {
 
   const isCheckedIn = Boolean(record?.checkIn && record.checkIn !== '-' && (!record.checkOut || record.checkOut === '-'));
 
-  // Only tick the clock while actually checked in — no point re-rendering
+  // Only tick the clock while actually checked in - no point re-rendering
   // every second for a widget that's just showing a static "Check in" button.
   useEffect(() => {
     if (!isCheckedIn) return;

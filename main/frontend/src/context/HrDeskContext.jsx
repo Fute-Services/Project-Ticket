@@ -4,7 +4,7 @@ import { employeesApi, candidatesApi, interviewsApi, attendanceApi, performanceA
 
 const HrDeskContext = createContext(null);
 
-// Single source of truth for employees/candidates/interviews/attendance —
+// Single source of truth for employees/candidates/interviews/attendance -
 // previously HrLayout (for its search index) and up to five separate HR
 // pages (Overview, Directory, Candidates, Interviews, Attendance, Reports)
 // each fetched their own independent copy of the same lists, so a single

@@ -5,7 +5,7 @@ import { verifyPassword } from '../utils/api';
 
 // Reusable high-risk confirm dialog: a typed reason (always required, saved
 // into the audit log entry) and, for the riskiest actions, the acting
-// Super Admin's own password re-entered and verified server-side — real
+// Super Admin's own password re-entered and verified server-side - real
 // re-authentication (POST /api/auth/verify-password), not a fake prompt.
 // `onConfirm(reason)` does the actual destructive call; this component only
 // handles the gate in front of it.

@@ -30,16 +30,16 @@ function workingHours(record) {
 }
 
 function formatHours(hours) {
-  if (hours == null) return '—';
+  if (hours == null) return '-';
   return `${hours.toFixed(1)}h`;
 }
 
 export default function Attendance() {
   const { employees, attendanceRecords } = useHrDesk();
-  // '' rather than null — a controlled <select>'s value must be a string
+  // '' rather than null - a controlled <select>'s value must be a string
   // (React warns on null: "should not be null, use '' or undefined instead").
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  // System/Technical — default working hours, reused from Super Admin's
+  // System/Technical - default working hours, reused from Super Admin's
   // existing settings doc (see HolidaysCard.jsx for the same source) to
   // flag a late check-in without inventing a second "start time" setting.
   const [workStart, setWorkStart] = useState(null);
@@ -54,20 +54,20 @@ export default function Attendance() {
       .catch(() => setWorkStart(null));
   }, []);
 
-  // The real current date — marking someone present/absent always writes
+  // The real current date - marking someone present/absent always writes
   // against today, not whatever date happens to be the most recent one
   // already sitting in seeded/historical records.
   const TODAY = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   // History strip below still spans every date actually present in the
-  // records (seeded history + whatever's been marked so far) — a fixed date
+  // records (seeded history + whatever's been marked so far) - a fixed date
   // range drifts out of the data the moment the seed changes.
   const MONTH_DATES = useMemo(() => [...new Set(attendanceRecords.map((a) => a.date))].sort(), [attendanceRecords]);
 
   // One flat row per employee, with today's record merged in. Flattening the
   // join here (rather than pairing two arrays by index at render time) is what
   // lets the table sort on any column without the two lists drifting apart.
-  // Read-only — attendance is written exclusively by the employee's own
+  // Read-only - attendance is written exclusively by the employee's own
   // Check-in/Check-out widget (see CheckInWidget.jsx), never by HR here.
   const todayRows = useMemo(
     () =>
@@ -77,8 +77,8 @@ export default function Attendance() {
           id: e.id,
           name: e.name,
           department: e.department,
-          checkIn: record?.checkIn || '—',
-          checkOut: record?.checkOut || '—',
+          checkIn: record?.checkIn || '-',
+          checkOut: record?.checkOut || '-',
           hours: workingHours(record),
           status: record?.status || null,
           workMode: record?.workMode || null,
@@ -88,7 +88,7 @@ export default function Attendance() {
   );
 
   // Present/Absent, WFH count, and today's total hours are all derived from
-  // whether/how an employee checked in — nothing here is HR-editable.
+  // whether/how an employee checked in - nothing here is HR-editable.
   const counts = useMemo(() => {
     let present = 0;
     let onLeave = 0;
@@ -96,7 +96,7 @@ export default function Attendance() {
     let totalHours = 0;
     todayRows.forEach((r) => {
       if (r.status === 'Leave') onLeave += 1;
-      else if (r.checkIn && r.checkIn !== '—') present += 1;
+      else if (r.checkIn && r.checkIn !== '-') present += 1;
       if (r.workMode === 'WFH') wfh += 1;
       if (r.hours) totalHours += r.hours;
     });
@@ -138,7 +138,7 @@ export default function Attendance() {
                 width: '90px',
                 render: (r) => (
                   <span className="text-muted-foreground">
-                    {r.status === 'Leave' ? 'Leave' : r.checkIn && r.checkIn !== '—' ? (r.workMode || 'Office') : '—'}
+                    {r.status === 'Leave' ? 'Leave' : r.checkIn && r.checkIn !== '-' ? (r.workMode || 'Office') : '-'}
                   </span>
                 ),
               },
@@ -148,10 +148,10 @@ export default function Attendance() {
                 width: '60px',
                 sortable: false,
                 render: (r) =>
-                  workStart && r.checkIn && r.checkIn !== '—' && r.checkIn > workStart ? (
+                  workStart && r.checkIn && r.checkIn !== '-' && r.checkIn > workStart ? (
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warning/10 text-warning">Late</span>
                   ) : (
-                    <span className="text-muted-foreground">—</span>
+                    <span className="text-muted-foreground">-</span>
                   ),
               },
               {
@@ -206,7 +206,7 @@ export default function Attendance() {
               {employeeHistory.map((r, i) => (
                 <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border">
                   <span className="text-xs text-muted-foreground">{r.date}</span>
-                  <span className="text-xs text-muted-foreground">{r.checkIn} — {r.checkOut}</span>
+                  <span className="text-xs text-muted-foreground">{r.checkIn} - {r.checkOut}</span>
                   <span className="text-xs text-muted-foreground font-semibold">{formatHours(workingHours(r))}</span>
                   <Badge value={r.status} />
                 </div>

@@ -5,7 +5,7 @@ import LeadProfileModal from '../../components/sales/LeadProfileModal';
 import { Card, SectionHeader, Badge, EmptyState } from '../../components/ui';
 import { useSalesDesk } from '../../context/SalesDeskContext';
 
-// The rep-facing worklist — leads due today or never called, ordered by
+// The rep-facing worklist - leads due today or never called, ordered by
 // priority then by whoever has waited longest. This is meant to be the
 // screen a rep lives in all day; "Call Now" opens the same Lead Profile
 // popup everywhere else uses, which already has a one-click Log Call box.
@@ -37,7 +37,7 @@ export default function DailyCalls() {
 
         <Card>
           {worklist.length === 0 ? (
-            <EmptyState text="Nothing to call right now — you're caught up." />
+            <EmptyState text="Nothing to call right now - you're caught up." />
           ) : (
             <div className="flex flex-col gap-2.5">
               {worklist.map((l) => (

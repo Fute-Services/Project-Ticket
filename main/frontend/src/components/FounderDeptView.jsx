@@ -6,7 +6,7 @@ import { DEPT_DEMO } from '../data/deptDemoData';
  * Production) from `deptDemoData`.
  *
  * One component for five departments because the *layout* question is the same
- * for all of them — four headline numbers, a breakdown, what needs attention,
+ * for all of them - four headline numbers, a breakdown, what needs attention,
  * what just finished. The content differs per department and lives in the data
  * file, so this stays a renderer with no department knowledge in it.
  *
@@ -82,7 +82,7 @@ export default function FounderDeptView({ dept }) {
         ))}
       </div>
 
-      {/* Breakdown — meters, not a chart: these are parts of one known total */}
+      {/* Breakdown - meters, not a chart: these are parts of one known total */}
       <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3.5">
         <div className="flex items-center justify-between border-b border-border pb-2.5 gap-3">
           <div>

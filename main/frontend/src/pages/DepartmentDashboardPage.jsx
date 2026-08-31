@@ -6,12 +6,12 @@ import ProductionDashboardView from '../components/ProductionDashboardView';
 
 /**
  * Standalone dashboard for the five departments that only ever existed as a
- * read-only view inside the Founder's dashboard (data/deptDemoData.js — Sales,
+ * read-only view inside the Founder's dashboard (data/deptDemoData.js - Sales,
  * Developers, Marketing, Branding, Production). This page reuses that exact
  * same content and renderer rather than inventing new data, so it can't drift
  * from what the Founder already sees when browsing these departments.
  *
- * There's still no backend or workflow behind any of them — this just makes
+ * There's still no backend or workflow behind any of them - this just makes
  * that existing demo view reachable by its own login, not a new department.
  */
 const DEPTS = {

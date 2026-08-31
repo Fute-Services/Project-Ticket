@@ -20,7 +20,7 @@ function Detail({ label, value, wrap }) {
   return (
     <div className="min-w-0">
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground/80">{label}</div>
-      <div className={`text-sm text-foreground font-medium ${wrap ? 'break-words' : 'truncate'}`}>{value || value === 0 ? value : '—'}</div>
+      <div className={`text-sm text-foreground font-medium ${wrap ? 'break-words' : 'truncate'}`}>{value || value === 0 ? value : '-'}</div>
     </div>
   );
 }
@@ -34,7 +34,7 @@ function SectionCard({ title, children }) {
   );
 }
 
-// Compact edit-mode field — same footprint as Detail (not the roomier
+// Compact edit-mode field - same footprint as Detail (not the roomier
 // shared `Field`/`inputClass`, whose gap-1.5 + h-9 input roughly doubles
 // each row's height) so toggling a candidate into edit mode doesn't blow
 // the popup past no-scroll height.
@@ -50,7 +50,7 @@ function EF({ label, children }) {
 }
 
 // Older/seeded candidate rows may already carry the unit in the raw value
-// ("6 yrs", "24 LPA") — strip it before re-appending so the read view never
+// ("6 yrs", "24 LPA") - strip it before re-appending so the read view never
 // doubles up into "6 yrs yrs" / "₹24 LPA LPA".
 const yrs = (v) => (v || v === 0 ? `${String(v).replace(/\s*yrs?\.?$/i, '')} yrs` : null);
 const lpa = (v) => (v || v === 0 ? `₹${String(v).replace(/^₹\s*/, '').replace(/\s*lpa$/i, '')} LPA` : null);
@@ -70,7 +70,7 @@ const FINAL_DECISION_OPTIONS = ['Pending', 'Selected', 'Rejected', 'On Hold'];
 // Full tracking-sheet field set (Resume Date, Relevant Exp., Primary/
 // Secondary Skills, Resume link, HR Screening Status, interviewer feedback,
 // Shortlisted?, Technical Round date/status, Final Decision, Work Mode,
-// Remarks, Last Follow-up Date, Output Path) — matches the columns HR
+// Remarks, Last Follow-up Date, Output Path) - matches the columns HR
 // already tracks in their spreadsheet, so the candidate popup can fully
 // replace it instead of just showing a read-only subset.
 const EMPTY_CANDIDATE_FORM = {
@@ -167,7 +167,7 @@ export default function Candidates() {
 
   function updateStage(id, stage) {
     // Clear a stale rejectionReason from an earlier rejection when a
-    // candidate moves back into an active stage — a "Rejected" reason
+    // candidate moves back into an active stage - a "Rejected" reason
     // shouldn't linger and display once someone is back in the pipeline.
     const patch = REJECTABLE_STAGES.includes(stage) ? { stage } : { stage, rejectionReason: '' };
     setCandidates((rows) => rows.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -220,7 +220,7 @@ export default function Candidates() {
       const { data } = await candidatesApi.create(payload);
       setCandidates((rows) => [data, ...rows]);
       setSelected(data);
-      // Only clear/close on success — closing unconditionally used to
+      // Only clear/close on success - closing unconditionally used to
       // discard the typed-in form (and the user's chosen resume) on any
       // failure, with just a console.error as the only trace.
       setUploadedFile(null);

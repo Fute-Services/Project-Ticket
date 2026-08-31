@@ -3,9 +3,9 @@ import { CalendarDays } from 'lucide-react';
 import { Card, SectionHeader, EmptyState } from './ui';
 import { getSystemSettings } from '../utils/api';
 
-// System/Technical — Holiday (National) tab. Reads the same
+// System/Technical - Holiday (National) tab. Reads the same
 // getSystemSettings() endpoint Super Admin already writes to (working
-// hours + holidays), open to any logged-in role — no new backend needed.
+// hours + holidays), open to any logged-in role - no new backend needed.
 export default function HolidaysCard() {
   const [holidays, setHolidays] = useState(null);
 

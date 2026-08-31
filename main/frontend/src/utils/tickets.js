@@ -1,14 +1,14 @@
 /**
- * Ticket helpers — formatting and counting only, no JSX, so the dashboard
+ * Ticket helpers - formatting and counting only, no JSX, so the dashboard
  * component stays about layout.
  *
- * Colours are theme CSS variables, not literal hexes — never return a hex
+ * Colours are theme CSS variables, not literal hexes - never return a hex
  * from here; the CSS variables (see src/styles/tokens.css) are the source
  * of truth so status/priority colours stay consistent across light and
  * dark mode.
  */
 
-// Must match validStatuses in backend/controllers/{hr,it}Controller.js exactly —
+// Must match validStatuses in backend/controllers/{hr,it}Controller.js exactly -
 // the PATCH endpoint 400s on anything else.
 export const STATUSES = ['Pending', 'In Progress', 'Waiting Approval', 'Completed'];
 
@@ -46,12 +46,12 @@ const RELATIVE_STEPS = [
 ];
 
 /**
- * "2 minutes ago". The exact timestamp belongs in a tooltip, never the cell —
+ * "2 minutes ago". The exact timestamp belongs in a tooltip, never the cell -
  * a raw ISO string is not something anyone reads.
  */
 export function relativeTime(iso) {
   const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return '—';
+  if (Number.isNaN(then)) return '-';
 
   let value = (Date.now() - then) / 1000;
   if (value < 45) return 'just now';

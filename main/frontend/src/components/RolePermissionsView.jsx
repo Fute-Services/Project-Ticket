@@ -16,7 +16,7 @@ const ROLE_LABEL = {
   employee: 'Employee',
 };
 
-// Matches the backend's founderController.ASSIGNABLE_ROLES — Super Admin
+// Matches the backend's founderController.ASSIGNABLE_ROLES - Super Admin
 // can override an existing Founder's pages, but can't mint a brand-new
 // Founder (or another Super Admin) account from this screen.
 const CREATABLE_ROLES = ['it', 'hr', 'coordinator', 'employee'];
@@ -67,7 +67,7 @@ export default function RolePermissionsView() {
   const selectedUser = users.find((u) => u.email === selectedEmail) || null;
 
   // Returns the request's promise so callers can show success/error only
-  // once it actually resolves, instead of assuming success up front — a
+  // once it actually resolves, instead of assuming success up front - a
   // failed save used to still show a "changed" toast (immediately followed
   // by a contradicting error toast) while the switch itself never moved.
   function updateSelectedUser(nextOverrides) {
@@ -342,7 +342,7 @@ export default function RolePermissionsView() {
       <Card>
         <SectionHeader
           title="Action permissions"
-          subtitle={`Granular create/edit/delete/approve rights for ${ROLE_LABEL[role] || role} — enforced on the backend, not just hidden in the UI`}
+          subtitle={`Granular create/edit/delete/approve rights for ${ROLE_LABEL[role] || role} - enforced on the backend, not just hidden in the UI`}
         />
         <div className="flex flex-col gap-3">
           {Object.entries(RESOURCE_REGISTRY).map(([resource, { label, actions }]) => (

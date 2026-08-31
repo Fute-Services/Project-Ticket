@@ -26,16 +26,16 @@ import { useCursorPagination } from '../hooks/useCursorPagination';
 const TicketContext = createContext(null);
 
 // IT/HR run this as a shared team queue (multiple people work the same
-// tickets, so a new one showing up promptly matters) — Founder's merged
+// tickets, so a new one showing up promptly matters) - Founder's merged
 // view is the same idea at a glance. Everyone else only ever sees their own
 // tickets, which already update instantly via optimistic local state on
 // their own actions, so a background poll for *other* people's changes
-// isn't buying them anything — those roles get manual refresh only.
+// isn't buying them anything - those roles get manual refresh only.
 const SHARED_QUEUE_ROLES = ['it', 'hr', 'founder'];
 const SHARED_POLL_MS = 180000;
 
 // The UI's 5-state vocabulary (a legacy 'Closed' included) vs. the backend's
-// 4-state enum (backend/controllers/{hr,it}Controller.js VALID_STATUSES) —
+// 4-state enum (backend/controllers/{hr,it}Controller.js VALID_STATUSES) -
 // this map is the only place that difference has to be reconciled.
 const UI_TO_BACKEND_STATUS = {
   Open: 'Pending',
@@ -51,7 +51,7 @@ const BACKEND_TO_UI_STATUS = {
   Completed: 'Resolved',
 };
 
-// Which extra columns each department's PATCH .../fields endpoint accepts —
+// Which extra columns each department's PATCH .../fields endpoint accepts -
 // mirrors EDITABLE_FIELDS in itController.js/hrController.js. Anything not
 // listed here still updates optimistically in local state but isn't sent to
 // the server (e.g. vpnNo has no HR equivalent).
@@ -68,7 +68,7 @@ function fromBackend(doc) {
   return {
     id: doc.id,
     token: doc.token,
-    title: doc.description || (doc.category ? `${doc.category} — ${doc.sub_category}` : 'Request'),
+    title: doc.description || (doc.category ? `${doc.category} - ${doc.sub_category}` : 'Request'),
     user: doc.name,
     role: roleDisplay,
     dept: doc.dept_tag || (isIt ? 'IT' : 'HR'),
@@ -92,7 +92,7 @@ function fromBackend(doc) {
 }
 
 // Shared across the IT Service Desk's Tickets Queue and the Employee
-// dashboard's "My Tickets" view — a ticket an employee raises shows up
+// dashboard's "My Tickets" view - a ticket an employee raises shows up
 // immediately in IT's queue, and a status change IT makes shows up
 // immediately on the employee's own list, since both read the same backend
 // collections (it_complaints / hr_complaints) rather than separate copies.
@@ -101,7 +101,7 @@ export function TicketProvider({ children }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   // Only the IT/HR "queue" branch below is paginated (Founder's merged view
-  // and Employee's "My Tickets" stay whole-list — small/bounded lists,
+  // and Employee's "My Tickets" stay whole-list - small/bounded lists,
   // pagination isn't worth the complexity there). nextCursor is null for
   // those roles, so loadMoreTickets is a no-op for them.
   const { hasMore, loadingMore, setCursor, loadMore } = useCursorPagination();
@@ -120,7 +120,7 @@ export function TicketProvider({ children }) {
       let cursor = null;
       // Defensive `|| []`/`?.` throughout: a response caught mid-deploy
       // (stale serverless instance, proxy hiccup) can come back without the
-      // expected shape — fall back to empty rather than crash the page.
+      // expected shape - fall back to empty rather than crash the page.
       if (user.role === 'founder') {
         rows = (await getFounderComplaints()).data || [];
       } else if (user.role === 'it') {
@@ -146,11 +146,11 @@ export function TicketProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on
     // id/role (stable primitives), not the `user` object itself, which
     // AuthContext replaces with a new reference on every login-state
-    // refresh even when the actual user hasn't changed — depending on the
+    // refresh even when the actual user hasn't changed - depending on the
     // object caused this refresh to needlessly refire and duplicate reads.
   }, [user?.id, user?.role, setCursor]);
 
-  // Appends the next 20 to the existing list — resets back to page 1 on the
+  // Appends the next 20 to the existing list - resets back to page 1 on the
   // next poll/refresh, same as any other "Load More" list.
   function loadMoreTickets() {
     const isIt = user.role === 'it';
@@ -165,7 +165,7 @@ export function TicketProvider({ children }) {
   }, [refresh]);
 
   // Only the shared-queue roles auto-poll (and re-check on regaining tab
-  // focus) — "My Tickets" roles fetch once on mount/login and otherwise only
+  // focus) - "My Tickets" roles fetch once on mount/login and otherwise only
   // refresh when the user asks (manual refresh button) or when their own
   // action updates local state optimistically.
   useVisibilityAwarePolling(refresh, SHARED_POLL_MS, isSharedQueue);
@@ -241,7 +241,7 @@ export function TicketProvider({ children }) {
     const ticket = tickets.find((t) => t.id === id);
     if (!ticket) return;
 
-    // Check editability BEFORE touching local state — this used to apply
+    // Check editability BEFORE touching local state - this used to apply
     // the edit to the UI first and only then bail out, so a field not valid
     // for that ticket's department showed the edited value right up until
     // the next refresh/poll silently reverted it, with no error shown.
@@ -263,7 +263,7 @@ export function TicketProvider({ children }) {
   }
 
   // Backend only allows the ticket's own requester to delete it (403s for
-  // anyone else, including IT/HR/founder) — this removes the shared
+  // anyone else, including IT/HR/founder) - this removes the shared
   // it_complaints/hr_complaints doc outright, so it's gone from every view
   // that reads it (the requester's own list and the department's queue)
   // rather than just being hidden locally.
@@ -282,7 +282,7 @@ export function TicketProvider({ children }) {
     }
   }
 
-  // The employee's own "not satisfied" escape hatch — backend only allows
+  // The employee's own "not satisfied" escape hatch - backend only allows
   // this on the ticket's own requester and only from a resolved status
   // (complaintControllerFactory.js reopenComplaint), so no client-side
   // gating is load-bearing here, just the optimistic update.

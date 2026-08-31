@@ -24,13 +24,13 @@ export const SERIES = [
  * Faded version of a series colour, for tinted icon badges and stripes.
  *
  * Replaces the old `` `${hex}1a` `` trick, which only worked because the
- * colour was a hex string — appending two alpha digits to `hsl(var(--x))`
+ * colour was a hex string - appending two alpha digits to `hsl(var(--x))`
  * produces garbage. Swapping the closing paren for ` / alpha)` keeps the
  * inner `var()` intact and works for any theme value.
  */
 export function tint(color, alpha) {
   if (typeof color !== 'string') return color;
   if (color.startsWith('hsl(')) return color.replace(/\)$/, ` / ${alpha})`);
-  // Legacy hex fallback — 0.1 -> '1a'
+  // Legacy hex fallback - 0.1 -> '1a'
   return `${color}${Math.round(alpha * 255).toString(16).padStart(2, '0')}`;
 }

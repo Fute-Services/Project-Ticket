@@ -69,7 +69,7 @@ export default function SuperAdminActivityPage() {
                       <div className="text-sm text-foreground">
                         {e.actor && <span className="font-semibold">{e.actor}</span>}{' '}
                         <span className="text-muted-foreground">{e.label}</span>
-                        {e.detail && <span className="font-medium"> — {e.detail}</span>}
+                        {e.detail && <span className="font-medium"> - {e.detail}</span>}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">{formatWhen(e.at)}</div>
                     </div>
