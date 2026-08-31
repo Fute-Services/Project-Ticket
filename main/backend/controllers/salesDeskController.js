@@ -356,7 +356,15 @@ async function importLeads(req, res) {
 async function exportEmailCampaign(req, res) {
   const snap = await leadsCollection.limit(SALES_LEADS_READ_LIMIT).get();
   const rows = snap.docs.map((d) => d.data()).filter((r) => r.email);
-  const escapeCsv = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
+  // companyName/contactName are user-entered (manually, or from a future
+  // untrusted import) — a value starting with =, +, -, or @ is interpreted
+  // as a live formula by Excel/Sheets on open (CSV/formula injection), so
+  // it's neutralized with a leading apostrophe before quote-escaping.
+  const escapeCsv = (v) => {
+    let s = String(v || '');
+    if (/^[=+\-@]/.test(s)) s = `'${s}`;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
   const header = 'Company,Title,Contact Name,Email\n';
   const body = rows.map((r) => [r.companyName, r.contactTitle, r.contactName, r.email].map(escapeCsv).join(',')).join('\n');
   res.setHeader('Content-Type', 'text/csv');

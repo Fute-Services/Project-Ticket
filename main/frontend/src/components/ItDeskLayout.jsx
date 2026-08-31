@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../context/PermissionsContext';
+import { useItNotifications } from '../hooks/useItNotifications';
+import { useEmployeeNotifications } from '../hooks/useEmployeeNotifications';
 import {
   Building2,
   LayoutGrid,
@@ -33,12 +35,6 @@ const ROLE_LABEL = {
   it: 'IT Manager',
   employee: 'Employee',
 };
-
-const NOTIFICATIONS = [
-  { id: 1, text: 'New ticket INC-1024 assigned to you', time: '10 min ago' },
-  { id: 2, text: 'Data Transfer request is waiting for approval', time: '35 min ago' },
-  { id: 3, text: 'VPN request approved for Abhinav Rai', time: '2 hr ago' },
-];
 
 const IT_NAV_ITEMS = (approvalCount) => [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
@@ -77,6 +73,20 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
   function goToResult(tab) {
     setActiveTab(tab);
     setQuery('');
+  }
+
+  // Real events (tickets/approvals), not seeded mock notifications — same
+  // philosophy as HR's useHrNotifications. Employee only ever sees their
+  // own tickets change status; IT sees the queue plus its own approval
+  // requests to the Founder, either still pending or just decided.
+  const employeeNotifs = useEmployeeNotifications();
+  const itNotifs = useItNotifications();
+  const notifications = role === 'employee' ? employeeNotifs : itNotifs;
+  const unreadCount = notifications.filter((n) => n.unread).length;
+
+  function goToNotification(tab) {
+    setActiveTab(tab);
+    setShowNotifs(false);
   }
 
   function handleSignOut() {
@@ -252,20 +262,36 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
                 className="relative w-9 h-9 rounded-xl bg-muted backdrop-blur-md border border-border hover:bg-accent hover:border-muted-foreground/40 text-muted-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
               >
                 <Bell size={15} />
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full flex items-center justify-center border-2 border-background">
-                  {NOTIFICATIONS.length}
-                </span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full flex items-center justify-center border-2 border-background">
+                    {unreadCount}
+                  </span>
+                )}
               </button>
               {showNotifs && (
                 <div className="absolute top-full right-0 mt-2 w-[300px] bg-muted border border-border rounded-lg shadow-xl overflow-hidden z-30">
                   <div className="px-4 py-2.5 border-b border-border text-xs font-bold text-foreground">Notifications</div>
                   <div className="max-h-[300px] overflow-y-auto">
-                    {NOTIFICATIONS.map((n) => (
-                      <div key={n.id} className="p-3 border-b border-border last:border-0 hover:bg-accent">
-                        <div className="text-xs font-semibold text-foreground">{n.text}</div>
-                        <div className="text-[9px] text-muted-foreground mt-1">{n.time}</div>
-                      </div>
-                    ))}
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-[11px] text-muted-foreground">All caught up — nothing pending.</div>
+                    ) : (
+                      notifications.map((n) => (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => goToNotification(n.tab)}
+                          className="w-full text-left p-3 border-b border-border last:border-0 hover:bg-accent cursor-pointer"
+                        >
+                          <div className="flex items-start gap-2">
+                            {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1 shrink-0" />}
+                            <div className={n.unread ? '' : 'pl-3.5'}>
+                              <div className="text-xs font-semibold text-foreground">{n.text}</div>
+                              <div className="text-[9px] text-muted-foreground mt-1">{n.time}</div>
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
