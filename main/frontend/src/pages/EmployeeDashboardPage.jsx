@@ -5,7 +5,7 @@ import { useTaskProject } from '../context/TaskProjectContext';
 import ItDeskLayout from '../components/ItDeskLayout';
 import NewItTicketModal from '../components/NewItTicketModal';
 import NewHrTicketModal from '../components/NewHrTicketModal';
-import { issueTitle } from '../components/TicketsQueueView';
+import { issueTitle, ColorSelect } from '../components/TicketsQueueView';
 import DataTable from '../components/DataTable';
 import { Card, SectionHeader, StatCard, Badge, Drawer, RefreshBar } from '../components/ui';
 import { Plus, UserPlus, Search, X, Eye, Trash2, Clock, RotateCcw } from 'lucide-react';
@@ -176,12 +176,6 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
               render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '-'}</span>,
             },
             {
-              key: 'role',
-              label: 'Role',
-              width: '85px',
-              render: (t) => <span className="text-muted-foreground text-xs truncate block">{t.role || 'Employee'}</span>,
-            },
-            {
               key: 'title',
               label: 'Issue',
               width: '150px',
@@ -202,21 +196,17 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
               label: 'Employee Status',
               width: '125px',
               render: (t) => (
-                <select
+                <ColorSelect
                   value={t.employeeStatus || 'Active'}
-                  onChange={(e) => {
-                    onFieldChange && onFieldChange(t.id, 'employeeStatus', e.target.value);
-                    toast.success(`Employee Status updated to "${e.target.value}"`, {
+                  onChange={(v) => {
+                    onFieldChange && onFieldChange(t.id, 'employeeStatus', v);
+                    toast.success(`Employee Status updated to "${v}"`, {
                       description: `Reflected in IT Dashboard for ticket ${t.token || t.id}`,
                     });
                   }}
-                  aria-label={`Employee status for ticket ${t.token}`}
-                  className="w-full bg-primary/10 border border-primary/30 text-primary font-semibold rounded-lg px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-                >
-                  {['Active', 'Pending', 'Satisfied', 'Closed'].map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                  ariaLabel={`Employee status for ticket ${t.token}`}
+                  options={['Active', 'Pending', 'Satisfied', 'Closed']}
+                />
               ),
             },
             {
@@ -694,12 +684,6 @@ export default function EmployeeDashboardPage() {
                   render: (t) => <span className="text-muted-foreground font-mono text-[11px]">{t.vpnNo || '-'}</span>,
                 },
                 {
-                  key: 'role',
-                  label: 'Role',
-                  width: '85px',
-                  render: (t) => <span className="text-muted-foreground text-xs truncate block">{t.role || 'Employee'}</span>,
-                },
-                {
                   key: 'title',
                   label: 'Issue',
                   width: '150px',
@@ -720,19 +704,15 @@ export default function EmployeeDashboardPage() {
                   label: 'Employee Status',
                   width: '125px',
                   render: (t) => (
-                    <select
+                    <ColorSelect
                       value={t.employeeStatus || 'Active'}
-                      onChange={(e) => {
-                        updateTicketField(t.id, 'employeeStatus', e.target.value);
-                        toast.success(`Employee Status updated to "${e.target.value}"`);
+                      onChange={(v) => {
+                        updateTicketField(t.id, 'employeeStatus', v);
+                        toast.success(`Employee Status updated to "${v}"`);
                       }}
-                      aria-label={`Employee status for ticket ${t.token}`}
-                      className="w-full bg-primary/10 border border-primary/30 text-primary font-semibold rounded-lg px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-                    >
-                      {['Active', 'Pending', 'Satisfied', 'Closed'].map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
+                      ariaLabel={`Employee status for ticket ${t.token}`}
+                      options={['Active', 'Pending', 'Satisfied', 'Closed']}
+                    />
                   ),
                 },
                 {

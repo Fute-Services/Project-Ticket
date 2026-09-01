@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, SectionHeader } from './ui';
 import { getMyLeaveSummary, getMyPerformance } from '../utils/api';
+import { ColorSelect } from './TicketsQueueView';
 
 const CATEGORY_LABELS = {
   walkthrough: '3D Walkthrough',
@@ -55,34 +56,29 @@ export default function MyLeavePerformanceCard() {
             <div className="text-xs uppercase tracking-wide text-muted-foreground shrink-0">Leave</div>
             {leave !== null && (
               <div className="flex gap-1.5">
-                <select
-                  value={leavePeriod}
-                  onChange={(e) => setLeavePeriod(e.target.value)}
-                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
-                >
-                  <option value="Monthly">Monthly</option>
-                  <option value="Quarterly">Quarterly</option>
-                </select>
+                <div className="w-24">
+                  <ColorSelect
+                    value={leavePeriod}
+                    onChange={setLeavePeriod}
+                    options={['Monthly', 'Quarterly']}
+                  />
+                </div>
                 {leavePeriod === 'Monthly' ? (
-                  <select
-                    value={leaveMonth}
-                    onChange={(e) => setLeaveMonth(Number(e.target.value))}
-                    className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
-                  >
-                    {MONTH_NAMES.map((m, i) => (
-                      <option key={m} value={i}>{m}</option>
-                    ))}
-                  </select>
+                  <div className="w-20">
+                    <ColorSelect
+                      value={String(leaveMonth)}
+                      onChange={(v) => setLeaveMonth(Number(v))}
+                      options={MONTH_NAMES.map((m, i) => ({ value: String(i), label: m }))}
+                    />
+                  </div>
                 ) : (
-                  <select
-                    value={leaveQuarter}
-                    onChange={(e) => setLeaveQuarter(Number(e.target.value))}
-                    className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
-                  >
-                    {QUARTER_NAMES.map((q, i) => (
-                      <option key={q} value={i}>{q}</option>
-                    ))}
-                  </select>
+                  <div className="w-32">
+                    <ColorSelect
+                      value={String(leaveQuarter)}
+                      onChange={(v) => setLeaveQuarter(Number(v))}
+                      options={QUARTER_NAMES.map((q, i) => ({ value: String(i), label: q }))}
+                    />
+                  </div>
                 )}
               </div>
             )}

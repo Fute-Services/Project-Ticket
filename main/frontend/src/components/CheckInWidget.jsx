@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { attendanceApi } from '../utils/api';
+import { ColorSelect } from './TicketsQueueView';
 
 function initialsOf(name) {
   const parts = (name || '').trim().split(/\s+/).filter(Boolean);
@@ -126,14 +127,13 @@ export default function CheckInWidget() {
           <div className="text-xs text-muted-foreground mt-1 mb-2">
             {record?.checkOut && record.checkOut !== '-' ? `Checked out at ${record.checkOut}` : 'Not checked in yet'}
           </div>
-          <select
-            value={workMode}
-            onChange={(e) => setWorkMode(e.target.value)}
-            className="mb-2 w-full bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground cursor-pointer"
-          >
-            <option value="Office">Office</option>
-            <option value="WFH">Work From Home</option>
-          </select>
+          <div className="mb-2">
+            <ColorSelect
+              value={workMode}
+              onChange={setWorkMode}
+              options={[{ value: 'Office', label: 'Office' }, { value: 'WFH', label: 'Work From Home' }]}
+            />
+          </div>
           <button
             type="button"
             onClick={handleCheckIn}

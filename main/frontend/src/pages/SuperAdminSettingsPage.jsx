@@ -23,7 +23,8 @@ export default function SuperAdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingRules, setSavingRules] = useState(false);
-  const [newHoliday, setNewHoliday] = useState('');
+  const [newHolidayName, setNewHolidayName] = useState('');
+  const [newHolidayDate, setNewHolidayDate] = useState('');
 
   useEffect(() => {
     Promise.all([getSystemSettings(), getNotificationRules()])
@@ -62,9 +63,10 @@ export default function SuperAdminSettingsPage() {
   }
 
   function addHoliday() {
-    if (!newHoliday.trim()) return;
-    setSettings((s) => ({ ...s, holidays: [...(s.holidays || []), newHoliday.trim()] }));
-    setNewHoliday('');
+    if (!newHolidayDate || !newHolidayName.trim()) return;
+    setSettings((s) => ({ ...s, holidays: [...(s.holidays || []), { date: newHolidayDate, name: newHolidayName.trim() }] }));
+    setNewHolidayName('');
+    setNewHolidayDate('');
   }
 
   function removeHoliday(idx) {
@@ -114,12 +116,19 @@ export default function SuperAdminSettingsPage() {
               <SectionHeader title="Company holidays" subtitle={`${(settings.holidays || []).length} configured`} />
               <div className="flex items-center gap-2 mb-3">
                 <input
+                  type="text"
+                  placeholder="Holiday name (e.g. Diwali)"
+                  className={inputClass}
+                  value={newHolidayName}
+                  onChange={(e) => setNewHolidayName(e.target.value)}
+                />
+                <input
                   type="date"
                   className={inputClass}
-                  value={newHoliday}
-                  onChange={(e) => setNewHoliday(e.target.value)}
+                  value={newHolidayDate}
+                  onChange={(e) => setNewHolidayDate(e.target.value)}
                 />
-                <button type="button" onClick={addHoliday} className="px-3 py-2 rounded-lg text-xs font-semibold bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center gap-1.5">
+                <button type="button" onClick={addHoliday} className="px-3 py-2 rounded-lg text-xs font-semibold bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center gap-1.5 shrink-0">
                   <Plus size={13} />
                   Add
                 </button>
@@ -128,14 +137,18 @@ export default function SuperAdminSettingsPage() {
                 <p className="text-xs text-muted-foreground py-2">No holidays added yet.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {settings.holidays.map((h, idx) => (
-                    <span key={h + idx} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-muted border border-border text-foreground">
-                      {h}
-                      <button type="button" onClick={() => removeHoliday(idx)} className="text-muted-foreground hover:text-destructive cursor-pointer">
-                        <X size={12} />
-                      </button>
-                    </span>
-                  ))}
+                  {[...settings.holidays]
+                    .map((h, idx) => ({ ...(typeof h === 'string' ? { date: h, name: h } : h), idx }))
+                    .sort((a, b) => a.date.localeCompare(b.date))
+                    .map((h) => (
+                      <span key={h.idx} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-muted border border-border text-foreground">
+                        {h.name}
+                        <span className="text-muted-foreground font-normal">· {h.date}</span>
+                        <button type="button" onClick={() => removeHoliday(h.idx)} className="text-muted-foreground hover:text-destructive cursor-pointer">
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
                 </div>
               )}
             </Card>

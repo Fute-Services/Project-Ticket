@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, UserPlus, ArrowRight, CheckCircle2, ShieldAlert, Link2, FileText, AlertCircle } from 'lucide-react';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
 import { useAuth } from '../context/AuthContext';
+import { ColorSelect } from './TicketsQueueView';
 
 export const HR_TICKET_CATEGORIES = {
   'Payroll & Salary': [
@@ -189,34 +190,22 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                 <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
                   HR Issue Category
                 </label>
-                <select
+                <ColorSelect
                   value={category}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full h-10 bg-background border border-border rounded-xl px-3 text-xs text-foreground font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  {Object.keys(HR_TICKET_CATEGORIES).map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+                  onChange={handleCategoryChange}
+                  options={Object.keys(HR_TICKET_CATEGORIES)}
+                />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
                   Subcategory
                 </label>
-                <select
+                <ColorSelect
                   value={subcategory}
-                  onChange={(e) => setSubcategory(e.target.value)}
-                  className="w-full h-10 bg-background border border-border rounded-xl px-3 text-xs text-foreground font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  {HR_TICKET_CATEGORIES[category]?.map((sub) => (
-                    <option key={sub} value={sub}>
-                      {sub}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSubcategory}
+                  options={HR_TICKET_CATEGORIES[category] || []}
+                />
               </div>
             </div>
 

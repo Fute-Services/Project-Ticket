@@ -5,6 +5,7 @@ import { useRenders } from '../context/RenderContext';
 import ItDatePicker from './ItDatePicker';
 import DataTable from './DataTable';
 import { Card, SectionHeader, StatCard, Modal, Field, inputClass } from './ui';
+import { ColorSelect } from './TicketsQueueView';
 
 // Read-only for IT - Production owns adding jobs and marking them complete
 // (ProductionDashboardView), so this mirrors that same shared RenderContext
@@ -85,28 +86,20 @@ function AddRenderModal({ isOpen, onClose, onAdd }) {
             />
           </Field>
           <Field label="Initial Status">
-            <select
+            <ColorSelect
               value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-              className={inputClass}
-            >
-              {['Queue', 'Pending', 'On Hold', 'Completed'].map((st) => (
-                <option key={st} value={st}>{st}</option>
-              ))}
-            </select>
+              onChange={(v) => setForm((f) => ({ ...f, status: v }))}
+              options={['Queue', 'Pending', 'On Hold', 'Completed']}
+            />
           </Field>
         </div>
 
         <Field label="Assigned Artist / Engineer">
-          <select
+          <ColorSelect
             value={form.personName}
-            onChange={(e) => setForm((f) => ({ ...f, personName: e.target.value }))}
-            className={inputClass}
-          >
-            {['Sameer Kulkarni', 'Priya Nair', 'John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'Robert Brown', 'Unassigned'].map((emp) => (
-              <option key={emp} value={emp}>{emp}</option>
-            ))}
-          </select>
+            onChange={(v) => setForm((f) => ({ ...f, personName: v }))}
+            options={['Sameer Kulkarni', 'Priya Nair', 'John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'Robert Brown', 'Unassigned']}
+          />
         </Field>
 
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-2">
@@ -262,16 +255,12 @@ export default function RenderingStatusView() {
               label: 'Assigned To',
               width: '160px',
               render: (r) => (
-                <select
+                <ColorSelect
                   value={r.personName || 'Unassigned'}
-                  onChange={(e) => updateRenderField && updateRenderField(r.id, 'personName', e.target.value)}
-                  aria-label={`Assigned employee for render job ${r.id}`}
-                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-                >
-                  {['Kapil Chauhan', 'Tilottama Paramanik', 'Vipin', 'Himanshu', 'Kanhu', 'Sonali Das', 'Debashish Das', 'Unassigned'].map((emp) => (
-                    <option key={emp} value={emp}>{emp}</option>
-                  ))}
-                </select>
+                  onChange={(v) => updateRenderField && updateRenderField(r.id, 'personName', v)}
+                  ariaLabel={`Assigned employee for render job ${r.id}`}
+                  options={['Kapil Chauhan', 'Tilottama Paramanik', 'Vipin', 'Himanshu', 'Kanhu', 'Sonali Das', 'Debashish Das', 'Unassigned']}
+                />
               ),
             },
             {
@@ -293,16 +282,12 @@ export default function RenderingStatusView() {
               label: 'Status',
               width: '140px',
               render: (r) => (
-                <select
+                <ColorSelect
                   value={r.status || 'Queue'}
-                  onChange={(e) => updateRenderField && updateRenderField(r.id, 'status', e.target.value)}
-                  aria-label={`Status for render job ${r.id}`}
-                  className="bg-muted border border-border rounded-lg px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-                >
-                  {['Completed', 'Pending', 'On Hold', 'Queue'].map((st) => (
-                    <option key={st} value={st}>{st}</option>
-                  ))}
-                </select>
+                  onChange={(v) => updateRenderField && updateRenderField(r.id, 'status', v)}
+                  ariaLabel={`Status for render job ${r.id}`}
+                  options={['Completed', 'Pending', 'On Hold', 'Queue']}
+                />
               ),
             },
           ]}
