@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTickets } from '../context/TicketContext';
 import { useRenders, frameCount } from '../context/RenderContext';
 import { Card, SectionHeader, StatCard, Modal, Field, inputClass } from './ui';
+import { ColorSelect } from './TicketsQueueView';
 import DataTable from './DataTable';
 
 const SEQUENCE_TYPES = ['Steel', 'Animal', '360'];
@@ -118,11 +119,11 @@ export default function ProductionDashboardView() {
             />
           </Field>
           <Field label="Sequence Type">
-            <select value={form.sequenceType} onChange={(e) => setForm((f) => ({ ...f, sequenceType: e.target.value }))} className={inputClass}>
-              {SEQUENCE_TYPES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <ColorSelect
+              value={form.sequenceType}
+              onChange={(v) => setForm((f) => ({ ...f, sequenceType: v }))}
+              options={SEQUENCE_TYPES}
+            />
           </Field>
           <Field label="Frame No" hint="e.g. 100-300">
             <input

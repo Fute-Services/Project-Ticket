@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, CalendarDays, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
+import { ColorSelect } from './TicketsQueueView';
 
 const LEAVE_TYPES = ['Sick Leave', 'Casual Leave', 'Earned Leave', 'Unpaid Leave'];
 
@@ -87,15 +88,7 @@ export default function NewLeaveModal({ isOpen, onClose, onSubmitSuccess }) {
           <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1">Leave Type</label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {LEAVE_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+              <ColorSelect value={type} onChange={setType} options={LEAVE_TYPES} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

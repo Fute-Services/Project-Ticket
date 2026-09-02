@@ -5,7 +5,7 @@ import ItDatePicker from './ItDatePicker';
 import { Card, SectionHeader } from './ui';
 import { DateField } from './ui/date-field';
 import { Search, X } from 'lucide-react';
-import AppleSelect from './AppleSelect';
+import { ColorSelect } from './TicketsQueueView';
 
 const APPROVAL_CATEGORIES_BY_SOURCE = {
   IT: ['General', 'Software', 'Hardware', 'System Access', 'Data Transfer'],
@@ -149,7 +149,7 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
             {/* 3. Department */}
             <div className="flex flex-col gap-1">
               <FieldLabel n={3} text="Department" />
-              <AppleSelect
+              <ColorSelect
                 value={form.department || defaultDepartment}
                 onChange={(val) => setForm((f) => ({ ...f, department: val }))}
                 options={departmentOptions}
@@ -193,7 +193,7 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
             {/* 7. Category */}
             <div className="flex flex-col gap-1">
               <FieldLabel n={7} text="Category" />
-              <AppleSelect
+              <ColorSelect
                 value={form.category}
                 onChange={(val) => setForm((f) => ({ ...f, category: val }))}
                 options={approvalCategories}
@@ -204,7 +204,7 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
             {/* 8. Priority */}
             <div className="flex flex-col gap-1">
               <FieldLabel n={8} text="Priority" />
-              <AppleSelect
+              <ColorSelect
                 value={form.priority}
                 onChange={(val) => setForm((f) => ({ ...f, priority: val }))}
                 options={[
@@ -280,46 +280,50 @@ export default function ApprovalCenterView({ source = 'IT', defaultDepartment = 
 
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Filter</span>
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              aria-label="Sort order"
-              className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-            >
-              <option value="newest">Datewise: Newest first</option>
-              <option value="oldest">Datewise: Oldest first</option>
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              aria-label="Status filter"
-              className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-            >
-              <option value="All">All statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Resolved">Resolved</option>
-            </select>
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              aria-label="Priority filter"
-              className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-            >
-              <option value="All">All priorities</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              aria-label="Category filter"
-              className="bg-muted border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-            >
-              {categories.map((c) => (
-                <option key={c} value={c}>{c === 'All' ? 'All categories' : c}</option>
-              ))}
-            </select>
+            <div className="w-44">
+              <ColorSelect
+                value={sortOrder}
+                onChange={setSortOrder}
+                ariaLabel="Sort order"
+                options={[
+                  { value: 'newest', label: 'Datewise: Newest first' },
+                  { value: 'oldest', label: 'Datewise: Oldest first' },
+                ]}
+              />
+            </div>
+            <div className="w-32">
+              <ColorSelect
+                value={statusFilter}
+                onChange={setStatusFilter}
+                ariaLabel="Status filter"
+                options={[
+                  { value: 'All', label: 'All statuses' },
+                  { value: 'Pending', label: 'Pending' },
+                  { value: 'Resolved', label: 'Resolved' },
+                ]}
+              />
+            </div>
+            <div className="w-32">
+              <ColorSelect
+                value={priorityFilter}
+                onChange={setPriorityFilter}
+                ariaLabel="Priority filter"
+                options={[
+                  { value: 'All', label: 'All priorities' },
+                  { value: 'High', label: 'High' },
+                  { value: 'Medium', label: 'Medium' },
+                  { value: 'Low', label: 'Low' },
+                ]}
+              />
+            </div>
+            <div className="w-36">
+              <ColorSelect
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                ariaLabel="Category filter"
+                options={categories.map((c) => ({ value: c, label: c === 'All' ? 'All categories' : c }))}
+              />
+            </div>
           </div>
         </div>
 

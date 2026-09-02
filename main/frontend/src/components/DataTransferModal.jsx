@@ -1,7 +1,7 @@
 import React, { useId, useState } from 'react';
 import { X, Server, Folder, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
-import AppleSelect from './AppleSelect';
+import { ColorSelect } from './TicketsQueueView';
 
 // Server 100 and 121 carry a named approver instead of the standard queue -
 // see the routing rules in DashboardPage's handleNewDataRequest.
@@ -120,7 +120,7 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
                 <label htmlFor={ids.source} className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                   Source Server
                 </label>
-                <AppleSelect
+                <ColorSelect
                   value={sourceServer}
                   onChange={(val) => setSourceServer(val)}
                   options={SERVERS}
@@ -132,7 +132,7 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
                 <label htmlFor={ids.dest} className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                   Destination Server
                 </label>
-                <AppleSelect
+                <ColorSelect
                   value={destServer}
                   onChange={(val) => setDestServer(val)}
                   options={SERVERS}
@@ -238,7 +238,7 @@ export default function DataTransferModal({ isOpen, onClose, onSubmitSuccess }) 
                 <label htmlFor={ids.priority} className="text-xs font-semibold text-muted-foreground block mb-1">
                   Priority
                 </label>
-                <AppleSelect
+                <ColorSelect
                   value={priority}
                   onChange={(val) => setPriority(val)}
                   options={PRIORITIES}

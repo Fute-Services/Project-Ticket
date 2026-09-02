@@ -4,6 +4,7 @@ import { Pencil, Trash2, PhoneCall } from 'lucide-react';
 import { Badge, Modal, Field, inputClass } from '../ui';
 import { salesLeadsApi } from '../../utils/api';
 import { useSalesDesk } from '../../context/SalesDeskContext';
+import { ColorSelect } from '../TicketsQueueView';
 
 export const STATUS_VALUES = [
   'Yet to be Called', 'Contacted', 'Did Not Pick', 'Invalid', 'Not Interested',
@@ -166,9 +167,11 @@ export default function LeadProfileModal({ lead, onClose }) {
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
               <div className="flex-1">
                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Log a call</div>
-                <select value={callOutcome} onChange={(e) => setCallOutcome(e.target.value)} className={inputClass}>
-                  {STATUS_VALUES.filter((s) => s !== 'Yet to be Called').map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <ColorSelect
+                  value={callOutcome}
+                  onChange={setCallOutcome}
+                  options={STATUS_VALUES.filter((s) => s !== 'Yet to be Called')}
+                />
               </div>
               <div className="flex-[2]">
                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Comment (optional)</div>
@@ -199,14 +202,10 @@ export default function LeadProfileModal({ lead, onClose }) {
               </Field>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="Status">
-                  <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className={inputClass}>
-                    {STATUS_VALUES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  <ColorSelect value={form.status} onChange={(v) => setForm((f) => ({ ...f, status: v }))} options={STATUS_VALUES} />
                 </Field>
                 <Field label="Priority">
-                  <select value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))} className={inputClass}>
-                    {PRIORITY_VALUES.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
+                  <ColorSelect value={form.priority} onChange={(v) => setForm((f) => ({ ...f, priority: v }))} options={PRIORITY_VALUES} />
                 </Field>
                 <Field label="Deal Value (₹)"><input type="number" min="0" value={form.dealValue} onChange={(e) => setForm((f) => ({ ...f, dealValue: e.target.value }))} className={inputClass} /></Field>
                 <Field label="Source">
@@ -222,10 +221,11 @@ export default function LeadProfileModal({ lead, onClose }) {
                 <Field label="Meeting Date"><input type="date" value={form.meetingDate} onChange={(e) => setForm((f) => ({ ...f, meetingDate: e.target.value }))} className={inputClass} /></Field>
                 {form.status === 'Lost' && (
                   <Field label="Lost Reason">
-                    <select value={form.lostReason} onChange={(e) => setForm((f) => ({ ...f, lostReason: e.target.value }))} className={inputClass}>
-                      <option value="">Select a reason</option>
-                      {LOST_REASON_VALUES.map((r) => <option key={r} value={r}>{r}</option>)}
-                    </select>
+                    <ColorSelect
+                      value={form.lostReason || '__none__'}
+                      onChange={(v) => setForm((f) => ({ ...f, lostReason: v === '__none__' ? '' : v }))}
+                      options={[{ value: '__none__', label: 'Select a reason' }, ...LOST_REASON_VALUES.map((r) => ({ value: r, label: r }))]}
+                    />
                   </Field>
                 )}
               </div>

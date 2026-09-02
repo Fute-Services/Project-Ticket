@@ -13,6 +13,7 @@ import { CANDIDATE_STAGES, RESUME_SOURCES, REJECTION_REASONS } from '../../data/
 import { candidatesApi } from '../../utils/api';
 import { useHrDesk } from '../../context/HrDeskContext';
 import { useAuth } from '../../context/AuthContext';
+import { ColorSelect } from '../../components/TicketsQueueView';
 
 const REJECTABLE_STAGES = ['Rejected', 'Offer Declined'];
 
@@ -270,17 +271,14 @@ export default function Candidates() {
                 className="w-full bg-muted border border-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
-            <select
-              aria-label="Filter candidates by source"
-              value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
-              className="bg-muted border border-border rounded-xl px-3 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-            >
-              <option value="All">All sources</option>
-              {RESUME_SOURCES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <div className="w-44">
+              <ColorSelect
+                ariaLabel="Filter candidates by source"
+                value={sourceFilter}
+                onChange={setSourceFilter}
+                options={[{ value: 'All', label: 'All sources' }, ...RESUME_SOURCES.map((s) => ({ value: s, label: s }))]}
+              />
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2 mb-5">
@@ -382,15 +380,11 @@ export default function Candidates() {
             <div className="grid grid-cols-2 gap-3 max-w-xl">
               <div>
                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">Move Stage</div>
-                <select
+                <ColorSelect
                   value={selected.stage}
-                  onChange={(e) => updateStage(selected.id, e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-                >
-                  {CANDIDATE_STAGES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                  onChange={(v) => updateStage(selected.id, v)}
+                  options={CANDIDATE_STAGES}
+                />
               </div>
               {REJECTABLE_STAGES.includes(selected.stage) ? (
                 <div>

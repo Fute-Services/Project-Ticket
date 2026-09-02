@@ -6,6 +6,7 @@ import LeadProfileModal, { STATUS_VALUES, PRIORITY_VALUES } from '../../componen
 import { Card, SectionHeader, Badge, Pill, Modal, Field, inputClass, EmptyState } from '../../components/ui';
 import { salesLeadsApi } from '../../utils/api';
 import { useSalesDesk } from '../../context/SalesDeskContext';
+import { ColorSelect } from '../../components/TicketsQueueView';
 
 const EMPTY_ADD_FORM = { companyName: '', contactName: '', designation: '', mobile: '', email: '', city: '', assignedTo: '' };
 
@@ -117,14 +118,13 @@ export default function SalesDirectory() {
                 className="w-full bg-muted border border-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
-            <select
-              value={repFilter}
-              onChange={(e) => setRepFilter(e.target.value)}
-              className="bg-muted border border-border rounded-xl px-3 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-            >
-              <option value="All">All reps</option>
-              {reps.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <div className="w-36">
+              <ColorSelect
+                value={repFilter}
+                onChange={setRepFilter}
+                options={[{ value: 'All', label: 'All reps' }, ...reps.map((r) => ({ value: r, label: r }))]}
+              />
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2 mb-3">

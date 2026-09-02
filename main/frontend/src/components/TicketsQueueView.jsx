@@ -120,6 +120,14 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
   const [searchQuery, setSearchQuery] = useState('');
   const [detailsTicket, setDetailsTicket] = useState(null);
 
+  const statusCounts = useMemo(() => {
+    const counts = { All: tickets.filter((t) => !HISTORY_STATUSES.includes(t.status)).length };
+    TICKET_STATUSES.forEach((s) => {
+      counts[s] = tickets.filter((t) => t.status === s).length;
+    });
+    return counts;
+  }, [tickets]);
+
   const visible = useMemo(() => {
     return tickets
       .filter((t) => (filter === 'All' ? !HISTORY_STATUSES.includes(t.status) : t.status === filter))
@@ -186,13 +194,20 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                 key={s}
                 type="button"
                 onClick={() => setFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                   filter === s
                     ? 'bg-[#180D0F] text-white shadow-md border border-white/15 font-bold'
                     : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
                 }`}
               >
                 {s}
+                <span
+                  className={`min-w-[18px] px-1 rounded-full text-[10px] leading-[18px] text-center font-bold ${
+                    filter === s ? 'bg-white/20 text-white' : 'bg-black/10 text-muted-foreground'
+                  }`}
+                >
+                  {statusCounts[s] ?? 0}
+                </span>
               </button>
             ))}
           </div>
@@ -250,12 +265,6 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                   },
                 ]
               : []),
-            {
-              key: 'role',
-              label: 'Role',
-              width: '85px',
-              render: (t) => <span className="text-muted-foreground text-xs truncate block">{t.role || 'Employee'}</span>,
-            },
             {
               key: 'title',
               label: 'Issue',

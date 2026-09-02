@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Search, Mail, Phone, Calendar, Landmark, Plus, Pencil, Trash2, Upload, FileText, Receipt } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
-import { Card, SectionHeader, Badge, Pill, EmptyState, Modal, Field, inputClass } from '../../components/ui';
+import { Card, SectionHeader, Badge, EmptyState, Modal, Field, inputClass } from '../../components/ui';
 import { bankDetails } from '../../data/hrMockData';
 import { employeesApi, performanceApi, leaveEntriesApi } from '../../utils/api';
 import { useHrDesk } from '../../context/HrDeskContext';
 import { useApprovals } from '../../context/ApprovalContext';
+import { ColorSelect } from '../../components/TicketsQueueView';
 
 const EMPTY_FORM = {
   name: '', department: '', designation: '', email: '', phone: '', manager: '', status: 'Active', joiningDate: '',
@@ -505,10 +506,13 @@ export default function Directory() {
               />
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 mb-5">
-            {DEPARTMENTS.map((d) => (
-              <Pill key={d} active={dept === d} onClick={() => setDept(d)}>{d} ({countFor(d)})</Pill>
-            ))}
+          <div className="mb-5 max-w-xs">
+            <ColorSelect
+              value={dept}
+              onChange={setDept}
+              ariaLabel="Filter by department"
+              options={DEPARTMENTS.map((d) => ({ value: d, label: `${d} (${countFor(d)})` }))}
+            />
           </div>
 
           {filtered.length === 0 ? (

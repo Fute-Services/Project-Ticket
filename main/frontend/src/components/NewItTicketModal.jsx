@@ -3,6 +3,7 @@ import { X, Plus, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { TICKET_CATEGORIES, TICKET_PRIORITIES } from '../data/itMockData';
 import { useEscapeToClose, backdropProps } from '../hooks/useOverlayDismiss';
 import { useAuth } from '../context/AuthContext';
+import { ColorSelect } from './TicketsQueueView';
 
 export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   const { user } = useAuth();
@@ -108,33 +109,21 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
             {/* Category Select */}
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1">Category</label>
-              <select
+              <ColorSelect
                 value={category}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-                className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {Object.keys(TICKET_CATEGORIES).map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                onChange={handleCategoryChange}
+                options={Object.keys(TICKET_CATEGORIES)}
+              />
             </div>
 
             {/* Subcategory Select */}
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1">Subcategory</label>
-              <select
+              <ColorSelect
                 value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
-                className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {TICKET_CATEGORIES[category].map((sub) => (
-                  <option key={sub} value={sub}>
-                    {sub}
-                  </option>
-                ))}
-              </select>
+                onChange={setSubcategory}
+                options={TICKET_CATEGORIES[category]}
+              />
             </div>
 
             {/* Employee ID, Priority & Department */}
@@ -152,15 +141,11 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
 
               <div>
                 <label className="text-xs font-semibold text-muted-foreground block mb-1">Priority</label>
-                <select
+                <ColorSelect
                   value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  {TICKET_PRIORITIES.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
+                  onChange={setPriority}
+                  options={TICKET_PRIORITIES}
+                />
               </div>
 
               <div>

@@ -11,11 +11,18 @@ export default function HolidaysCard() {
 
   useEffect(() => {
     getSystemSettings()
-      .then(({ data }) => setHolidays([...(data.holidays || [])].sort()))
+      .then(({ data }) => {
+        // Older settings docs stored holidays as plain "YYYY-MM-DD" strings
+        // with no name - normalize those to { date, name: date } so this
+        // component (and any settings doc written before names existed)
+        // keeps working without a migration.
+        const normalized = (data.holidays || []).map((h) => (typeof h === 'string' ? { date: h, name: h } : h));
+        setHolidays(normalized.sort((a, b) => a.date.localeCompare(b.date)));
+      })
       .catch(() => setHolidays([]));
   }, []);
 
-  const upcoming = (holidays || []).filter((h) => h >= new Date().toISOString().slice(0, 10));
+  const upcoming = (holidays || []).filter((h) => h.date >= new Date().toISOString().slice(0, 10));
 
   return (
     <Card>
@@ -27,9 +34,10 @@ export default function HolidaysCard() {
       ) : (
         <div className="flex flex-wrap gap-2">
           {upcoming.map((h) => (
-            <span key={h} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-muted border border-border text-foreground">
+            <span key={h.date} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-muted border border-border text-foreground">
               <CalendarDays size={12} className="text-primary" />
-              {h}
+              {h.name}
+              <span className="text-muted-foreground font-normal">· {h.date}</span>
             </span>
           ))}
         </div>

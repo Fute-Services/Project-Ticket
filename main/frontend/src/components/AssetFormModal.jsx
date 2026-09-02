@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, Field, inputClass } from './ui';
 import { ASSET_TYPES, ASSET_STATUSES } from '../data/itMockData';
+import { ColorSelect } from './TicketsQueueView';
 
 const EMPTY_FORM = {
   id: '',
@@ -75,18 +76,10 @@ export default function AssetFormModal({ isOpen, onClose, onSubmit, initialAsset
             <input required value={form.id} onChange={(e) => setForm((f) => ({ ...f, id: e.target.value }))} className={inputClass} disabled={!!initialAsset} />
           </Field>
           <Field label="Type">
-            <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} className={inputClass}>
-              {ASSET_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+            <ColorSelect value={form.type} onChange={(v) => setForm((f) => ({ ...f, type: v }))} options={ASSET_TYPES} />
           </Field>
           <Field label="Status">
-            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className={inputClass}>
-              {ASSET_STATUSES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <ColorSelect value={form.status} onChange={(v) => setForm((f) => ({ ...f, status: v }))} options={ASSET_STATUSES} />
           </Field>
         </div>
 

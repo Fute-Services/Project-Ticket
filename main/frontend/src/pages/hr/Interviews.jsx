@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { CalendarDays, List, Plus, Video, MapPin } from 'lucide-react';
 import HrLayout from '../../components/hr/HrLayout';
 import { Card, SectionHeader, Badge, Pill, Modal, Field, inputClass, EmptyState } from '../../components/ui';
 import { INTERVIEW_TYPES, INTERVIEW_STATUSES } from '../../data/hrMockData';
 import { interviewsApi } from '../../utils/api';
 import { useHrDesk } from '../../context/HrDeskContext';
+import { ColorSelect } from '../../components/TicketsQueueView';
 
 const EMPTY_FORM = { candidateId: '', candidate: '', type: 'HR', interviewer: '', date: '', time: '', link: '', location: '', notes: '' };
 
@@ -36,6 +38,10 @@ export default function Interviews() {
 
   function submitSchedule(e) {
     e.preventDefault();
+    if (!form.candidateId) {
+      toast.error('Pick a candidate before scheduling');
+      return;
+    }
     interviewsApi.create({ status: 'Scheduled', ...form }).then(({ data }) => {
       setInterviews((rows) => [data, ...rows]);
     }).catch((err) => console.error('Failed to schedule interview:', err.message));
@@ -108,16 +114,12 @@ export default function Interviews() {
                         </span>
                       </td>
                       <td className="py-3.5 px-3">
-                        <select
-                          aria-label={`Change status for ${i.candidate} interview`}
+                        <ColorSelect
+                          ariaLabel={`Change status for ${i.candidate} interview`}
                           value={i.status}
-                          onChange={(e) => changeStatus(i.id, e.target.value)}
-                          className="bg-muted border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-                        >
-                          {INTERVIEW_STATUSES.map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </select>
+                          onChange={(v) => changeStatus(i.id, v)}
+                          options={INTERVIEW_STATUSES}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -150,29 +152,19 @@ export default function Interviews() {
       <Modal open={showSchedule} onClose={() => setShowSchedule(false)} title="Schedule Interview">
         <form onSubmit={submitSchedule} className="flex flex-col gap-3">
           <Field label="Candidate">
-            <select
-              required
-              value={form.candidateId}
-              onChange={(e) => {
-                const candidateId = e.target.value;
+            <ColorSelect
+              value={form.candidateId || '__none__'}
+              onChange={(v) => {
+                const candidateId = v === '__none__' ? '' : v;
                 const candidate = candidates.find((c) => c.id === candidateId)?.name || '';
                 setForm((f) => ({ ...f, candidateId, candidate }));
               }}
-              className={inputClass}
-            >
-              <option value="">Select candidate</option>
-              {candidates.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+              options={[{ value: '__none__', label: 'Select candidate' }, ...candidates.map((c) => ({ value: c.id, label: c.name }))]}
+            />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Type">
-              <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} className={inputClass}>
-                {INTERVIEW_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+              <ColorSelect value={form.type} onChange={(v) => setForm((f) => ({ ...f, type: v }))} options={INTERVIEW_TYPES} />
             </Field>
             <Field label="Interviewer">
               <input required value={form.interviewer} onChange={(e) => setForm((f) => ({ ...f, interviewer: e.target.value }))} className={inputClass} placeholder="Name" />
