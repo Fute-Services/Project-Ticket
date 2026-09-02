@@ -126,7 +126,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
         {/* Header */}
         <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-muted/40">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1B5136]/10 border border-[#1B5136]/20 flex items-center justify-center text-[#1B5136]">
+            <div className="w-10 h-10 rounded-xl bg-[#671421]/10 border border-[#671421]/20 flex items-center justify-center text-[#671421]">
               <UserPlus size={20} />
             </div>
             <div>
@@ -221,7 +221,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                     type="button"
                     onClick={() => setPriority(p.id)}
                     className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex flex-col items-center text-center transition-all cursor-pointer ${priority === p.id
-                        ? 'bg-[#1B5136] text-white border-[#0C3515] shadow-md shadow-black/10'
+                        ? 'bg-[#671421] text-white border-[#360C13] shadow-md shadow-black/10'
                         : 'bg-muted border-border text-muted-foreground hover:text-foreground'
                       }`}
                   >
@@ -317,7 +317,7 @@ export default function NewHrTicketModal({ isOpen, onClose, onSubmitSuccess }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-5 py-2 bg-[#1B5136] hover:bg-[#0C3515] text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md shadow-black/10 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-5 py-2 bg-[#671421] hover:bg-[#360C13] text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md shadow-black/10 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <span>{submitting ? 'Submitting…' : 'Submit HR Ticket'}</span>
                 <ArrowRight size={14} />

@@ -1,14 +1,13 @@
-/* Design tokens - green on off-white.
+/* Design tokens - cherry red on off-white.
    Edit here, not in component files.
 
-   The palette is a green ramp (from a reference brand image) over a light
-   neutral ground. Everything that used to carry its own hue (department
-   accents, chart series, status tints) now resolves to a shade of green or
-   neutral.
+   The palette is a cherry-red ramp over a light neutral ground. Department
+   accents, chart series, and status tints all resolve to a shade of cherry
+   red or neutral.
 
-   One exception, kept on purpose: `--destructive` stays red. Delete and
-   reject have to be visually distinct from approve and save, and green
-   can't carry that difference when green is also the primary action colour.
+   `--destructive` and `--primary` are now both red (destructive is the
+   brighter, more saturated end of the ramp) since the brand color itself is
+   red - delete/reject still reads slightly hotter than approve/save.
 
    Light-only: there is no dark theme, so these are the only values that
    exist - no `.dark` class or toggle needed, `<html>` carries no theme class
@@ -17,47 +16,47 @@
    like bg-primary/90 keep working. */
 
 :root {
-  --background: 138 28% 93%;
-  --foreground: 131 68% 5%;
+  --background: 350 28% 93%;
+  --foreground: 350 68% 5%;
 
-  --card: 138 35% 97%;
-  --card-foreground: 131 68% 5%;
+  --card: 350 35% 97%;
+  --card-foreground: 350 68% 5%;
 
-  --popover: 138 35% 97%;
-  --popover-foreground: 131 68% 5%;
+  --popover: 350 35% 97%;
+  --popover-foreground: 350 68% 5%;
 
-  --muted: 138 20% 88%;
-  --muted-foreground: 112 7% 40%;
+  --muted: 350 20% 88%;
+  --muted-foreground: 350 7% 40%;
 
-  --secondary: 138 20% 88%;
-  --secondary-foreground: 131 68% 5%;
+  --secondary: 350 20% 88%;
+  --secondary-foreground: 350 68% 5%;
 
-  --accent: 140 32% 90%;
-  --accent-foreground: 150 50% 21%;
+  --accent: 350 32% 90%;
+  --accent-foreground: 350 50% 21%;
 
-  --border: 138 18% 85%;
-  --input: 138 15% 82%;
-  --ring: 150 53% 29%;
+  --border: 350 18% 85%;
+  --input: 350 15% 82%;
+  --ring: 350 70% 32%;
 
-  --primary: 150 53% 29%;
+  --primary: 350 70% 32%;
   --primary-foreground: 0 0% 100%;
-  --primary-hover: 150 50% 21%;
+  --primary-hover: 350 68% 24%;
 
-  --success: 150 53% 29%;
+  --success: 350 53% 29%;
   --success-foreground: 0 0% 100%;
   --warning: 38 85% 48%;
-  --warning-foreground: 131 68% 5%;
+  --warning-foreground: 350 68% 5%;
   --destructive: 0 70% 50%;
   --destructive-foreground: 0 0% 100%;
-  --info: 151 25% 54%;
+  --info: 350 25% 54%;
   --info-foreground: 0 0% 100%;
 
-  --chart-1: 150 53% 29%;
-  --chart-2: 151 25% 54%;
-  --chart-3: 150 50% 21%;
-  --chart-4: 133 63% 13%;
-  --chart-5: 112 7% 40%;
-  --chart-6: 140 3% 81%;
+  --chart-1: 350 53% 29%;
+  --chart-2: 350 25% 54%;
+  --chart-3: 350 50% 21%;
+  --chart-4: 350 63% 13%;
+  --chart-5: 350 7% 40%;
+  --chart-6: 350 3% 81%;
 
   --radius: 16px;
   --radius-sm: 10px;
@@ -68,8 +67,8 @@
   --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", -apple-system, system-ui, sans-serif;
   --heading-weight: 600;
 
-  --shadow: 0 4px 16px -2px rgba(4, 21, 7, 0.05), 0 1px 3px rgba(4, 21, 7, 0.03);
-  --shadow-lg: 0 16px 40px -6px rgba(4, 21, 7, 0.08), 0 4px 16px -2px rgba(4, 21, 7, 0.04);
+  --shadow: 0 4px 16px -2px rgba(21, 4, 6, 0.05), 0 1px 3px rgba(21, 4, 6, 0.03);
+  --shadow-lg: 0 16px 40px -6px rgba(21, 4, 6, 0.08), 0 4px 16px -2px rgba(21, 4, 6, 0.04);
 
   --space-1: 4px;
   --space-2: 8px;

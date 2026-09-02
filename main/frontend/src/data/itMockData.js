@@ -33,10 +33,10 @@ export const TICKET_PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 // ── Tickets (shared between the IT Service Desk queue and the Employee
 // "My Tickets" view - both read/write the same list via TicketContext) ────
 export const TICKET_STATUS_COLOR = {
-  Open: 'bg-[#6CA78B]/15 text-[#1B5136] border-[#6CA78B]/40',
+  Open: 'bg-[#A76C76]/15 text-[#671421] border-[#A76C76]/40',
   'In Progress': 'bg-primary/10 text-primary border-primary/20',
-  'Waiting Approval': 'bg-[#6CA78B]/15 text-[#1B5136] border-[#6CA78B]/40',
-  Resolved: 'bg-[#0C3515]/10 text-[#0C3515] border-[#0C3515]/20',
+  'Waiting Approval': 'bg-[#A76C76]/15 text-[#671421] border-[#A76C76]/40',
+  Resolved: 'bg-[#360C13]/10 text-[#360C13] border-[#360C13]/20',
   Closed: 'bg-muted text-muted-foreground border-border',
 };
 

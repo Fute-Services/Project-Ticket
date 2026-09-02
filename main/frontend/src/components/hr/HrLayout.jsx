@@ -102,7 +102,7 @@ export default function HrLayout({ children }) {
   }, [navItems, location.pathname, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#090f0c] text-foreground flex font-sans selection:bg-primary/30 selection:text-primary p-2.5 lg:p-3 gap-3 overflow-x-hidden">
+    <div className="min-h-screen bg-[#0F090A] text-foreground flex font-sans selection:bg-primary/30 selection:text-primary p-2.5 lg:p-3 gap-3 overflow-x-hidden">
       {/* Sidebar - Fixed Height with Zero Scrollbar (Preserved) */}
       <aside
         className={`fixed lg:sticky top-3 left-3 lg:left-auto z-40 ${
@@ -141,7 +141,7 @@ export default function HrLayout({ children }) {
                       : 'text-white/70 hover:text-white hover:bg-white/[0.07] border border-transparent'
                   }`}
                 >
-                  <Icon size={15} className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-white/60'}`} />
+                  <Icon size={15} className={`shrink-0 ${isActive ? 'text-rose-500' : 'text-white/60'}`} />
                   <span className={`truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
                 </button>
               );
@@ -162,10 +162,10 @@ export default function HrLayout({ children }) {
             >
               <div className={`flex items-center min-w-0 ${collapsed ? 'lg:justify-center gap-2.5' : 'gap-2.5'}`}>
                 <div className="relative shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-xs text-emerald-300">
+                  <div className="w-8 h-8 rounded-full bg-rose-600/20 border border-rose-600/40 flex items-center justify-center font-bold text-xs text-rose-300">
                     {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'H'}
                   </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0c1611]" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-[#160C0E]" />
                 </div>
                 <div className={`min-w-0 flex-1 ${collapsed ? 'lg:hidden' : ''}`}>
                   <div className="text-xs font-semibold text-white truncate">{user?.full_name || 'HR Manager'}</div>
@@ -176,7 +176,7 @@ export default function HrLayout({ children }) {
             </button>
 
             {showProfileMenu && (
-              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-[#0e1a14]/95 backdrop-blur-xl border border-white/15 rounded-xl p-1.5 shadow-2xl z-50">
+              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-[#1A0E10]/95 backdrop-blur-xl border border-white/15 rounded-xl p-1.5 shadow-2xl z-50">
                 <button
                   type="button"
                   onClick={handleSignOut}
@@ -207,8 +207,8 @@ export default function HrLayout({ children }) {
         <div className="fixed inset-0 bg-background/80 z-30 lg:hidden" onClick={() => setMobileNavOpen(false)} />
       )}
       
-      <div className="flex-1 flex flex-col min-w-0 h-[calc(100vh-1.5rem)] bg-[#eaf3ec] rounded-[24px] lg:rounded-[28px] border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden">
-        <header className="h-14 border-b border-border/70 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#eaf3ec]/85 backdrop-blur-xl sticky top-0 z-20">
+      <div className="flex-1 flex flex-col min-w-0 h-[calc(100vh-1.5rem)] bg-[#f5e9ea] rounded-[24px] lg:rounded-[28px] border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden">
+        <header className="h-14 border-b border-border/70 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#f5e9ea]/85 backdrop-blur-xl sticky top-0 z-20">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               type="button"

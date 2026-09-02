@@ -85,7 +85,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
           <button
             type="button"
             onClick={onNewHrTicket}
-            className="bg-[#1B5136] hover:bg-[#0C3515] text-white font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-black/10 transition-all cursor-pointer"
+            className="bg-[#671421] hover:bg-[#360C13] text-white font-bold px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-black/10 transition-all cursor-pointer"
           >
             <UserPlus size={16} />
             <span>Raise HR Ticket</span>
@@ -669,7 +669,7 @@ export default function EmployeeDashboardPage() {
               <button
                 type="button"
                 onClick={() => setIsHrTicketModalOpen(true)}
-                className="bg-[#1B5136] hover:bg-[#0C3515] text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-black/10 transition-all cursor-pointer"
+                className="bg-[#671421] hover:bg-[#360C13] text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 shadow-md shadow-black/10 transition-all cursor-pointer"
               >
                 <UserPlus size={15} />
                 <span>Raise HR Ticket</span>

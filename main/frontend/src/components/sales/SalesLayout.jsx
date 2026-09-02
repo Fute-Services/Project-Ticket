@@ -46,7 +46,7 @@ export default function SalesLayout({ children }) {
   const badgeValues = { followUpCount };
 
   return (
-    <div className="min-h-screen bg-[#090f0c] text-foreground flex font-sans selection:bg-primary/30 selection:text-primary p-2.5 lg:p-3 gap-3 overflow-x-hidden">
+    <div className="min-h-screen bg-[#0F090A] text-foreground flex font-sans selection:bg-primary/30 selection:text-primary p-2.5 lg:p-3 gap-3 overflow-x-hidden">
       <aside
         className={`fixed lg:sticky top-3 left-3 lg:left-auto z-40 h-[calc(100vh-1.5rem)] sidebar-glass rounded-2xl flex flex-col justify-between shrink-0 p-3 overflow-hidden transition-all duration-300 shadow-2xl text-white ${
           collapsed ? 'lg:w-[76px]' : 'lg:w-[195px]'
@@ -58,7 +58,7 @@ export default function SalesLayout({ children }) {
               Sales Desk
             </div>
             {collapsed && (
-              <div className="hidden lg:block mx-auto font-bold text-sm text-emerald-400">
+              <div className="hidden lg:block mx-auto font-bold text-sm text-rose-500">
                 SD
               </div>
             )}
@@ -85,10 +85,10 @@ export default function SalesLayout({ children }) {
                       : 'text-white/70 hover:text-white hover:bg-white/[0.07] border border-transparent'
                   }`}
                 >
-                  <Icon size={15} className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-white/60'}`} />
+                  <Icon size={15} className={`shrink-0 ${isActive ? 'text-rose-500' : 'text-white/60'}`} />
                   <span className={`truncate flex-1 ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
                   {badgeValue > 0 && (
-                    <span className={`shrink-0 text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 bg-emerald-400 text-black shadow-[0_0_8px_rgba(52,211,153,0.5)] ${collapsed ? 'lg:hidden' : ''}`}>
+                    <span className={`shrink-0 text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 bg-rose-500 text-black shadow-[0_0_8px_rgba(244, 63, 94,0.5)] ${collapsed ? 'lg:hidden' : ''}`}>
                       {badgeValue}
                     </span>
                   )}
@@ -110,10 +110,10 @@ export default function SalesLayout({ children }) {
             >
               <div className={`flex items-center min-w-0 ${collapsed ? 'lg:justify-center gap-2.5' : 'gap-2.5'}`}>
                 <div className="relative shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-xs text-emerald-300">
+                  <div className="w-8 h-8 rounded-full bg-rose-600/20 border border-rose-600/40 flex items-center justify-center font-bold text-xs text-rose-300">
                     {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'S'}
                   </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0c1611]" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-[#160C0E]" />
                 </div>
                 <div className={`min-w-0 flex-1 ${collapsed ? 'lg:hidden' : ''}`}>
                   <div className="text-xs font-semibold text-white truncate">{user?.full_name || 'Sales'}</div>
@@ -123,7 +123,7 @@ export default function SalesLayout({ children }) {
               <ChevronDown size={14} className={`text-white/60 shrink-0 ${collapsed ? 'lg:hidden' : ''}`} />
             </button>
             {showProfileMenu && (
-              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-[#0e1a14]/95 backdrop-blur-xl border border-white/15 rounded-xl p-1.5 shadow-2xl z-50">
+              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-[#1A0E10]/95 backdrop-blur-xl border border-white/15 rounded-xl p-1.5 shadow-2xl z-50">
                 <button
                   type="button"
                   onClick={handleSignOut}
@@ -155,8 +155,8 @@ export default function SalesLayout({ children }) {
       )}
 
       {/* Main Workspace - Framed Rounded Tablet Canvas */}
-      <div className="flex-1 flex flex-col min-w-0 h-[calc(100vh-1.5rem)] bg-[#eaf3ec] rounded-[24px] lg:rounded-[28px] border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden">
-        <header className="h-14 border-b border-border/70 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#eaf3ec]/85 backdrop-blur-xl sticky top-0 z-20">
+      <div className="flex-1 flex flex-col min-w-0 h-[calc(100vh-1.5rem)] bg-[#f5e9ea] rounded-[24px] lg:rounded-[28px] border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden">
+        <header className="h-14 border-b border-border/70 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#f5e9ea]/85 backdrop-blur-xl sticky top-0 z-20">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               type="button"

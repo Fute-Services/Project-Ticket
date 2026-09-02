@@ -137,7 +137,7 @@ export default function FounderApprovalView() {
                   onClick={() => setItFilter(f)}
                   className={`px-3 py-1.5 rounded-lg capitalize transition-all cursor-pointer ${
                     itFilter === f
-                      ? 'bg-[#0d1811] text-white shadow-md border border-white/15 font-bold'
+                      ? 'bg-[#180D0F] text-white shadow-md border border-white/15 font-bold'
                       : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
                   }`}
                 >
@@ -283,7 +283,7 @@ export default function FounderApprovalView() {
                   onClick={() => setHrComplaintFilter(f)}
                   className={`px-3 py-1.5 rounded-lg capitalize transition-all cursor-pointer ${
                     hrComplaintFilter === f
-                      ? 'bg-[#0d1811] text-white shadow-md border border-white/15 font-bold'
+                      ? 'bg-[#180D0F] text-white shadow-md border border-white/15 font-bold'
                       : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
                   }`}
                 >
