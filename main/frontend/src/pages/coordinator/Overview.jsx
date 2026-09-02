@@ -104,11 +104,11 @@ export default function CoordinatorOverview() {
 
         {/* Key Stat Metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-          <StatCard icon={FolderKanban} label="Active Projects" value={activeProjects} accent="#6CA78B" />
-          <StatCard icon={ListChecks} label="Total Tasks" value={tasks.length} accent="#1B5136" />
-          <StatCard icon={Clock3} label="Pending" value={pending} accent="#616E5F" />
-          <StatCard icon={Loader2} label="In Progress" value={inProgress} accent="#23734B" />
-          <StatCard icon={CheckCircle2} label="Completed" value={completed} accent="#0C3515" />
+          <StatCard icon={FolderKanban} label="Active Projects" value={activeProjects} accent="#A76C76" />
+          <StatCard icon={ListChecks} label="Total Tasks" value={tasks.length} accent="#671421" />
+          <StatCard icon={Clock3} label="Pending" value={pending} accent="#6E5F61" />
+          <StatCard icon={Loader2} label="In Progress" value={inProgress} accent="#8B182C" />
+          <StatCard icon={CheckCircle2} label="Completed" value={completed} accent="#360C13" />
           <StatCard icon={AlertTriangle} label="Overdue" value={overdue} accent="#ef4444" />
         </div>
 

@@ -87,14 +87,14 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   4 Apple Color Themes (Emerald Mint, Ocean Sapphire, Amethyst Purple, Warm Amber)
+   4 Apple Color Themes (Cherry Red, Ocean Sapphire, Amethyst Purple, Warm Amber)
    ══════════════════════════════════════════════════════════════════════ */
 :root, [data-theme="emerald"] {
-  --theme-bg-canvas: #eaf3ec;
-  --theme-shell-bg: radial-gradient(circle at 50% 0%, #0d1a13 0%, #080f0c 60%, #040806 100%);
-  --theme-sidebar: linear-gradient(180deg, rgba(15, 26, 19, 0.82) 0%, rgba(8, 15, 11, 0.90) 100%);
-  --theme-glass: rgba(235, 246, 238, 0.84);
-  --theme-glass-card: rgba(242, 250, 244, 0.86);
+  --theme-bg-canvas: #f5e9ea;
+  --theme-shell-bg: radial-gradient(circle at 50% 0%, #1a0d0d 0%, #0f0808 60%, #060404 100%);
+  --theme-sidebar: linear-gradient(180deg, rgba(26, 15, 15, 0.82) 0%, rgba(15, 8, 8, 0.90) 100%);
+  --theme-glass: rgba(246, 235, 236, 0.84);
+  --theme-glass-card: rgba(250, 242, 243, 0.86);
 }
 
 [data-theme="ocean"] {
@@ -161,51 +161,51 @@
 
   /* Ambient dark shell background */
   .bg-dashboard-shell {
-    background: var(--theme-shell-bg, radial-gradient(circle at 50% 0%, #0d1a13 0%, #080f0c 60%, #040806 100%));
+    background: var(--theme-shell-bg, radial-gradient(circle at 50% 0%, #1a0d0d 0%, #0f0808 60%, #060404 100%));
   }
 
   /* Rounded dashboard card canvas */
   .dashboard-canvas {
-    background-color: var(--theme-bg-canvas, #eaf3ec);
+    background-color: var(--theme-bg-canvas, #f5e9ea);
     border-radius: 28px;
     box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
   }
 
   /* Sleek dark highlight widget matching reference */
   .widget-dark-card {
-    background: linear-gradient(145deg, #0f1c15 0%, #08110c 100%);
-    border: 1px solid rgba(40, 199, 111, 0.18);
+    background: linear-gradient(145deg, #1c0f11 0%, #110808 100%);
+    border: 1px solid rgba(199, 40, 70, 0.18);
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35);
   }
 
   /* Dark Glassmorphism Sidebar matching reference */
   .sidebar-glass {
-    background: var(--theme-sidebar, linear-gradient(180deg, rgba(15, 26, 19, 0.82) 0%, rgba(8, 15, 11, 0.90) 100%));
+    background: var(--theme-sidebar, linear-gradient(180deg, rgba(26, 15, 15, 0.82) 0%, rgba(15, 8, 8, 0.90) 100%));
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.09);
     box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
   }
 
-  /* Apple-style Light Green Glassmorphism Popover & Cards */
+  /* Apple-style Light Cherry Red Glassmorphism Popover & Cards */
   .apple-glass {
-    background: var(--theme-glass, rgba(235, 246, 238, 0.84));
+    background: var(--theme-glass, rgba(246, 235, 236, 0.84));
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.85);
-    box-shadow: 0 16px 40px -10px rgba(10, 30, 15, 0.1), 0 4px 12px 0 rgba(10, 30, 15, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    box-shadow: 0 16px 40px -10px rgba(30, 10, 15, 0.1), 0 4px 12px 0 rgba(30, 10, 15, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.95);
   }
 
   .apple-glass-card {
-    background: var(--theme-glass-card, rgba(242, 250, 244, 0.86));
+    background: var(--theme-glass-card, rgba(250, 242, 243, 0.86));
     backdrop-filter: blur(20px) saturate(170%);
     -webkit-backdrop-filter: blur(20px) saturate(170%);
     border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 8px 30px -4px rgba(10, 30, 15, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    box-shadow: 0 8px 30px -4px rgba(30, 10, 15, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.95);
   }
 
   .apple-glass-dark {
-    background: rgba(12, 22, 16, 0.85);
+    background: rgba(22, 12, 13, 0.85);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -290,7 +290,7 @@
     max-width: 220px;
     margin-inline: auto;
     height: fit-content;
-    background-color: #0c3515;
+    background-color: #360c13;
     border-radius: 40px;
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.25);
     justify-content: space-between;
@@ -310,7 +310,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    border: 3px solid #0c3515;
+    border: 3px solid #360c13;
     flex-shrink: 0;
     position: relative;
   }
@@ -394,7 +394,7 @@
     border-color: hsl(var(--primary) / 0.5);
     outline: 2px solid hsl(var(--primary) / 0.15);
     outline-offset: 0px;
-    box-shadow: 0 4px 12px -2px rgba(10, 30, 15, 0.08);
+    box-shadow: 0 4px 12px -2px rgba(30, 10, 15, 0.08);
   }
   textarea.input {
     min-height: 90px;

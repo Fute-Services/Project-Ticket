@@ -102,12 +102,12 @@ export default function AppleSelect({
                 onClick={() => handleSelect(opt.value)}
                 className={`w-full px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-between gap-2 text-left transition-all duration-150 cursor-pointer ${
                   isSelected
-                    ? 'bg-[#0d1811] text-white font-bold shadow-md border border-white/15'
+                    ? 'bg-[#180D0F] text-white font-bold shadow-md border border-white/15'
                     : 'text-foreground hover:bg-black/5 hover:text-foreground active:scale-[0.99]'
                 }`}
               >
                 <span className="truncate">{opt.label}</span>
-                {isSelected && <Check size={14} className="text-emerald-400 shrink-0" />}
+                {isSelected && <Check size={14} className="text-rose-500 shrink-0" />}
               </button>
             );
           })}

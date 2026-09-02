@@ -253,7 +253,7 @@ export default function AssetsView() {
 
                 if (status === 'pending_founder' || status === 'pending') {
                   return (
-                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold bg-[#6CA78B]/15 text-[#1B5136] border-[#6CA78B]/40 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold bg-[#A76C76]/15 text-[#671421] border-[#A76C76]/40 whitespace-nowrap">
                       <Clock size={12} /> Pending Approval
                     </span>
                   );

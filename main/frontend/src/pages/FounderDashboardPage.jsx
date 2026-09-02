@@ -170,7 +170,7 @@ export default function FounderDashboardPage() {
       label: 'AI Agent Command Room',
       shortLabel: 'AI Agents',
       icon: Sparkles,
-      gradient: 'from-primary via-primary-hover to-[#0C3515]',
+      gradient: 'from-primary via-primary-hover to-[#360C13]',
       welcomeMsg: 'Ask AI Agents to collaborate and report the status of all departments.',
       tagColor: 'text-primary border-primary/20 bg-primary/10',
     },
@@ -254,7 +254,7 @@ export default function FounderDashboardPage() {
   const salesActiveReps = new Set(salesLeads.map((l) => l.assignedTo).filter(Boolean)).size;
 
   return (
-    <div className="min-h-screen bg-[#090f0c] text-foreground flex font-sans selection:bg-primary/30 selection:text-primary p-2.5 lg:p-3 gap-3 overflow-x-hidden">
+    <div className="min-h-screen bg-[#0F090A] text-foreground flex font-sans selection:bg-primary/30 selection:text-primary p-2.5 lg:p-3 gap-3 overflow-x-hidden">
       {/* Sidebar - same fixed-height, collapsible, mobile-drawer pattern as
           every other dashboard (HrLayout, CoordinatorLayout, ItDeskLayout). */}
       <aside
@@ -292,7 +292,7 @@ export default function FounderDashboardPage() {
                       : 'text-white/70 hover:text-white hover:bg-white/[0.07] border border-transparent'
                   }`}
                 >
-                  <Icon size={14} className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-white/60'}`} />
+                  <Icon size={14} className={`shrink-0 ${isActive ? 'text-rose-500' : 'text-white/60'}`} />
                   <span className={`truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.shortLabel}</span>
                 </button>
               );
@@ -307,9 +307,9 @@ export default function FounderDashboardPage() {
             onClick={() => goToDept('ai-agents')}
             title={collapsed ? 'Fute AI+' : undefined}
             aria-current={activeDept === 'ai-agents' ? 'page' : undefined}
-            className={`mx-1 flex items-center py-2 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-950/40 ${
+            className={`mx-1 flex items-center py-2 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer bg-gradient-to-r from-rose-600 via-rose-600 to-rose-400 text-white shadow-lg shadow-rose-950/40 ${
               collapsed ? 'lg:justify-center lg:px-0 gap-2.5 px-2.5' : 'gap-2.5 px-2.5'
-            } ${activeDept === 'ai-agents' ? 'ring-2 ring-emerald-400' : ''}`}
+            } ${activeDept === 'ai-agents' ? 'ring-2 ring-rose-500' : ''}`}
           >
             <Sparkles size={14} className="shrink-0" />
             <span className={`truncate ${collapsed ? 'lg:hidden' : ''}`}>Fute AI+</span>
@@ -326,10 +326,10 @@ export default function FounderDashboardPage() {
             >
               <div className={`flex items-center min-w-0 ${collapsed ? 'lg:justify-center gap-2.5' : 'gap-2.5'}`}>
                 <div className="relative shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-xs text-emerald-300">
+                  <div className="w-8 h-8 rounded-full bg-rose-600/20 border border-rose-600/40 flex items-center justify-center font-bold text-xs text-rose-300">
                     {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'F'}
                   </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0c1611]" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-[#160C0E]" />
                 </div>
                 <div className={`min-w-0 flex-1 ${collapsed ? 'lg:hidden' : ''}`}>
                   <div className="text-xs font-semibold text-white truncate">{user?.full_name || 'Founder'}</div>
@@ -340,7 +340,7 @@ export default function FounderDashboardPage() {
             </button>
 
             {showProfileMenu && (
-              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-[#0e1a14]/95 backdrop-blur-xl border border-white/15 rounded-xl p-1.5 shadow-2xl z-50">
+              <div className="absolute bottom-full left-0 min-w-[135px] mb-2 bg-[#1A0E10]/95 backdrop-blur-xl border border-white/15 rounded-xl p-1.5 shadow-2xl z-50">
                 <button
                   type="button"
                   onClick={handleSignOut}
@@ -372,9 +372,9 @@ export default function FounderDashboardPage() {
       )}
 
       {/* Main Workspace Column - Framed Rounded Tablet Canvas */}
-      <div className="flex-1 flex flex-col min-w-0 h-[calc(100vh-1.5rem)] bg-[#eaf3ec] rounded-[24px] lg:rounded-[28px] border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-[calc(100vh-1.5rem)] bg-[#f5e9ea] rounded-[24px] lg:rounded-[28px] border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] overflow-hidden">
         {/* Top Bar inside rounded canvas */}
-        <header className="h-14 border-b border-border/70 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#eaf3ec]/85 backdrop-blur-xl sticky top-0 z-30">
+        <header className="h-14 border-b border-border/70 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#f5e9ea]/85 backdrop-blur-xl sticky top-0 z-30">
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
             <button
               type="button"
@@ -423,7 +423,7 @@ export default function FounderDashboardPage() {
             <div className="max-h-[280px] overflow-y-auto">
               {pendingApprovals.length === 0 && pendingLeaves.length === 0 ? (
                 <div className="py-7 text-center flex flex-col items-center justify-center">
-                  <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center mb-2 text-emerald-600">
+                  <div className="w-9 h-9 rounded-full bg-rose-600/15 flex items-center justify-center mb-2 text-rose-600">
                     <CheckCircle size={18} />
                   </div>
                   <p className="text-xs text-muted-foreground font-medium">Nothing waiting on you.</p>
@@ -456,7 +456,7 @@ export default function FounderDashboardPage() {
             {/* Top: Digital Clock */}
             <div className="grid grid-cols-1 gap-3 items-stretch">
               {/* Digital Clock Card */}
-              <div className="w-full lg:w-72 bg-gradient-to-br from-primary via-primary-hover to-[#0C3515] text-white border border-primary/40 rounded-2xl p-4 flex flex-col justify-between items-center text-center relative overflow-hidden shadow-lg shadow-primary/20 group hover:shadow-primary/30 transition-all">
+              <div className="w-full lg:w-72 bg-gradient-to-br from-primary via-primary-hover to-[#360C13] text-white border border-primary/40 rounded-2xl p-4 flex flex-col justify-between items-center text-center relative overflow-hidden shadow-lg shadow-primary/20 group hover:shadow-primary/30 transition-all">
                 <div className="flex items-center justify-between w-full mb-2">
                   <div className="flex items-center gap-1.5 text-xs text-white/90 font-semibold uppercase tracking-wider">
                     <Clock size={14} className="text-white animate-pulse" />

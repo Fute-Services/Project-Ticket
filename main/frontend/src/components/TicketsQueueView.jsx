@@ -70,7 +70,7 @@ function useSolverOptions(deptLabel) {
 const DEFAULT_TEXT_COLOR = 'text-primary hover:text-primary-hover [&>svg]:text-primary';
 
 // `textColorClass` lets a caller override just the value/icon color (e.g.
-// Attendance.jsx wants green for "Present" and red for "Absent") while
+// Attendance.jsx wants a distinct accent for "Present" and red for "Absent") while
 // keeping the shared graphite surface, border, and shadows identical.
 // `options` accepts plain strings (value === label, e.g. ticket statuses) or
 // `{ value, label }` objects for when the id shown to the backend isn't what
@@ -90,7 +90,7 @@ export function ColorSelect({ value, onChange, options, ariaLabel, textColorClas
           <SelectItem
             key={o.value}
             value={o.value}
-            className="text-foreground text-xs font-semibold uppercase tracking-wide rounded-lg py-1.5 pl-2.5 cursor-pointer focus:bg-[#0d1811] focus:text-white data-[state=checked]:bg-[#0d1811] data-[state=checked]:text-white"
+            className="text-foreground text-xs font-semibold uppercase tracking-wide rounded-lg py-1.5 pl-2.5 cursor-pointer focus:bg-[#180D0F] focus:text-white data-[state=checked]:bg-[#180D0F] data-[state=checked]:text-white"
           >
             {o.label}
           </SelectItem>
@@ -188,7 +188,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                 onClick={() => setFilter(s)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   filter === s
-                    ? 'bg-[#0d1811] text-white shadow-md border border-white/15 font-bold'
+                    ? 'bg-[#180D0F] text-white shadow-md border border-white/15 font-bold'
                     : 'text-muted-foreground hover:text-foreground hover:bg-black/5'
                 }`}
               >
@@ -291,8 +291,8 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                     : statusStr === 'Closed'
                     ? 'bg-muted text-muted-foreground border-border'
                     : statusStr === 'Pending'
-                    ? 'bg-[#6CA78B]/15 text-[#1B5136] border-[#6CA78B]/40'
-                    : 'bg-[#1B5136]/10 text-[#1B5136] border-[#1B5136]/20';
+                    ? 'bg-[#A76C76]/15 text-[#671421] border-[#A76C76]/40'
+                    : 'bg-[#671421]/10 text-[#671421] border-[#671421]/20';
 
                 return (
                   <span
@@ -393,7 +393,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                       }
                       if (status === 'pending_founder') {
                         return (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#6CA78B]/15 text-[#1B5136] border border-[#6CA78B]/40 text-xs font-bold whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#A76C76]/15 text-[#671421] border border-[#A76C76]/40 text-xs font-bold whitespace-nowrap">
                             <Clock size={13} /> Pending
                           </span>
                         );

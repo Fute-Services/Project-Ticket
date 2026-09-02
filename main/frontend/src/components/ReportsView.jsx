@@ -122,10 +122,10 @@ export default function ReportsView() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <StatCard icon={ShieldCheck} label="SLA Compliance" value={slaPct === null ? '-' : `${slaPct}%`} sub="resolved of raised" accent="#23734B" />
-        <StatCard icon={CheckCircle2} label="Tickets Resolved" value={resolved.length} sub="all time" accent="#0C3515" />
+        <StatCard icon={ShieldCheck} label="SLA Compliance" value={slaPct === null ? '-' : `${slaPct}%`} sub="resolved of raised" accent="#8B182C" />
+        <StatCard icon={CheckCircle2} label="Tickets Resolved" value={resolved.length} sub="all time" accent="#360C13" />
         <StatCard icon={AlertTriangle} label="Still Open" value={openCount} sub="not yet resolved" accent="#ef4444" />
-        <StatCard icon={Clock} label="Avg Resolution" value={avgResolutionHours === null ? '-' : `${avgResolutionHours.toFixed(1)}h`} sub="mean time to resolve" accent="#6CA78B" />
+        <StatCard icon={Clock} label="Avg Resolution" value={avgResolutionHours === null ? '-' : `${avgResolutionHours.toFixed(1)}h`} sub="mean time to resolve" accent="#A76C76" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

@@ -124,7 +124,7 @@ export function StatCard({ label, value, sub, change, icon: Icon, accent, progre
         </span>
         {sub && <span className="text-[11px] sm:text-xs text-muted-foreground truncate leading-none">{sub}</span>}
         {change && (
-          <span className="text-[11px] text-emerald-600 font-semibold leading-none ml-auto shrink-0 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200/50">{change}</span>
+          <span className="text-[11px] text-rose-600 font-semibold leading-none ml-auto shrink-0 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-200/50">{change}</span>
         )}
       </div>
       {typeof progress === 'number' && (
@@ -142,15 +142,15 @@ export function StatCard({ label, value, sub, change, icon: Icon, accent, progre
 // Dark highlight widget matching the reference design (top-left card)
 export function DarkMetricCard({ label, value, unit = '', change, trend = 'up', bars = [40, 65, 30, 85, 55, 95] }) {
   return (
-    <div className="bg-[#0b140f] border border-emerald-500/20 rounded-2xl p-4 text-white shadow-lg shadow-black/20 flex items-center justify-between gap-4 min-w-[220px]">
+    <div className="bg-[#140B0D] border border-rose-600/20 rounded-2xl p-4 text-white shadow-lg shadow-black/20 flex items-center justify-between gap-4 min-w-[220px]">
       <div className="min-w-0">
-        <div className="text-[11px] text-emerald-300/80 font-medium truncate">{label}</div>
+        <div className="text-[11px] text-rose-300/80 font-medium truncate">{label}</div>
         <div className="flex items-baseline gap-1 mt-1">
           <span className="text-xl sm:text-2xl font-bold tracking-tight text-white">{value}</span>
-          {unit && <span className="text-xs text-emerald-400 font-normal">{unit}</span>}
+          {unit && <span className="text-xs text-rose-500 font-normal">{unit}</span>}
         </div>
         {change && (
-          <div className="flex items-center gap-1 mt-1 text-[10px] text-emerald-400 font-medium">
+          <div className="flex items-center gap-1 mt-1 text-[10px] text-rose-500 font-medium">
             <span>{trend === 'up' ? '↗' : '↘'} {change}</span>
           </div>
         )}
@@ -161,7 +161,7 @@ export function DarkMetricCard({ label, value, unit = '', change, trend = 'up', 
           <div
             key={i}
             className={`w-1 rounded-full transition-all duration-300 ${
-              i === bars.length - 1 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-emerald-600/60'
+              i === bars.length - 1 ? 'bg-rose-500 shadow-[0_0_8px_rgba(244, 63, 94,0.8)]' : 'bg-rose-600/60'
             }`}
             style={{ height: `${h}%` }}
           />
@@ -228,7 +228,7 @@ export function Pill({ active, onClick, children }) {
       aria-pressed={active}
       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
         active
-          ? 'bg-[#0d1811] text-white shadow-md border border-white/15 font-bold'
+          ? 'bg-[#180D0F] text-white shadow-md border border-white/15 font-bold'
           : 'bg-white/50 border border-white/80 text-muted-foreground hover:text-foreground hover:bg-black/5'
       }`}
     >
