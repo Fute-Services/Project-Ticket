@@ -47,6 +47,9 @@ const DOCUMENT_TYPES = [
   { key: 'panCard', label: 'PAN Card', urlField: 'panCardUrl', fileNameField: 'panCardFileName' },
   { key: 'voterIdCard', label: 'Voter ID', urlField: 'voterIdCardUrl', fileNameField: 'voterIdCardFileName' },
   { key: 'driveLinkDoc', label: 'Drive Link Document', urlField: 'driveLinkDocUrl', fileNameField: 'driveLinkDocFileName' },
+  { key: 'other1', label: 'Other Document 1', urlField: 'other1Url', fileNameField: 'other1FileName' },
+  { key: 'other2', label: 'Other Document 2', urlField: 'other2Url', fileNameField: 'other2FileName' },
+  { key: 'other3', label: 'Other Document 3', urlField: 'other3Url', fileNameField: 'other3FileName' },
 ];
 const DOCUMENT_ACCEPT = '.pdf,.jpg,.jpeg,.doc,.docx';
 
@@ -138,6 +141,7 @@ function printPayslip(payslipForm) {
         <div style="max-width:640px;margin:auto;border:1px solid #ddd;border-radius:10px;padding:24px;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
             <div>
+              <img src="${window.location.origin}/logo.png" alt="${payslipForm.companyName || 'Company'}" style="height:36px;margin-bottom:8px;display:block;" />
               <h2 style="margin:0 0 2px;">${payslipForm.companyName || 'Company'}</h2>
               ${payslipForm.companyAddress ? `<p style="margin:0;color:#777;font-size:12px;">${payslipForm.companyAddress}</p>` : ''}
               ${payslipForm.cityPincode ? `<p style="margin:0;color:#777;font-size:12px;">${payslipForm.cityPincode}</p>` : ''}
@@ -173,8 +177,14 @@ function printPayslip(payslipForm) {
     </html>
   `);
   win.document.close();
-  win.focus();
-  win.print();
+  // win.print() used to fire immediately after document.write, before the
+  // logo <img> had actually finished loading over the network - the print
+  // preview would render with it missing/blank. win.onload only fires once
+  // every resource the document references (the image included) is done.
+  win.onload = () => {
+    win.focus();
+    win.print();
+  };
 }
 
 // Real employees created through this form have no `photo` field (the
@@ -1147,6 +1157,7 @@ export default function Directory() {
           const totals = payslipTotals(payslipForm);
           return (
             <div className="flex flex-col gap-4">
+              <img src="/logo.png" alt="Fute Services" className="h-9 w-auto self-start" />
               <div>
                 <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Company Details</div>
                 <div className="grid grid-cols-2 gap-3">

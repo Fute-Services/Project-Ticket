@@ -7,7 +7,7 @@ import { ATTENDANCE_STATUSES } from '../../data/hrMockData';
 import { useHrDesk } from '../../context/HrDeskContext';
 import { ColorSelect } from '../../components/TicketsQueueView';
 import HolidaysCard from '../../components/HolidaysCard';
-import { getSystemSettings } from '../../utils/api';
+import { extraHoursApi } from '../../utils/api';
 
 const DOT_COLOR = {
   Present: 'bg-primary',
@@ -39,25 +39,26 @@ export default function Attendance() {
   // '' rather than null - a controlled <select>'s value must be a string
   // (React warns on null: "should not be null, use '' or undefined instead").
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  // System/Technical - default working hours, reused from Super Admin's
-  // existing settings doc (see HolidaysCard.jsx for the same source) to
-  // flag a late check-in without inventing a second "start time" setting.
-  const [workStart, setWorkStart] = useState(null);
 
   useEffect(() => {
     setSelectedEmployee((s) => s || employees[0]?.id || '');
   }, [employees]);
 
-  useEffect(() => {
-    getSystemSettings()
-      .then(({ data }) => setWorkStart(data.workingHoursStart || null))
-      .catch(() => setWorkStart(null));
-  }, []);
-
   // The real current date - marking someone present/absent always writes
   // against today, not whatever date happens to be the most recent one
   // already sitting in seeded/historical records.
   const TODAY = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  // Today's Attendance' "Extra Hours" column - only approved entries count
+  // (see approvalController.js's decide(), which syncs extra_hours.status
+  // to the Founder's decision), and only today's, to match what this table
+  // is otherwise showing.
+  const [extraHoursToday, setExtraHoursToday] = useState([]);
+  useEffect(() => {
+    extraHoursApi.list()
+      .then(({ data }) => setExtraHoursToday((data || []).filter((e) => e.status === 'approved' && e.date === TODAY)))
+      .catch(() => setExtraHoursToday([]));
+  }, [TODAY]);
 
   // History strip below still spans every date actually present in the
   // records (seeded history + whatever's been marked so far) - a fixed date
@@ -143,16 +144,23 @@ export default function Attendance() {
                 ),
               },
               {
-                key: 'late',
-                label: 'Late',
-                width: '60px',
+                key: 'extraHours',
+                label: 'Extra Hours',
+                width: '100px',
                 sortable: false,
-                render: (r) =>
-                  workStart && r.checkIn && r.checkIn !== '-' && r.checkIn > workStart ? (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warning/10 text-warning">Late</span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  ),
+                render: (r) => {
+                  const entries = extraHoursToday.filter((e) => e.employeeId === r.id);
+                  if (!entries.length) return <span className="text-muted-foreground">-</span>;
+                  return (
+                    <div className="flex flex-col gap-0.5">
+                      {entries.map((e) => (
+                        <span key={e.id} className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary whitespace-nowrap">
+                          {e.hours}h · {e.projectCode}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                },
               },
               {
                 key: 'hours',

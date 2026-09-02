@@ -168,6 +168,13 @@ const DOCUMENT_TYPES = {
   panCard: { label: 'PAN Card', urlField: 'panCardUrl', fileNameField: 'panCardFileName' },
   voterIdCard: { label: 'Voter ID', urlField: 'voterIdCardUrl', fileNameField: 'voterIdCardFileName' },
   driveLinkDoc: { label: 'Drive Link Document', urlField: 'driveLinkDocUrl', fileNameField: 'driveLinkDocFileName' },
+  // Free slots for whatever doesn't fit the named types above (e.g. a
+  // certification, a reference letter) - 3 rather than an open-ended list
+  // since employees still stores these as flat fields (urlField/
+  // fileNameField), not an array.
+  other1: { label: 'Other Document 1', urlField: 'other1Url', fileNameField: 'other1FileName' },
+  other2: { label: 'Other Document 2', urlField: 'other2Url', fileNameField: 'other2FileName' },
+  other3: { label: 'Other Document 3', urlField: 'other3Url', fileNameField: 'other3FileName' },
 };
 
 // POST /api/hr-desk/employees/:id/documents/:docType — HR/founder only
@@ -235,6 +242,78 @@ async function uploadEmployeeDocument(req, res) {
   );
 
   ok(res, { id, ...updates, approvalId: approvalRef.id }, { message: 'Document uploaded successfully' });
+}
+
+// Reusable blank document templates (Offer Letter, Relieving Letter, ...)
+// HR uploads once and reuses per new joiner/exiting employee - distinct from
+// uploadEmployeeDocument above, which stores a *specific* employee's already-
+// signed copy, not the blank template itself. Uploads straight to Firebase
+// Storage (memoryStorage multer, see utils/upload.js), same pattern as
+// uploadEmployeeDocument - not run through makeCrud since that only handles
+// JSON bodies, not multipart file uploads.
+const documentTemplatesCollection = db.collection('document_templates');
+
+async function createDocumentTemplate(req, res) {
+  const { name, category } = req.body;
+  if (!name || !category) return fail(res, { status: 400, message: 'name and category are required', code: 'VALIDATION_ERROR' });
+  if (!req.file) return fail(res, { status: 400, message: 'A PDF file is required', code: 'VALIDATION_ERROR' });
+  if (!bucket) return fail(res, { status: 503, message: 'File storage is not configured on this server', code: 'SERVICE_UNAVAILABLE' });
+
+  const safeName = req.file.originalname.replace(/[^\w.\-]/g, '_');
+  const storagePath = `document-templates/${category}/${Date.now()}-${safeName}`;
+  const blob = bucket.file(storagePath);
+  let url;
+  try {
+    await blob.save(req.file.buffer, { contentType: req.file.mimetype });
+    // 50-year expiry — same call as uploadEmployeeDocument's, an internal
+    // template behind an unguessable signed URL, not re-signed per view.
+    [url] = await blob.getSignedUrl({ action: 'read', expires: '01-01-2075' });
+  } catch (e) {
+    console.error('Storage upload failed:', e.message);
+    throw Object.assign(new Error('Could not upload the file — file storage is not configured correctly. Ask an admin to check the Storage bucket setup.'), { status: 502 });
+  }
+
+  const docData = {
+    name,
+    category,
+    fileUrl: url,
+    fileName: req.file.originalname,
+    created_at: new Date().toISOString(),
+  };
+  const docRef = await documentTemplatesCollection.add(docData);
+  created(res, { id: docRef.id, ...docData }, 'Template added');
+}
+
+async function updateDocumentTemplate(req, res) {
+  const { id } = req.params;
+  const docRef = documentTemplatesCollection.doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) return fail(res, { status: 404, message: 'Not found', code: 'NOT_FOUND' });
+
+  const updates = { updated_at: new Date().toISOString() };
+  if (req.body.name) updates.name = req.body.name;
+  if (req.body.category) updates.category = req.body.category;
+
+  // A new file is optional on edit — renaming a template or moving it
+  // between Joining/Exit shouldn't force re-uploading the same PDF.
+  if (req.file) {
+    if (!bucket) return fail(res, { status: 503, message: 'File storage is not configured on this server', code: 'SERVICE_UNAVAILABLE' });
+    const safeName = req.file.originalname.replace(/[^\w.\-]/g, '_');
+    const storagePath = `document-templates/${updates.category || doc.data().category}/${Date.now()}-${safeName}`;
+    const blob = bucket.file(storagePath);
+    try {
+      await blob.save(req.file.buffer, { contentType: req.file.mimetype });
+      const [url] = await blob.getSignedUrl({ action: 'read', expires: '01-01-2075' });
+      updates.fileUrl = url;
+      updates.fileName = req.file.originalname;
+    } catch (e) {
+      console.error('Storage upload failed:', e.message);
+      throw Object.assign(new Error('Could not upload the file — file storage is not configured correctly. Ask an admin to check the Storage bucket setup.'), { status: 502 });
+    }
+  }
+
+  await docRef.update(updates);
+  ok(res, { id, ...doc.data(), ...updates }, { message: 'Template updated successfully' });
 }
 
 const attendanceCollection = db.collection('attendance');
@@ -384,7 +463,7 @@ async function submitExtraHours(req, res) {
   if (!req.user.employeeId) {
     return fail(res, { status: 400, message: 'Your account is not linked to an employee record yet — ask HR to set that up.', code: 'VALIDATION_ERROR' });
   }
-  const { projectCode, hours, date, time, teammates } = req.body;
+  const { projectCode, hours, date, fromTime, toTime, teammates } = req.body;
   if (!projectCode || !hours || !date) {
     return fail(res, { status: 400, message: 'projectCode, hours and date are required', code: 'VALIDATION_ERROR' });
   }
@@ -394,21 +473,27 @@ async function submitExtraHours(req, res) {
 
   const docData = {
     employeeId: req.user.employeeId,
+    // Kept alongside `employeeId` so a teammate's mention notification
+    // (myExtraHoursMentions below) can show a name without a second lookup
+    // — `employeeId` alone only identifies the *owner*, not who logged it.
+    loggedBy: employeeName,
     projectCode,
     hours: Number(hours) || 0,
     date,
-    time: time || '',
+    fromTime: fromTime || '',
+    toTime: toTime || '',
     teammates: Array.isArray(teammates) ? teammates : [],
     status: 'pending_founder',
     createdAt: new Date().toISOString(),
   };
   const docRef = await extraHoursCollection.add(docData);
 
+  const teammatesLine = docData.teammates.length ? ` · with ${docData.teammates.join(', ')}` : '';
   const approvalDoc = {
     source: 'HR',
     category: 'extra-hours',
     title: `Extra hours — ${employeeName} (${projectCode})`,
-    sub: `${docData.hours}h on ${date}`,
+    sub: `${docData.hours}h on ${date}${teammatesLine}`,
     requestedBy: req.user.full_name,
     priority: 'medium',
     status: 'pending_founder',
@@ -422,7 +507,10 @@ async function submitExtraHours(req, res) {
 
   await notifyFounder(
     `Extra hours submitted — ${employeeName}`,
-    `<p><strong>${escapeHtml(employeeName)}</strong> logged <strong>${docData.hours}h</strong> on project <strong>${escapeHtml(projectCode)}</strong> (${escapeHtml(date)}). Awaiting sign-off.</p>`
+    `<p><strong>${escapeHtml(employeeName)}</strong> logged <strong>${docData.hours}h</strong> on project <strong>${escapeHtml(projectCode)}</strong> (${escapeHtml(date)}). Awaiting sign-off.</p>` +
+    (docData.teammates.length
+      ? `<p>Also worked on this with: <strong>${escapeHtml(docData.teammates.join(', '))}</strong></p>`
+      : '')
   );
 
   created(res, { id: docRef.id, ...docData, approvalId: approvalRef.id }, 'Extra hours submitted successfully');
@@ -436,6 +524,22 @@ async function myExtraHours(req, res) {
     .limit(UNPAGINATED_READ_LIMIT)
     .get();
   const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  ok(res, rows);
+}
+
+// GET /api/hr-desk/extra-hours/mentions — entries where someone named the
+// calling employee as a teammate ("Any other teammates along with me" on
+// the log form) — matched by name since that field is free text, not a
+// picker over real employee/user records. Powers the "X included you"
+// notification on the employee dashboard (useEmployeeNotifications.js).
+async function myExtraHoursMentions(req, res) {
+  const myName = (req.user.full_name || '').trim().toLowerCase();
+  if (!myName) return ok(res, []);
+  const snap = await extraHoursCollection.limit(UNPAGINATED_READ_LIMIT).get();
+  const rows = snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((r) => (r.teammates || []).some((t) => (t || '').trim().toLowerCase() === myName));
   rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   ok(res, rows);
 }
@@ -489,7 +593,15 @@ module.exports = {
   myPerformance,
   submitExtraHours,
   myExtraHours,
+  myExtraHoursMentions,
   listExtraHours,
+  // list/remove reuse makeCrud's plain-JSON versions; create/update are the
+  // multipart-upload functions above (file uploads aren't JSON bodies).
+  documentTemplates: {
+    ...makeCrud('document_templates', ['name', 'category'], ['name', 'category']),
+    create: createDocumentTemplate,
+    update: updateDocumentTemplate,
+  },
   employees: makeCrud('employees', ['name', 'department'],
     ['name', 'department', 'designation', 'status', 'email', 'phone', 'manager', 'joiningDate',
       'employmentType', 'probationCompletionDate',

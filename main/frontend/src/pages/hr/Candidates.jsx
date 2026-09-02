@@ -14,6 +14,7 @@ import { candidatesApi } from '../../utils/api';
 import { useHrDesk } from '../../context/HrDeskContext';
 import { useAuth } from '../../context/AuthContext';
 import { ColorSelect } from '../../components/TicketsQueueView';
+import { DateField } from '../../components/ui/date-field';
 
 const REJECTABLE_STAGES = ['Rejected', 'Offer Declined'];
 
@@ -389,16 +390,11 @@ export default function Candidates() {
               {REJECTABLE_STAGES.includes(selected.stage) ? (
                 <div>
                   <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">Reason</div>
-                  <select
-                    value={selected.rejectionReason || ''}
-                    onChange={(e) => updateRejectionReason(selected.id, e.target.value)}
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
-                  >
-                    <option value="">Select a reason</option>
-                    {REJECTION_REASONS.map((r) => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
+                  <ColorSelect
+                    value={selected.rejectionReason || '__none__'}
+                    onChange={(v) => updateRejectionReason(selected.id, v === '__none__' ? '' : v)}
+                    options={[{ value: '__none__', label: 'Select a reason' }, ...REJECTION_REASONS.map((r) => ({ value: r, label: r }))]}
+                  />
                 </div>
               ) : (
                 <Detail label="Assigned Recruiter" value={selected.assignedRecruiter || 'Unassigned'} />
@@ -437,9 +433,7 @@ export default function Candidates() {
                     <EF label="Relevant Exp. (yrs)"><input type="number" min="0" step="0.5" value={candidateForm.relevantExperience} onChange={(e) => setCandidateForm((f) => ({ ...f, relevantExperience: e.target.value }))} className={compactInputClass} /></EF>
                     <EF label="Education"><input value={candidateForm.education} onChange={(e) => setCandidateForm((f) => ({ ...f, education: e.target.value }))} className={compactInputClass} /></EF>
                     <EF label="Work Mode">
-                      <select value={candidateForm.workMode} onChange={(e) => setCandidateForm((f) => ({ ...f, workMode: e.target.value }))} className={compactInputClass}>
-                        {WORK_MODE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
+                      <ColorSelect value={candidateForm.workMode} onChange={(v) => setCandidateForm((f) => ({ ...f, workMode: v }))} options={WORK_MODE_OPTIONS} />
                     </EF>
                     <div className="col-span-2">
                       <EF label="Primary Skill(s)"><input value={candidateForm.skills} onChange={(e) => setCandidateForm((f) => ({ ...f, skills: e.target.value }))} className={compactInputClass} placeholder="Comma separated" /></EF>
@@ -467,7 +461,7 @@ export default function Candidates() {
               <SectionCard title="Resume & Compensation">
                 {editOpen ? (
                   <>
-                    <EF label="Resume Date"><input type="date" value={candidateForm.resumeDate} onChange={(e) => setCandidateForm((f) => ({ ...f, resumeDate: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Resume Date"><DateField value={candidateForm.resumeDate} onChange={(v) => setCandidateForm((f) => ({ ...f, resumeDate: v }))} /></EF>
                     <EF label="Current CTC (LPA)"><input type="number" min="0" step="0.5" value={candidateForm.currentCTC} onChange={(e) => setCandidateForm((f) => ({ ...f, currentCTC: e.target.value }))} className={compactInputClass} /></EF>
                     <EF label="Expected CTC (LPA)"><input type="number" min="0" step="0.5" value={candidateForm.expectedSalary} onChange={(e) => setCandidateForm((f) => ({ ...f, expectedSalary: e.target.value }))} className={compactInputClass} /></EF>
                     <EF label="Notice Period"><input value={candidateForm.noticePeriod} onChange={(e) => setCandidateForm((f) => ({ ...f, noticePeriod: e.target.value }))} className={compactInputClass} /></EF>
@@ -505,27 +499,19 @@ export default function Candidates() {
                 {editOpen ? (
                   <>
                     <EF label="HR Screening Status">
-                      <select value={candidateForm.hrScreeningStatus} onChange={(e) => setCandidateForm((f) => ({ ...f, hrScreeningStatus: e.target.value }))} className={compactInputClass}>
-                        {HR_SCREENING_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
+                      <ColorSelect value={candidateForm.hrScreeningStatus} onChange={(v) => setCandidateForm((f) => ({ ...f, hrScreeningStatus: v }))} options={HR_SCREENING_OPTIONS} />
                     </EF>
                     <EF label="Shortlisted?">
-                      <select value={candidateForm.shortlisted} onChange={(e) => setCandidateForm((f) => ({ ...f, shortlisted: e.target.value }))} className={compactInputClass}>
-                        {SHORTLISTED_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
+                      <ColorSelect value={candidateForm.shortlisted} onChange={(v) => setCandidateForm((f) => ({ ...f, shortlisted: v }))} options={SHORTLISTED_OPTIONS} />
                     </EF>
-                    <EF label="Tech. Round Date"><input type="date" value={candidateForm.technicalRoundDate} onChange={(e) => setCandidateForm((f) => ({ ...f, technicalRoundDate: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Tech. Round Date"><DateField value={candidateForm.technicalRoundDate} onChange={(v) => setCandidateForm((f) => ({ ...f, technicalRoundDate: v }))} /></EF>
                     <EF label="Tech. Round Status">
-                      <select value={candidateForm.technicalRoundStatus} onChange={(e) => setCandidateForm((f) => ({ ...f, technicalRoundStatus: e.target.value }))} className={compactInputClass}>
-                        {TECHNICAL_ROUND_STATUS_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
+                      <ColorSelect value={candidateForm.technicalRoundStatus} onChange={(v) => setCandidateForm((f) => ({ ...f, technicalRoundStatus: v }))} options={TECHNICAL_ROUND_STATUS_OPTIONS} />
                     </EF>
                     <EF label="Final Decision">
-                      <select value={candidateForm.finalDecision} onChange={(e) => setCandidateForm((f) => ({ ...f, finalDecision: e.target.value }))} className={compactInputClass}>
-                        {FINAL_DECISION_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
+                      <ColorSelect value={candidateForm.finalDecision} onChange={(v) => setCandidateForm((f) => ({ ...f, finalDecision: v }))} options={FINAL_DECISION_OPTIONS} />
                     </EF>
-                    <EF label="Last Follow-up Date"><input type="date" value={candidateForm.lastFollowUpDate} onChange={(e) => setCandidateForm((f) => ({ ...f, lastFollowUpDate: e.target.value }))} className={compactInputClass} /></EF>
+                    <EF label="Last Follow-up Date"><DateField value={candidateForm.lastFollowUpDate} onChange={(v) => setCandidateForm((f) => ({ ...f, lastFollowUpDate: v }))} /></EF>
                     <div className="col-span-2">
                       <EF label="Output Path"><input value={candidateForm.outputPath} onChange={(e) => setCandidateForm((f) => ({ ...f, outputPath: e.target.value }))} className={compactInputClass} placeholder="e.g. server path or folder" /></EF>
                     </div>

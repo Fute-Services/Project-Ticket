@@ -2,8 +2,22 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Modal, Field, inputClass } from './ui';
 import { extraHoursApi } from '../utils/api';
+import { DateField } from './ui/date-field';
+import { TimeField } from './ui/time-field';
 
-const EMPTY = { projectCode: '', hours: '', date: new Date().toISOString().slice(0, 10), time: '', teammates: '' };
+const EMPTY = { projectCode: '', fromTime: '', toTime: '', date: new Date().toISOString().slice(0, 10), teammates: '' };
+
+// From/to time, hh:mm each - handles a shift that crosses midnight (toTime
+// earlier than fromTime) by treating it as landing the next day, rather than
+// going negative.
+function hoursBetween(fromTime, toTime) {
+  if (!fromTime || !toTime) return 0;
+  const [fh, fm] = fromTime.split(':').map(Number);
+  const [th, tm] = toTime.split(':').map(Number);
+  let minutes = (th * 60 + tm) - (fh * 60 + fm);
+  if (minutes < 0) minutes += 24 * 60;
+  return Math.round((minutes / 60) * 100) / 100;
+}
 
 // Extra Hours Logging - self-service submit, approved through the same
 // Payel→Soma (HR→Founder) chain as Document Template uploads (see
@@ -13,15 +27,22 @@ export default function ExtraHoursModal({ open, onClose, onSubmitted }) {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
+  const hours = hoursBetween(form.fromTime, form.toTime);
+
   async function submit(e) {
     e.preventDefault();
+    if (hours <= 0) {
+      toast.error('From and To time must be different');
+      return;
+    }
     setSaving(true);
     try {
       const { data } = await extraHoursApi.submit({
         projectCode: form.projectCode,
-        hours: Number(form.hours) || 0,
+        hours,
         date: form.date,
-        time: form.time,
+        fromTime: form.fromTime,
+        toTime: form.toTime,
         teammates: form.teammates.split(',').map((t) => t.trim()).filter(Boolean),
       });
       toast.success('Extra hours submitted', { description: 'Sent for sign-off - HR will review it.' });
@@ -42,16 +63,13 @@ export default function ExtraHoursModal({ open, onClose, onSubmitted }) {
           <input required value={form.projectCode} onChange={(e) => setForm((f) => ({ ...f, projectCode: e.target.value }))} className={inputClass} placeholder="e.g. FT-2201" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Hours">
-            <input required type="number" min="0" step="0.5" value={form.hours} onChange={(e) => setForm((f) => ({ ...f, hours: e.target.value }))} className={inputClass} placeholder="e.g. 2.5" />
-          </Field>
-          <Field label="Time">
-            <input type="time" value={form.time} onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))} className={inputClass} />
-          </Field>
+          <TimeField label="From" value={form.fromTime} onChange={(v) => setForm((f) => ({ ...f, fromTime: v }))} />
+          <TimeField label="To" value={form.toTime} onChange={(v) => setForm((f) => ({ ...f, toTime: v }))} />
         </div>
-        <Field label="Date">
-          <input required type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} className={inputClass} />
-        </Field>
+        <div className="text-xs text-muted-foreground -mt-1">
+          Total: <span className="font-semibold text-foreground">{hours > 0 ? `${hours}h` : '—'}</span>
+        </div>
+        <DateField label="Date" value={form.date} onChange={(v) => setForm((f) => ({ ...f, date: v }))} />
         <Field label="Any other teammates along with me" hint="Comma-separated names">
           <input value={form.teammates} onChange={(e) => setForm((f) => ({ ...f, teammates: e.target.value }))} className={inputClass} placeholder="e.g. Rohit, Priya" />
         </Field>

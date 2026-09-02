@@ -289,9 +289,26 @@ export const jobsApi = hrDeskResource('jobs');
 export const performanceApi = hrDeskResource('performance');
 export const leaveEntriesApi = hrDeskResource('leave-entries');
 
+// Document Templates — create/update carry a PDF file, so unlike the rest
+// of hrDeskResource these send multipart/form-data, not JSON.
+function templateFormData({ name, category, file }) {
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('category', category);
+  if (file) formData.append('file', file);
+  return formData;
+}
+export const documentTemplatesApi = {
+  list: () => api.get('/api/hr-desk/document-templates'),
+  create: (data) => api.post('/api/hr-desk/document-templates', templateFormData(data)),
+  update: (id, data) => api.patch(`/api/hr-desk/document-templates/${id}`, templateFormData(data)),
+  remove: (id) => api.delete(`/api/hr-desk/document-templates/${id}`),
+};
+
 export const extraHoursApi = {
   submit: (data) => api.post('/api/hr-desk/extra-hours', data),
   myList: () => api.get('/api/hr-desk/extra-hours/me'),
+  myMentions: () => api.get('/api/hr-desk/extra-hours/mentions'),
   list: () => api.get('/api/hr-desk/extra-hours'),
 };
 

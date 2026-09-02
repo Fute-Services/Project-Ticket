@@ -47,7 +47,11 @@ export function useHrNotifications() {
       .filter((a) => a.source === 'HR' && a.status === 'pending_founder')
       .map((a) => ({
         id: `approval-${a.id}`,
-        text: `Approval request pending founder sign-off: ${a.title}`,
+        // `sub` carries the readable detail line (e.g. extra-hours' "3h on
+        // 2026-09-02 · with Rohit, Priya") - append it when present instead
+        // of leaving the reader to open the approval just to see who else
+        // was involved.
+        text: `Approval request pending founder sign-off: ${a.title}${a.sub ? ` (${a.sub})` : ''}`,
         time: a.timestamp,
         at: a.createdAt,
         unread: true,
