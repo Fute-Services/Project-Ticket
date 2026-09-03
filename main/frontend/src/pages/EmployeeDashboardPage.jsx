@@ -309,7 +309,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onE
                   {detailsTicket.status}
                 </span>
               </div>
-              <div className="text-sm font-bold text-foreground mt-1">
+              <div className="text-sm font-bold text-foreground mt-1 break-words">
                 {detailsTicket.description || detailsTicket.title}
               </div>
             </div>
@@ -900,7 +900,7 @@ export default function EmployeeDashboardPage() {
                   {detailsTicket.status}
                 </span>
               </div>
-              <div className="text-sm font-bold text-foreground mt-1">
+              <div className="text-sm font-bold text-foreground mt-1 break-words">
                 {detailsTicket.description || detailsTicket.title}
               </div>
             </div>

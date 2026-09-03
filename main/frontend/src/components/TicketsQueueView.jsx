@@ -463,7 +463,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                   {detailsTicket.status}
                 </span>
               </div>
-              <div className="text-sm font-bold text-foreground mt-1">
+              <div className="text-sm font-bold text-foreground mt-1 break-words">
                 {detailsTicket.description || detailsTicket.title}
               </div>
             </div>
