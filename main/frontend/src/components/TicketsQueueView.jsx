@@ -270,7 +270,13 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
               label: 'Issue',
               width: '150px',
               render: (t) => (
-                <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>
+                // max-w pinned to the column's own width, not just `truncate`
+                // alone - an unbroken string with no spaces (no wrap point at
+                // all) otherwise forces the column - and the whole table -
+                // wider than its declared width instead of actually
+                // truncating, since the header's `width` is only a layout
+                // hint here, not a hard cap on the cell's content.
+                <span className="text-foreground text-xs font-medium block truncate max-w-[150px]" title={t.description || t.title}>
                   {showOnlyTitle ? issueTitle(t) : t.description || t.title}
                 </span>
               ),
@@ -457,7 +463,7 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
                   {detailsTicket.status}
                 </span>
               </div>
-              <div className="text-sm font-bold text-foreground mt-1">
+              <div className="text-sm font-bold text-foreground mt-1 break-words">
                 {detailsTicket.description || detailsTicket.title}
               </div>
             </div>

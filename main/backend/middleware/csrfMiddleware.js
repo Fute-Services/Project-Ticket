@@ -30,7 +30,14 @@ function csrfMiddleware(req, res, next) {
   if (SAFE_METHODS.has(req.method) || EXEMPT_PATHS.has(req.path)) return next();
 
   const cookieToken = req.cookies?.[CSRF_COOKIE];
-  const headerToken = req.headers['x-csrf-token'];
+  // Header is the primary channel; `_csrf` in a JSON body is a fallback for
+  // the same reason the frontend now sends both (utils/api.js) — a handful
+  // of browser extensions strip non-standard request headers on cross-site
+  // calls, which was surfacing as an intermittent false "CSRF invalid" for
+  // real, logged-in users. The double-submit security property only needs
+  // *some* value the frontend echoed back that a cross-site attacker
+  // couldn't have read off the cookie itself — it doesn't have to be a header.
+  const headerToken = req.headers['x-csrf-token'] || req.body?._csrf;
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
     return fail(res, { status: 403, message: 'CSRF token missing or invalid', code: 'CSRF_INVALID' });
   }

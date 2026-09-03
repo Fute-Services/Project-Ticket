@@ -47,8 +47,18 @@ router.get('/performance/me', auth, role('hr', 'founder', 'employee'), resources
 // Extra Hours Logging — self-service submit, mirrors Attendance's pattern
 // (own employeeId only, never client-supplied). HR/founder see everyone's.
 router.get('/extra-hours/me', auth, role('hr', 'founder', 'employee'), resources.myExtraHours);
+router.get('/extra-hours/mentions', auth, role('hr', 'founder', 'employee'), resources.myExtraHoursMentions);
 router.post('/extra-hours', auth, role('hr', 'founder', 'employee'), resources.submitExtraHours);
 router.get('/extra-hours', auth, role('hr', 'founder'), resources.listExtraHours);
+
+// Document Templates — multipart (PDF upload), so create/update go through
+// `upload.single('file')` like uploadEmployeeDocument above, not the plain-
+// JSON loop below.
+router.get('/document-templates', auth, role('hr', 'founder'), resources.documentTemplates.list);
+router.post('/document-templates', auth, role('hr', 'founder'), upload.single('file'), resources.documentTemplates.create);
+router.patch('/document-templates/:id', auth, role('hr', 'founder'), upload.single('file'), resources.documentTemplates.update);
+router.delete('/document-templates/:id', auth, role('hr', 'founder'), resources.documentTemplates.remove);
+router.get('/document-templates/:id/download', auth, role('hr', 'founder'), resources.documentTemplates.download);
 
 for (const [path, handlers] of Object.entries({
   employees: resources.employees,

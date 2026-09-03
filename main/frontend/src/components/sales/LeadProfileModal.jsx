@@ -254,6 +254,23 @@ export default function LeadProfileModal({ lead, onClose }) {
                 <Detail label="Meeting Date" value={current.meetingDate} />
                 {current.status === 'Lost' && <Detail label="Lost Reason" value={current.lostReason} />}
               </div>
+              {/* Marketing Master Sheet fields - only shown when the lead
+                  actually carries them, since most pre-existing leads don't. */}
+              {(current.country || current.designationLevel || current.emailVerified || current.phoneVerified) && (
+                <div className="grid grid-cols-3 gap-3 pt-1 border-t border-border">
+                  <Detail label="Country" value={current.country} />
+                  <Detail label="Designation Level" value={current.designationLevel} />
+                  <Detail label="Email Verified" value={current.emailVerified} />
+                  <Detail label="Phone Verified" value={current.phoneVerified} />
+                  <Detail label="Email Campaign" value={current.emailCampaignStatus} />
+                  <Detail label="WhatsApp Campaign" value={current.whatsappCampaignStatus} />
+                  <Detail label="LinkedIn Campaign" value={current.linkedinCampaignStatus} />
+                  <Detail label="LinkedIn Connection" value={current.linkedinConnectionStatus} />
+                  <Detail label="Last Contacted" value={current.lastContactedDate} />
+                  {current.leftOrganisation && <Detail label="Status" value="Left the company" />}
+                </div>
+              )}
+              {current.nextAction && <Detail label="Next Action" value={current.nextAction} wrap />}
               {current.comments && <Detail label="Comments" value={current.comments} wrap />}
               {current.meetingNotes && <Detail label="Meeting Notes" value={current.meetingNotes} wrap />}
               {current.callLog?.length > 0 && (

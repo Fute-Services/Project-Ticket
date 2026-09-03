@@ -262,6 +262,38 @@ export function TicketProvider({ children }) {
     }
   }
 
+  // Multi-field save for the Employee Portal's Edit Ticket form (category,
+  // subcategory, priority, description all at once) - separate from
+  // updateTicketField's one-field-at-a-time inline edits above since those
+  // gate on EDITABLE_FIELDS, which intentionally doesn't include these
+  // (they're staff-facing status/remarks fields, not the requester's own
+  // content). Backend accepts them via the same PATCH .../fields endpoint
+  // (see itController.js/hrController.js's editableFields) since it already
+  // allows the ticket's own requester to edit it, not just staff.
+  async function editTicket(id, patch) {
+    const ticket = tickets.find((t) => t.id === id);
+    if (!ticket) return;
+
+    // Frontend ticket objects use `subcategory`; the backend column (and
+    // both departments' editableFields list) is `sub_category`.
+    const backendPatch = { ...patch };
+    if ('subcategory' in backendPatch) {
+      backendPatch.sub_category = backendPatch.subcategory;
+      delete backendPatch.subcategory;
+    }
+
+    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+    try {
+      const updateFn = ticket._collection === 'hr' ? updateHrFields : updateItFields;
+      const { data } = await updateFn(id, backendPatch);
+      setTickets((prev) => prev.map((t) => (t.id === id ? fromBackend({ ...data, dept_tag: ticket.dept }) : t)));
+    } catch (e) {
+      console.error('Failed to edit ticket:', e.response?.data?.error || e.message);
+      refresh();
+      throw e;
+    }
+  }
+
   // Backend only allows the ticket's own requester to delete it (403s for
   // anyone else, including IT/HR/founder) - this removes the shared
   // it_complaints/hr_complaints doc outright, so it's gone from every view
@@ -305,7 +337,7 @@ export function TicketProvider({ children }) {
   }
 
   return (
-    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, deleteTicket, reopenTicket, refresh, hasMoreTickets: hasMore, loadMoreTickets, loadingMore, lastUpdated, isSharedQueue }}>
+    <TicketContext.Provider value={{ tickets, loading, addTicket, changeStatus, updateTicketField, editTicket, deleteTicket, reopenTicket, refresh, hasMoreTickets: hasMore, loadMoreTickets, loadingMore, lastUpdated, isSharedQueue }}>
       {children}
     </TicketContext.Provider>
   );

@@ -24,6 +24,7 @@ import {
   ChevronsRight,
   Ticket,
   CheckSquare,
+  FileText,
 } from 'lucide-react';
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/hr/overview' },
@@ -35,6 +36,7 @@ const NAV_ITEMS = [
   { label: 'Attendance', icon: ClockIcon, path: '/hr/attendance' },
   { label: 'Email', icon: Mail, path: '/hr/email' },
   { label: 'Reports', icon: BarChart2, path: '/hr/reports' },
+  { label: 'Templates', icon: FileText, path: '/hr/templates' },
 ];
 
 function buildSearchIndex({ employees, candidates, interviews, tickets }) {

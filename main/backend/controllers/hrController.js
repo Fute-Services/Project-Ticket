@@ -6,7 +6,10 @@ module.exports = createComplaintController({
   notifyNewComplaintRuleKey: 'hr_new_complaint',
   notifyEmailEnvVar: 'HR_EMAIL',
   notifyStatusUpdateRuleKey: 'hr_status_update',
-  editableFields: ['employeeStatus', 'solver', 'remarks', 'employeeId'],
+  // description/category/sub_category/priority let the submitter edit their
+  // own ticket's content after raising it (Employee Portal's ticket queue
+  // - Edit replaces what used to be a Delete-only action there).
+  editableFields: ['employeeStatus', 'solver', 'remarks', 'employeeId', 'description', 'category', 'sub_category', 'priority'],
   staffRole: 'hr',
   defaultSolver: 'Unassigned',
   buildDocData: (body) => ({

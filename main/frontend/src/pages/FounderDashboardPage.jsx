@@ -433,7 +433,11 @@ export default function FounderDashboardPage() {
                   {pendingApprovals.map((a) => (
                     <button key={`a-${a.id}`} type="button" onClick={() => { setActiveDept('approvals'); setShowNotifs(false); }} className="w-full text-left px-4 py-2.5 border-b border-black/5 last:border-0 hover:bg-white/40 cursor-pointer transition-colors">
                       <div className="text-xs font-semibold text-foreground">{a.title}</div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">Approval · {a.source}</div>
+                      {/* `sub` carries the readable detail line when the
+                          approval has one (e.g. extra-hours' "3h on
+                          2026-09-02 · with Rohit, Priya") - falls back to the
+                          generic source tag for approvals that don't. */}
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{a.sub || `Approval · ${a.source}`}</div>
                     </button>
                   ))}
                   {pendingLeaves.map((l) => (

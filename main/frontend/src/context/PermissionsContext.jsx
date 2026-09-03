@@ -32,6 +32,7 @@ export const PAGE_REGISTRY = {
     { id: '/hr/attendance', label: 'Attendance' },
     { id: '/hr/email', label: 'Email' },
     { id: '/hr/reports', label: 'Reports' },
+    { id: '/hr/templates', label: 'Templates' },
   ],
   coordinator: [
     { id: '/coordinator/overview', label: 'Dashboard' },

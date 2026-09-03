@@ -18,9 +18,49 @@ function readCookie(name) {
 // this is what lets it be echoed back as a header. See
 // backend/middleware/csrfMiddleware.js for why that pair proves the request
 // came from our own frontend, not a forged cross-site one.
+//
+// Re-reading document.cookie on every single request used to race a
+// concurrent silent refresh (AuthContext/PermissionsContext poll every
+// 15s): the interceptor could read the *old* cookie value into the header
+// a moment before the browser's own cookie jar picked up a *new* value
+// from an in-flight /api/auth/refresh response, so the header and the
+// cookie the browser actually attached no longer matched - an intermittent,
+// hard-to-reproduce "CSRF token missing or invalid" for real, logged-in
+// users. Caching the value in memory and updating it explicitly, in the
+// same response handler that processes login/register/refresh (below),
+// removes that race entirely - there's no longer a gap between "the value
+// changed" and "the frontend knows it changed".
+//
+// Seeded from the cookie once at module load so a page that already has a
+// session (refreshed the tab, opened a new tab) doesn't send an empty
+// header on its very first request before any login/refresh response has
+// run in this particular tab.
+let csrfToken = readCookie('fute_csrf');
+export function setCsrfToken(token) {
+  csrfToken = token || null;
+}
+
 api.interceptors.request.use((config) => {
-  const csrf = readCookie('fute_csrf');
-  if (csrf) config.headers['X-CSRF-Token'] = csrf;
+  // Prefer the cached value (race-free - see above) but fall back to a live
+  // cookie read if we don't have one yet. The cache only ever gets *set* by
+  // a login/register/refresh response actually completing in this tab - a
+  // tab that inherited an already-logged-in session (reload, new tab) and
+  // hasn't hit a 401-triggered refresh yet would otherwise be stuck sending
+  // no header at all for its entire first access-token lifetime (up to 15
+  // min), since nothing in that scenario ever populates the cache.
+  const token = csrfToken || readCookie('fute_csrf');
+  if (token) {
+    config.headers['X-CSRF-Token'] = token;
+    // Belt-and-suspenders: a handful of browser extensions strip
+    // non-standard headers on cross-site requests (frontend and backend are
+    // separate domains here) without touching the body - sending the same
+    // value as a body field too means the request still succeeds even if
+    // the header gets stripped in transit. Only for a plain JSON body -
+    // FormData uploads (file attachments) aren't touched.
+    if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData)) {
+      config.data = { ...config.data, _csrf: token };
+    }
+  }
   return config;
 });
 
@@ -37,17 +77,20 @@ function isMeEndpoint(url) {
   return /\/api\/auth\/me(\?|$)/.test(url || '');
 }
 
-// The CSRF cookie is set alongside the session cookies on login/register/
-// refresh and cleared alongside them on logout or a failed refresh, so its
-// presence is a reliable "a session exists (or very recently did)" signal
-// even though the actual session cookies are httpOnly and unreadable here.
-// Skipping the refresh attempt when it's absent avoids a pointless extra
-// round trip on every single logged-out page load (GET /me 401s, then
-// POST /refresh would 401 too, for no reason - there was never anything to
-// refresh into).
-function hasSessionCookie() {
-  return readCookie('fute_csrf') !== null;
-}
+// Used to skip a pointless refresh attempt on a logged-out page load (GET
+// /me 401s, then POST /refresh would 401 too - there was never anything to
+// refresh into). This used to check for the CSRF cookie's presence via
+// document.cookie, on the theory that it's a reliable "a session exists"
+// signal even with the real session cookies being httpOnly and unreadable
+// here - but some browsers block page JS from reading *any* cookie that
+// way entirely (confirmed live: document.cookie returned '' while the
+// cookie was still visibly attached to every request), which made this
+// always report "no session" and silently break the refresh-and-retry path
+// for real, logged-in users in exactly those browsers. Trading the minor
+// optimization away entirely is safer than a cookie-based signal that can
+// go quietly wrong per-browser: worst case now is one extra POST /refresh
+// call (which itself just 401s, same as today) on a first-ever anonymous
+// page view.
 
 function flattenErrorBody(err) {
   // Flatten {success:false, message, error:{code,details}} down to a plain
@@ -97,13 +140,20 @@ api.interceptors.response.use(
     if (body && typeof body === 'object' && typeof body.success === 'boolean') {
       res.data = body.data;
     }
+    // Login/register/refresh each return a fresh csrfToken (see
+    // authController.js's issueSessionCookies) - caching it here, in the
+    // one place all three responses pass through, is what keeps the header
+    // interceptor above from ever needing to re-read document.cookie.
+    if (res.data && typeof res.data === 'object' && 'csrfToken' in res.data) {
+      setCsrfToken(res.data.csrfToken);
+    }
     return res;
   },
   async (err) => {
     const original = err.config;
     const status = err.response?.status;
 
-    if (status === 401 && original && !isAuthEndpoint(original.url) && !original._retriedAfterRefresh && hasSessionCookie()) {
+    if (status === 401 && original && !isAuthEndpoint(original.url) && !original._retriedAfterRefresh) {
       original._retriedAfterRefresh = true;
       try {
         await refreshOnce();
@@ -138,7 +188,7 @@ export const registerUser = (data) => api.post('/api/auth/register', data);
 export const loginUser = (data) => api.post('/api/auth/login', data);
 export const getMe = () => api.get('/api/auth/me');
 export const verifyPassword = (password) => api.post('/api/auth/verify-password', { password });
-export const logoutUser = () => api.post('/api/auth/logout');
+export const logoutUser = () => api.post('/api/auth/logout').finally(() => setCsrfToken(null));
 
 // Founder - role permissions' per-user overrides
 export const getUsers = (role) => api.get('/api/founder/users', { params: { role } });
@@ -289,9 +339,26 @@ export const jobsApi = hrDeskResource('jobs');
 export const performanceApi = hrDeskResource('performance');
 export const leaveEntriesApi = hrDeskResource('leave-entries');
 
+// Document Templates — create/update carry a PDF file, so unlike the rest
+// of hrDeskResource these send multipart/form-data, not JSON.
+function templateFormData({ name, category, file }) {
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('category', category);
+  if (file) formData.append('file', file);
+  return formData;
+}
+export const documentTemplatesApi = {
+  list: () => api.get('/api/hr-desk/document-templates'),
+  create: (data) => api.post('/api/hr-desk/document-templates', templateFormData(data)),
+  update: (id, data) => api.patch(`/api/hr-desk/document-templates/${id}`, templateFormData(data)),
+  remove: (id) => api.delete(`/api/hr-desk/document-templates/${id}`),
+};
+
 export const extraHoursApi = {
   submit: (data) => api.post('/api/hr-desk/extra-hours', data),
   myList: () => api.get('/api/hr-desk/extra-hours/me'),
+  myMentions: () => api.get('/api/hr-desk/extra-hours/mentions'),
   list: () => api.get('/api/hr-desk/extra-hours'),
 };
 

@@ -29,6 +29,18 @@ const STATUS_VALUES = [
   'Details Shared', 'Requested Call Back', 'Meeting Arranged', 'Proposal', 'Converted', 'Lost',
 ];
 
+// Added for the Marketing Master Sheet import (docs/SALES_FILTERS_IMPLEMENTATION_PLAN.md)
+// — a multi-contact-per-company, multi-channel outreach tracker, on top of
+// the single-contact-per-company Bangalore-list leads this desk already has.
+const COUNTRY_VALUES = ['India', 'Australia'];
+const DESIGNATION_LEVEL_VALUES = ['Decision Maker', 'Influencer', 'Other'];
+const EMAIL_VERIFIED_VALUES = ['Valid', 'Invalid', 'Unknown'];
+const PHONE_VERIFIED_VALUES = ['Correct', 'Wrong', 'Unknown'];
+const EMAIL_CAMPAIGN_VALUES = ['Not Sent', 'Sent', 'Both Done', 'Got Response', 'Bounced'];
+const WHATSAPP_CAMPAIGN_VALUES = ['Not Started', 'Going On', 'Done', 'No Response'];
+const LINKEDIN_CAMPAIGN_VALUES = ['Not Started', '1st Msg Sent', 'Follow-up Done'];
+const LINKEDIN_CONNECTION_VALUES = ['Not Sent', 'Sent', 'Accepted', 'Already Connected'];
+
 function serializeDoc(data) {
   const out = {};
   for (const [key, value] of Object.entries(data)) {
@@ -51,6 +63,10 @@ const EDITABLE_FIELDS = [
   'status', 'assignedTo', 'comments', 'lastCalledDate', 'nextCallDate',
   'meetingDate', 'meetingNotes', 'source', 'importRowNo', 'importFlag',
   'dealValue', 'priority', 'lostReason',
+  // Marketing Master Sheet fields (see docs/SALES_FILTERS_IMPLEMENTATION_PLAN.md)
+  'country', 'designationLevel', 'emailVerified', 'phoneVerified',
+  'emailCampaignStatus', 'whatsappCampaignStatus', 'linkedinCampaignStatus',
+  'linkedinConnectionStatus', 'leftOrganisation', 'nextAction', 'lastContactedDate',
 ];
 
 // POST /api/sales-desk/leads
@@ -145,11 +161,16 @@ function normalizeName(name) {
 }
 
 // exceljs returns plain strings/numbers for most cells, but a hyperlinked
-// cell (every email in this file) comes back as {text, hyperlink} instead.
+// cell (every email in this file) comes back as {text, hyperlink} instead —
+// and in the Marketing Master Sheet, a hyperlinked cell that also has rich
+// text formatting nests one more level: {text: {richText: [...]}, hyperlink}.
+// Recursing (rather than a flat `String(v.text)`) is what stops that nested
+// case from stringifying to the literal text "[object Object]".
 function cellText(v) {
   if (v == null) return '';
-  if (typeof v === 'object' && 'text' in v) return String(v.text).trim();
   if (typeof v === 'object' && 'richText' in v) return v.richText.map((r) => r.text).join('').trim();
+  if (typeof v === 'object' && 'text' in v) return cellText(v.text);
+  if (typeof v === 'object' && 'result' in v) return cellText(v.result);
   return String(v).trim();
 }
 
@@ -297,6 +318,202 @@ function parseWorkbook(workbook) {
   return [...leads.values()];
 }
 
+// --- Import from the Marketing Master Sheet -----------------------------
+//
+// A different shape from Frist/Second above: one row per *contact*, several
+// contacts per company, spread across up to 5 tabs with overlapping but
+// not-identical headers (Sheet10, "marketing 2", "New data added", and an
+// "client details Australia" tab included). Detected in importLeads() by
+// the presence of a "Company Name" header anywhere in the workbook, since
+// there's no single fixed sheet name to key off like "Frist".
+
+// Known typos/variants seen in the real file - fixed by hand rather than
+// fuzzy-matched, since a wrong auto-correction silently merges two real
+// cities. Extend this map as new variants show up in future re-imports.
+const CITY_FIXES = {
+  hydarebad: 'Hyderabad',
+  amedhabad: 'Ahmedabad',
+  gurgaon: 'Gurugram',
+  gurugram: 'Gurugram',
+  india: '',
+  'wadala / thane mumbai': 'Mumbai',
+};
+function normalizeCity(raw) {
+  let s = String(raw || '').trim().replace(/,+$/, '').trim();
+  if (!s) return '';
+  // A handful of rows have "City, City2" in one cell (data-entry error) -
+  // the first one is treated as the primary.
+  s = s.split(',')[0].trim();
+  const fixed = CITY_FIXES[s.toLowerCase()];
+  if (fixed !== undefined) return fixed;
+  return s.replace(/\w\S*/g, (t) => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
+}
+
+const DECISION_MAKER_RE = /\b(ceo|cfo|coo|cmo|cto|md|managing director|founder|chairman|president|owner|promoter|director)\b/i;
+const INFLUENCER_RE = /\b(head|vice president|\bvp\b|\bavp\b|general manager|\bgm\b|manager|lead)\b/i;
+function designationLevelOf(designation) {
+  const d = String(designation || '');
+  if (!d) return 'Other';
+  if (DECISION_MAKER_RE.test(d)) return 'Decision Maker';
+  if (INFLUENCER_RE.test(d)) return 'Influencer';
+  return 'Other';
+}
+
+function normalizeEmailVerified(raw) {
+  const s = String(raw || '').trim().toLowerCase();
+  if (s === 'valid') return 'Valid';
+  if (s === 'not valid' || s === 'invalid') return 'Invalid';
+  return 'Unknown';
+}
+function normalizePhoneVerified(raw) {
+  const s = String(raw || '').trim().toLowerCase();
+  if (!s) return 'Unknown';
+  if (s.includes('wrong') || s === 'no' || s === 'n') return 'Wrong';
+  if (s.includes('correct') || s === 'yes' || s === 'y') return 'Correct';
+  return 'Unknown';
+}
+function normalizeEmailCampaign(raw) {
+  const s = String(raw || '').toLowerCase();
+  if (!s) return 'Not Sent';
+  if (s.includes("wasn't delivered") || s.includes('not delivered') || s.includes('bounce')) return 'Bounced';
+  if (s.includes('got response')) return 'Got Response';
+  if (s.includes('both done')) return 'Both Done';
+  return 'Sent';
+}
+function normalizeWhatsappCampaign(raw) {
+  const s = String(raw || '').toLowerCase();
+  if (!s) return 'Not Started';
+  if (s.includes('not started')) return 'Not Started';
+  if (s.includes('done')) return 'Done';
+  if (s.includes('going on')) return 'Going On';
+  if (s.includes('no response')) return 'No Response';
+  return 'Not Started';
+}
+function normalizeLinkedinCampaign(raw) {
+  const s = String(raw || '').toLowerCase();
+  if (!s) return 'Not Started';
+  if (s.includes('follow up')) return 'Follow-up Done';
+  if (s.includes('msg') || s.includes('camp')) return '1st Msg Sent';
+  return 'Not Started';
+}
+function normalizeLinkedinConnection(raw) {
+  const s = String(raw || '').toLowerCase();
+  if (!s) return 'Not Sent';
+  if (s.includes('already')) return 'Already Connected';
+  if (s.includes('accept')) return 'Accepted';
+  if (s.includes('sent')) return 'Sent';
+  return 'Not Sent';
+}
+
+// "Sale's status" free text -> the existing STATUS_VALUES pipeline, so this
+// import lands in the same Directory/Pipeline every other lead already
+// uses instead of needing a second parallel status system.
+const SALE_STATUS_MAP = {
+  'didnt pick up the call': 'Did Not Pick',
+  "didn't pick up the call": 'Did Not Pick',
+  'no response': 'Did Not Pick',
+  'need to take follow up': 'Contacted',
+  hot: 'Contacted',
+  warm: 'Contacted',
+  'not the right person': 'Invalid',
+  'meeting done': 'Meeting Arranged',
+  'not interested': 'Not Interested',
+  'referred someone else': 'Contacted',
+  'wrong no.': 'Invalid',
+  'wrong no': 'Invalid',
+  'target strategically': 'Yet to be Called',
+  'ongoing process': 'Contacted',
+  'blocked us': 'Lost',
+  'marketing team need to handle': 'Yet to be Called',
+};
+function mapSaleStatus(raw) {
+  const s = String(raw || '').trim().toLowerCase();
+  return SALE_STATUS_MAP[s] || 'Yet to be Called';
+}
+
+// A handful of the sheet's own "priority" values (e.g. "1st priority") mean
+// hot, not a literal Hot/Warm/Cold enum value - anything present maps to
+// Hot, nothing present defaults to Warm like every other import path here.
+function priorityOf(raw) {
+  return String(raw || '').trim() ? 'Hot' : 'Warm';
+}
+
+function leftOrganisationOf(...texts) {
+  return texts.some((t) => /left (the )?organisation|left organization|left company/i.test(String(t || '')));
+}
+
+// Keys a Marketing Master Sheet row by contact, not company - unlike
+// Frist/Second (one lead per company), this sheet has several real contacts
+// at the same company (e.g. 4 different people at "Mfar"), so keying by
+// company name alone would silently collapse them into one lead.
+function normalizeContactKey(companyName, contactName, email) {
+  const e = String(email || '').trim().toLowerCase();
+  if (e) return `email:${e}`;
+  return `name:${normalizeName(companyName)}::${normalizeName(contactName)}`;
+}
+
+function isMarketingMasterSheet(workbook) {
+  return workbook.worksheets.some((ws) => {
+    const map = headerMap(ws);
+    return Boolean(map['Company Name']);
+  });
+}
+
+function parseMarketingMasterWorkbook(workbook) {
+  const leads = new Map(); // contactKey -> lead object
+
+  for (const worksheet of workbook.worksheets) {
+    const map = headerMap(worksheet);
+    if (!map['Company Name']) continue; // not one of the contact sheets (e.g. a notes/pivot tab)
+    const country = /australia/i.test(worksheet.name) ? 'Australia' : 'India';
+
+    for (let r = 2; r <= worksheet.rowCount; r++) {
+      const row = worksheet.getRow(r);
+      const companyName = rowValue(row, map, 'Company Name');
+      const contactName = rowValue(row, map, 'Name');
+      if (!companyName && !contactName) continue; // real sheets have a dimensioned range far longer than the actual data
+
+      const email = rowValue(row, map, 'Email ') || rowValue(row, map, 'Email');
+      const key = normalizeContactKey(companyName, contactName, email);
+      if (leads.has(key)) continue; // first occurrence wins across tabs (e.g. Second-style overlap)
+
+      const designation = rowValue(row, map, 'Designation');
+      const whatToDo = rowValue(row, map, 'What to do:');
+      const actionToBeTaken = rowValue(row, map, 'Action to be taken');
+      const saleStatus = rowValue(row, map, "Sale's status") || rowValue(row, map, 'Client status');
+
+      leads.set(key, {
+        companyName: companyName || '(Unknown company)',
+        contactName,
+        designation,
+        city: normalizeCity(rowValue(row, map, 'City')),
+        phone: rowValue(row, map, 'Contact number'),
+        email,
+        status: mapSaleStatus(saleStatus),
+        comments: rowValue(row, map, 'REMARKS'),
+        assignedTo: rowValue(row, map, 'marketing Head'),
+        priority: priorityOf(rowValue(row, map, 'Priority ') || rowValue(row, map, 'Priority')),
+        dealValue: 0,
+        callLog: [],
+        source: 'Marketing Master Sheet',
+        country,
+        designationLevel: designationLevelOf(designation),
+        emailVerified: normalizeEmailVerified(rowValue(row, map, 'Email Status ?') || rowValue(row, map, 'Email Status?')),
+        phoneVerified: normalizePhoneVerified(rowValue(row, map, 'Is no. correct ?') || rowValue(row, map, 'Is no. correct?')),
+        emailCampaignStatus: normalizeEmailCampaign(rowValue(row, map, 'Email Camp ') || rowValue(row, map, 'Email Camp')),
+        whatsappCampaignStatus: normalizeWhatsappCampaign(rowValue(row, map, 'Whatsapp Camp')),
+        linkedinCampaignStatus: normalizeLinkedinCampaign(rowValue(row, map, 'Linkedin Camp')),
+        linkedinConnectionStatus: normalizeLinkedinConnection(rowValue(row, map, 'Linkedin Connection')),
+        leftOrganisation: leftOrganisationOf(whatToDo, actionToBeTaken),
+        nextAction: [whatToDo, actionToBeTaken].filter(Boolean).join(' / '),
+        lastContactedDate: rowValue(row, map, 'Last Contacted'),
+      });
+    }
+  }
+
+  return [...leads.values()];
+}
+
 // POST /api/sales-desk/leads/import — multipart, field name "file"
 async function importLeads(req, res) {
   if (!req.file) return fail(res, { status: 400, message: 'No file uploaded', code: 'VALIDATION_ERROR' });
@@ -309,18 +526,35 @@ async function importLeads(req, res) {
     return fail(res, { status: 400, message: 'Could not read that file — is it a valid .xlsx workbook?', code: 'VALIDATION_ERROR' });
   }
 
-  const parsedLeads = parseWorkbook(workbook);
+  // Two source formats share this one endpoint: the original Bangalore-list
+  // Frist/Second/Moving-to-sales-team sheets (one lead per company), and the
+  // Marketing Master Sheet (one lead per contact, several per company,
+  // spread across up to 5 tabs). Detected by header shape, not filename —
+  // see isMarketingMasterSheet() and docs/SALES_FILTERS_IMPLEMENTATION_PLAN.md.
+  const isMarketingMaster = isMarketingMasterSheet(workbook);
+  const parsedLeads = isMarketingMaster ? parseMarketingMasterWorkbook(workbook) : parseWorkbook(workbook);
   if (parsedLeads.length === 0) {
-    return fail(res, { status: 400, message: 'No leads found — expected a "Frist" or "Second" sheet with company names', code: 'VALIDATION_ERROR' });
+    return fail(res, {
+      status: 400,
+      message: isMarketingMaster
+        ? 'No contact rows found under "Company Name" in any tab.'
+        : 'No leads found — expected a "Frist" or "Second" sheet with company names',
+      code: 'VALIDATION_ERROR',
+    });
   }
 
   // Dedupe against what's already in Firestore too, so re-running an
   // import (or importing a future city list with overlap) updates existing
-  // leads instead of duplicating them.
+  // leads instead of duplicating them. Keyed by company for the Bangarole-
+  // list format (one lead per company); by contact for the Marketing Master
+  // Sheet format (several real contacts can share one company).
   const existingSnap = await leadsCollection.limit(SALES_LEADS_READ_LIMIT).get();
   const existingByKey = new Map();
   existingSnap.docs.forEach((d) => {
-    const key = normalizeName(d.data().companyName);
+    const data = d.data();
+    const key = isMarketingMaster
+      ? normalizeContactKey(data.companyName, data.contactName, data.email)
+      : normalizeName(data.companyName);
     if (key) existingByKey.set(key, d);
   });
 
@@ -330,7 +564,9 @@ async function importLeads(req, res) {
   for (let i = 0; i < parsedLeads.length; i += batchSize) {
     const batch = db.batch();
     for (const lead of parsedLeads.slice(i, i + batchSize)) {
-      const key = normalizeName(lead.companyName);
+      const key = isMarketingMaster
+        ? normalizeContactKey(lead.companyName, lead.contactName, lead.email)
+        : normalizeName(lead.companyName);
       const existingDoc = existingByKey.get(key);
       if (existingDoc) {
         // Re-importing over an existing lead must never clobber fields the
@@ -429,6 +665,14 @@ module.exports = {
   STATUS_VALUES,
   PRIORITY_VALUES,
   LOST_REASON_VALUES,
+  COUNTRY_VALUES,
+  DESIGNATION_LEVEL_VALUES,
+  EMAIL_VERIFIED_VALUES,
+  PHONE_VERIFIED_VALUES,
+  EMAIL_CAMPAIGN_VALUES,
+  WHATSAPP_CAMPAIGN_VALUES,
+  LINKEDIN_CAMPAIGN_VALUES,
+  LINKEDIN_CONNECTION_VALUES,
   listLeads,
   createLead,
   updateLead,
@@ -445,4 +689,8 @@ module.exports = {
   // without going through the HTTP layer — not used by any route.
   parseWorkbook,
   normalizeName,
+  parseMarketingMasterWorkbook,
+  isMarketingMasterSheet,
+  normalizeContactKey,
+  normalizeCity,
 };

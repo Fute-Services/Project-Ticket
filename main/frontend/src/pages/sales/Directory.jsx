@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Search, MapPin, Upload, Plus } from 'lucide-react';
+import { Search, MapPin, Upload, Plus, Filter } from 'lucide-react';
 import SalesLayout from '../../components/sales/SalesLayout';
 import LeadProfileModal, { STATUS_VALUES, PRIORITY_VALUES } from '../../components/sales/LeadProfileModal';
 import { Card, SectionHeader, Badge, Pill, Modal, Field, inputClass, EmptyState } from '../../components/ui';
@@ -10,12 +10,27 @@ import { ColorSelect } from '../../components/TicketsQueueView';
 
 const EMPTY_ADD_FORM = { companyName: '', contactName: '', designation: '', mobile: '', email: '', city: '', assignedTo: '' };
 
+// Marketing Master Sheet fields (docs/SALES_FILTERS_IMPLEMENTATION_PLAN.md) —
+// mirrors the enums salesDeskController.js normalizes the import onto.
+const DESIGNATION_LEVEL_VALUES = ['Decision Maker', 'Influencer', 'Other'];
+const EMAIL_CAMPAIGN_VALUES = ['Not Sent', 'Sent', 'Both Done', 'Got Response', 'Bounced'];
+const WHATSAPP_CAMPAIGN_VALUES = ['Not Started', 'Going On', 'Done', 'No Response'];
+const LINKEDIN_CAMPAIGN_VALUES = ['Not Started', '1st Msg Sent', 'Follow-up Done'];
+
 export default function SalesDirectory() {
   const { leads, setLeads } = useSalesDesk();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [repFilter, setRepFilter] = useState('All');
+  const [countryFilter, setCountryFilter] = useState('All');
+  const [cityFilter, setCityFilter] = useState('All');
+  const [designationLevelFilter, setDesignationLevelFilter] = useState('All');
+  const [emailCampaignFilter, setEmailCampaignFilter] = useState('All');
+  const [whatsappCampaignFilter, setWhatsappCampaignFilter] = useState('All');
+  const [linkedinCampaignFilter, setLinkedinCampaignFilter] = useState('All');
+  const [hideBadContacts, setHideBadContacts] = useState(true);
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [selected, setSelected] = useState(null);
 
   const [addOpen, setAddOpen] = useState(false);
@@ -29,6 +44,17 @@ export default function SalesDirectory() {
     () => [...new Set(leads.map((l) => l.assignedTo).filter(Boolean))].sort(),
     [leads]
   );
+  // Country is India unless a lead was explicitly imported/tagged Australia
+  // - most leads predate that field, so they shouldn't disappear from the
+  // default "All" view just for not having it set.
+  const countries = useMemo(
+    () => [...new Set(leads.map((l) => l.country).filter(Boolean))].sort(),
+    [leads]
+  );
+  const cities = useMemo(() => {
+    const pool = countryFilter === 'All' ? leads : leads.filter((l) => (l.country || 'India') === countryFilter);
+    return [...new Set(pool.map((l) => l.city).filter(Boolean))].sort();
+  }, [leads, countryFilter]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -36,6 +62,16 @@ export default function SalesDirectory() {
       if (statusFilter !== 'All' && l.status !== statusFilter) return false;
       if (priorityFilter !== 'All' && l.priority !== priorityFilter) return false;
       if (repFilter !== 'All' && l.assignedTo !== repFilter) return false;
+      if (countryFilter !== 'All' && (l.country || 'India') !== countryFilter) return false;
+      if (cityFilter !== 'All' && l.city !== cityFilter) return false;
+      if (designationLevelFilter !== 'All' && l.designationLevel !== designationLevelFilter) return false;
+      if (emailCampaignFilter !== 'All' && (l.emailCampaignStatus || 'Not Sent') !== emailCampaignFilter) return false;
+      if (whatsappCampaignFilter !== 'All' && (l.whatsappCampaignStatus || 'Not Started') !== whatsappCampaignFilter) return false;
+      if (linkedinCampaignFilter !== 'All' && (l.linkedinCampaignStatus || 'Not Started') !== linkedinCampaignFilter) return false;
+      // "Bad contacts" = known-wrong email/phone, or a contact flagged as
+      // having left their company - dead weight for a rep working the list,
+      // but never deleted (still reachable by turning this toggle off).
+      if (hideBadContacts && (l.emailVerified === 'Invalid' || l.phoneVerified === 'Wrong' || l.leftOrganisation)) return false;
       if (!q) return true;
       return (
         (l.companyName || '').toLowerCase().includes(q) ||
@@ -43,7 +79,10 @@ export default function SalesDirectory() {
         (l.city || '').toLowerCase().includes(q)
       );
     });
-  }, [leads, query, statusFilter, priorityFilter, repFilter]);
+  }, [
+    leads, query, statusFilter, priorityFilter, repFilter, countryFilter, cityFilter,
+    designationLevelFilter, emailCampaignFilter, whatsappCampaignFilter, linkedinCampaignFilter, hideBadContacts,
+  ]);
 
   async function submitAdd(e) {
     e.preventDefault();
@@ -118,6 +157,15 @@ export default function SalesDirectory() {
                 className="w-full bg-muted border border-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-foreground placeholder-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
+            {countries.length > 0 && (
+              <div className="w-32">
+                <ColorSelect
+                  value={countryFilter}
+                  onChange={(v) => { setCountryFilter(v); setCityFilter('All'); }}
+                  options={[{ value: 'All', label: 'All countries' }, ...countries.map((c) => ({ value: c, label: c }))]}
+                />
+              </div>
+            )}
             <div className="w-36">
               <ColorSelect
                 value={repFilter}
@@ -125,6 +173,15 @@ export default function SalesDirectory() {
                 options={[{ value: 'All', label: 'All reps' }, ...reps.map((r) => ({ value: r, label: r }))]}
               />
             </div>
+            <button
+              type="button"
+              onClick={() => setShowMoreFilters((p) => !p)}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-colors cursor-pointer shrink-0 ${
+                showMoreFilters ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-muted border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Filter size={13} /> More filters
+            </button>
           </div>
 
           <div className="flex flex-wrap gap-2 mb-3">
@@ -139,6 +196,52 @@ export default function SalesDirectory() {
               <Pill key={s} active={statusFilter === s} onClick={() => setStatusFilter(s)}>{s}</Pill>
             ))}
           </div>
+
+          {showMoreFilters && (
+            <div className="rounded-xl border border-border bg-muted/40 p-3.5 mb-5 flex flex-col gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                <Field label="City">
+                  <ColorSelect
+                    value={cityFilter}
+                    onChange={setCityFilter}
+                    options={[{ value: 'All', label: 'All cities' }, ...cities.map((c) => ({ value: c, label: c }))]}
+                  />
+                </Field>
+                <Field label="Designation Level">
+                  <ColorSelect
+                    value={designationLevelFilter}
+                    onChange={setDesignationLevelFilter}
+                    options={[{ value: 'All', label: 'All levels' }, ...DESIGNATION_LEVEL_VALUES.map((v) => ({ value: v, label: v }))]}
+                  />
+                </Field>
+                <Field label="Email Campaign">
+                  <ColorSelect
+                    value={emailCampaignFilter}
+                    onChange={setEmailCampaignFilter}
+                    options={[{ value: 'All', label: 'Any' }, ...EMAIL_CAMPAIGN_VALUES.map((v) => ({ value: v, label: v }))]}
+                  />
+                </Field>
+                <Field label="WhatsApp Campaign">
+                  <ColorSelect
+                    value={whatsappCampaignFilter}
+                    onChange={setWhatsappCampaignFilter}
+                    options={[{ value: 'All', label: 'Any' }, ...WHATSAPP_CAMPAIGN_VALUES.map((v) => ({ value: v, label: v }))]}
+                  />
+                </Field>
+                <Field label="LinkedIn Campaign">
+                  <ColorSelect
+                    value={linkedinCampaignFilter}
+                    onChange={setLinkedinCampaignFilter}
+                    options={[{ value: 'All', label: 'Any' }, ...LINKEDIN_CAMPAIGN_VALUES.map((v) => ({ value: v, label: v }))]}
+                  />
+                </Field>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer w-fit">
+                <input type="checkbox" checked={hideBadContacts} onChange={(e) => setHideBadContacts(e.target.checked)} className="accent-primary" />
+                Hide bad contacts (invalid email, wrong number, or left the company)
+              </label>
+            </div>
+          )}
 
           {filtered.length === 0 ? (
             <EmptyState text="No leads match these filters." />

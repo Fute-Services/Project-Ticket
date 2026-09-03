@@ -1,21 +1,30 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTickets } from '../context/TicketContext';
 import { useTaskProject } from '../context/TaskProjectContext';
 import ItDeskLayout from '../components/ItDeskLayout';
 import NewItTicketModal from '../components/NewItTicketModal';
 import NewHrTicketModal from '../components/NewHrTicketModal';
+import EditTicketModal from '../components/EditTicketModal';
 import { issueTitle, ColorSelect } from '../components/TicketsQueueView';
 import DataTable from '../components/DataTable';
 import { Card, SectionHeader, StatCard, Badge, Drawer, RefreshBar } from '../components/ui';
-import { Plus, UserPlus, Search, X, Eye, Trash2, Clock, RotateCcw } from 'lucide-react';
+import { Plus, UserPlus, Search, X, Eye, Pencil, Clock, RotateCcw } from 'lucide-react';
 import TaskRow from '../components/tasks/TaskRow';
 import TaskDetailPane from '../components/tasks/TaskDetailPane';
 import CheckInWidget from '../components/CheckInWidget';
 import ExtraHoursModal from '../components/ExtraHoursModal';
 import HolidaysCard from '../components/HolidaysCard';
 import MyLeavePerformanceCard from '../components/MyLeavePerformanceCard';
+import { extraHoursApi } from '../utils/api';
 import { toast } from 'sonner';
+
+const EXTRA_HOURS_STATUS_BADGE = {
+  pending_founder: 'bg-warning/10 text-warning border-warning/20',
+  approved: 'bg-primary/10 text-primary border-primary/20',
+  rejected: 'bg-destructive/10 text-destructive border-destructive/20',
+};
+const EXTRA_HOURS_STATUS_LABEL = { pending_founder: 'Pending', approved: 'Approved', rejected: 'Rejected' };
 
 const TICKET_STATUS_BADGE = {
   Open: 'bg-primary/10 text-primary border-primary/20',
@@ -27,7 +36,7 @@ const TICKET_STATUS_BADGE = {
 
 const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
-function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onDelete, onReopen, onRefresh, lastUpdated, loading }) {
+function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onEdit, onReopen, onRefresh, lastUpdated, loading }) {
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [detailsTicket, setDetailsTicket] = useState(null);
@@ -179,7 +188,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
               key: 'title',
               label: 'Issue',
               width: '150px',
-              render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{issueTitle(t)}</span>,
+              render: (t) => <span className="text-foreground text-xs font-medium block truncate max-w-[150px]" title={t.description || t.title}>{issueTitle(t)}</span>,
             },
             {
               key: 'status',
@@ -271,16 +280,13 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!window.confirm(`Delete ticket ${t.token || ''}? This can't be undone.`)) return;
-                      onDelete(t.id)
-                        .then(() => toast.success('Ticket deleted'))
-                        .catch(() => toast.error('Could not delete ticket'));
+                      onEdit(t);
                     }}
-                    title="Delete Ticket"
-                    aria-label={`Delete ticket ${t.token || t.id}`}
-                    className="p-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 transition-colors cursor-pointer flex items-center justify-center"
+                    title="Edit Ticket"
+                    aria-label={`Edit ticket ${t.token || t.id}`}
+                    className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-colors cursor-pointer flex items-center justify-center"
                   >
-                    <Trash2 size={15} />
+                    <Pencil size={15} />
                   </button>
                 </div>
               ),
@@ -303,7 +309,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
                   {detailsTicket.status}
                 </span>
               </div>
-              <div className="text-sm font-bold text-foreground mt-1">
+              <div className="text-sm font-bold text-foreground mt-1 break-words">
                 {detailsTicket.description || detailsTicket.title}
               </div>
             </div>
@@ -368,18 +374,13 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
             <button
               type="button"
               onClick={() => {
-                if (!window.confirm(`Delete ticket ${detailsTicket.token || ''}? This can't be undone.`)) return;
-                onDelete(detailsTicket.id)
-                  .then(() => {
-                    toast.success('Ticket deleted');
-                    setDetailsTicket(null);
-                  })
-                  .catch(() => toast.error('Could not delete ticket'));
+                onEdit(detailsTicket);
+                setDetailsTicket(null);
               }}
-              className="flex items-center justify-center gap-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 font-semibold text-xs rounded-xl px-3.5 py-2.5 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-semibold text-xs rounded-xl px-3.5 py-2.5 transition-colors cursor-pointer"
             >
-              <Trash2 size={14} />
-              Delete Ticket
+              <Pencil size={14} />
+              Edit Ticket
             </button>
           </div>
         )}
@@ -390,7 +391,49 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
 
 const TODAY = '2026-08-06';
 
-function MyTasksView({ tasks, projects, onToggle, onOpen, onRefresh, lastUpdated, loading }) {
+function ExtraHoursCard({ entries, myName }) {
+  if (entries === null) return null;
+  return (
+    <Card>
+      <SectionHeader title="Extra Hours" subtitle={`${entries.length} logged`} />
+      {entries.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-4 text-center">No extra hours logged yet.</p>
+      ) : (
+        <div className="flex flex-col gap-2.5 max-h-[420px] overflow-y-auto pr-0.5">
+          {entries.map((e) => {
+            const isMention = e.loggedBy && e.loggedBy !== myName;
+            return (
+              <div key={e.id} className="apple-glass-card border border-white/80 rounded-2xl p-3 hover:border-primary/40 hover:shadow-lg transition-all">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-bold text-foreground truncate">{e.projectCode}</span>
+                  <span className={`shrink-0 inline-flex items-center text-[10px] px-2 py-0.5 rounded-full border font-semibold whitespace-nowrap ${EXTRA_HOURS_STATUS_BADGE[e.status] || 'bg-muted text-muted-foreground border-border'}`}>
+                    {EXTRA_HOURS_STATUS_LABEL[e.status] || e.status}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5 mb-2">
+                  <span className="text-xl font-bold text-foreground tracking-tight leading-none">{e.hours}</span>
+                  <span className="text-[11px] text-muted-foreground leading-none">hours</span>
+                </div>
+                <div className="flex flex-col gap-1 text-[11px] text-muted-foreground border-t border-border/60 pt-2">
+                  {isMention && <div>Logged by <span className="text-foreground font-medium">{e.loggedBy}</span></div>}
+                  <div>Date: <span className="text-foreground font-medium">{e.date}</span></div>
+                  {e.fromTime && e.toTime && (
+                    <div>Time: <span className="text-foreground font-medium">{e.fromTime} – {e.toTime}</span></div>
+                  )}
+                  {e.teammates?.length > 0 && (
+                    <div>Teammates: <span className="text-foreground font-medium">{e.teammates.join(', ')}</span></div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function MyTasksView({ tasks, projects, onToggle, onOpen, onRefresh, lastUpdated, loading, extraHours, myName }) {
   // Asana's My Tasks groups by when something is due, not by status - the
   // question a person opens this page to answer is "what do I do now".
   // Overdue is folded into Today so it can't be scrolled past.
@@ -425,57 +468,63 @@ function MyTasksView({ tasks, projects, onToggle, onOpen, onRefresh, lastUpdated
         </div>
       </div>
 
-      <Card>
-        <SectionHeader title="My Projects" />
-        {projects.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4 text-center">You're not on any active projects yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {projects.map((p) => (
-              <div key={p.id} className="p-3.5 rounded-lg bg-muted border border-border">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-foreground truncate">{p.name}</span>
-                  <span className="text-xs text-muted-foreground">{p.progress}%</span>
-                </div>
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-1.5">
-                  <div className="h-full bg-primary rounded-full" style={{ width: `${p.progress}%` }} />
-                </div>
-                <div className="text-xs text-muted-foreground">{p.client} · due {p.dueDate}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <div className="px-3 py-2.5 border-b border-border">
-          <h2 className="text-sm font-medium text-foreground">My Tasks</h2>
-        </div>
-        {tasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-12 text-center">
-            Nothing assigned to you yet. Tasks your coordinator assigns will appear here.
-          </p>
-        ) : (
-          buckets.map(({ label, items }) =>
-            items.length === 0 ? null : (
-              <section key={label}>
-                <div className="flex items-center gap-2 px-3 py-2 bg-muted/60 border-b border-border">
-                  <h3 className="text-xs font-medium text-foreground">{label}</h3>
-                  <span className="text-xs text-muted-foreground">{items.length}</span>
-                </div>
-                {items.map((t) => (
-                  <TaskRow
-                    key={t.id}
-                    task={t}
-                    project={projects.find((p) => p.id === t.projectId)}
-                    onToggle={onToggle}
-                    onOpen={onOpen}
-                  />
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-5 items-start">
+        <div className="flex flex-col gap-6 min-w-0">
+          <Card>
+            <SectionHeader title="My Projects" />
+            {projects.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">You're not on any active projects yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {projects.map((p) => (
+                  <div key={p.id} className="p-3.5 rounded-lg bg-muted border border-border">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-foreground truncate">{p.name}</span>
+                      <span className="text-xs text-muted-foreground">{p.progress}%</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-1.5">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${p.progress}%` }} />
+                    </div>
+                    <div className="text-xs text-muted-foreground">{p.client} · due {p.dueDate}</div>
+                  </div>
                 ))}
-              </section>
-            )
-          )
-        )}
+              </div>
+            )}
+          </Card>
+
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <div className="px-3 py-2.5 border-b border-border">
+              <h2 className="text-sm font-medium text-foreground">My Tasks</h2>
+            </div>
+            {tasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-12 text-center">
+                Nothing assigned to you yet. Tasks your coordinator assigns will appear here.
+              </p>
+            ) : (
+              buckets.map(({ label, items }) =>
+                items.length === 0 ? null : (
+                  <section key={label}>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-muted/60 border-b border-border">
+                      <h3 className="text-xs font-medium text-foreground">{label}</h3>
+                      <span className="text-xs text-muted-foreground">{items.length}</span>
+                    </div>
+                    {items.map((t) => (
+                      <TaskRow
+                        key={t.id}
+                        task={t}
+                        project={projects.find((p) => p.id === t.projectId)}
+                        onToggle={onToggle}
+                        onOpen={onOpen}
+                      />
+                    ))}
+                  </section>
+                )
+              )
+            )}
+          </div>
+        </div>
+
+        <ExtraHoursCard entries={extraHours} myName={myName} />
       </div>
     </div>
   );
@@ -483,7 +532,7 @@ function MyTasksView({ tasks, projects, onToggle, onOpen, onRefresh, lastUpdated
 
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
-  const { tickets, addTicket, updateTicketField, deleteTicket, reopenTicket, refresh: refreshTickets, lastUpdated: ticketsUpdated, loading: ticketsLoading } = useTickets();
+  const { tickets, addTicket, updateTicketField, editTicket, reopenTicket, refresh: refreshTickets, lastUpdated: ticketsUpdated, loading: ticketsLoading } = useTickets();
   const { tasks, projects, toggleComplete, refresh: refreshTasks, lastUpdated: tasksUpdated, loading: tasksLoading } = useTaskProject();
   const [openTaskId, setOpenTaskId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -491,6 +540,26 @@ export default function EmployeeDashboardPage() {
   const [isHrTicketModalOpen, setIsHrTicketModalOpen] = useState(false);
   const [isExtraHoursOpen, setIsExtraHoursOpen] = useState(false);
   const [detailsTicket, setDetailsTicket] = useState(null);
+  const [editingTicket, setEditingTicket] = useState(null);
+  const [extraHours, setExtraHours] = useState(null);
+
+  // Own submissions + entries where this employee was named as a teammate
+  // (see myExtraHoursMentions in hrDeskController.js) - merged into one list
+  // so "My Tasks" shows the full picture either way, same as My Tickets
+  // shows every ticket this person raised.
+  function refreshExtraHours() {
+    Promise.all([extraHoursApi.myList(), extraHoursApi.myMentions()])
+      .then(([mine, mentions]) => {
+        const byId = new Map();
+        [...(mine.data || []), ...(mentions.data || [])].forEach((e) => byId.set(e.id, e));
+        setExtraHours([...byId.values()].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
+      })
+      .catch((e) => {
+        console.error('Failed to load extra hours:', e.message);
+        setExtraHours([]);
+      });
+  }
+  useEffect(refreshExtraHours, []);
 
   // Every employee shares the same underlying ticket list as IT's queue -
   // scope the view to tickets this person raised.
@@ -687,7 +756,7 @@ export default function EmployeeDashboardPage() {
                   key: 'title',
                   label: 'Issue',
                   width: '150px',
-                  render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{issueTitle(t)}</span>,
+                  render: (t) => <span className="text-foreground text-xs font-medium block truncate max-w-[150px]" title={t.description || t.title}>{issueTitle(t)}</span>,
                 },
                 {
                   key: 'status',
@@ -770,7 +839,7 @@ export default function EmployeeDashboardPage() {
           onFieldChange={updateTicketField}
           onNewTicket={() => setIsTicketModalOpen(true)}
           onNewHrTicket={() => setIsHrTicketModalOpen(true)}
-          onDelete={deleteTicket}
+          onEdit={setEditingTicket}
           onReopen={reopenTicket}
           onRefresh={refreshTickets}
           lastUpdated={ticketsUpdated}
@@ -787,6 +856,8 @@ export default function EmployeeDashboardPage() {
           onRefresh={refreshTasks}
           lastUpdated={tasksUpdated}
           loading={tasksLoading}
+          extraHours={extraHours}
+          myName={user?.full_name}
         />
       )}
 
@@ -813,7 +884,7 @@ export default function EmployeeDashboardPage() {
         onSubmitSuccess={handleNewHrTicket}
       />
 
-      <ExtraHoursModal open={isExtraHoursOpen} onClose={() => setIsExtraHoursOpen(false)} />
+      <ExtraHoursModal open={isExtraHoursOpen} onClose={() => setIsExtraHoursOpen(false)} onSubmitted={refreshExtraHours} />
 
       <Drawer
         open={!!detailsTicket}
@@ -829,7 +900,7 @@ export default function EmployeeDashboardPage() {
                   {detailsTicket.status}
                 </span>
               </div>
-              <div className="text-sm font-bold text-foreground mt-1">
+              <div className="text-sm font-bold text-foreground mt-1 break-words">
                 {detailsTicket.description || detailsTicket.title}
               </div>
             </div>
@@ -894,22 +965,19 @@ export default function EmployeeDashboardPage() {
             <button
               type="button"
               onClick={() => {
-                if (!window.confirm(`Delete ticket ${detailsTicket.token || ''}? This can't be undone.`)) return;
-                deleteTicket(detailsTicket.id)
-                  .then(() => {
-                    toast.success('Ticket deleted');
-                    setDetailsTicket(null);
-                  })
-                  .catch(() => toast.error('Could not delete ticket'));
+                setEditingTicket(detailsTicket);
+                setDetailsTicket(null);
               }}
-              className="flex items-center justify-center gap-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 font-semibold text-xs rounded-xl px-3.5 py-2.5 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-semibold text-xs rounded-xl px-3.5 py-2.5 transition-colors cursor-pointer"
             >
-              <Trash2 size={14} />
-              Delete Ticket
+              <Pencil size={14} />
+              Edit Ticket
             </button>
           </div>
         )}
       </Drawer>
+
+      <EditTicketModal ticket={editingTicket} onClose={() => setEditingTicket(null)} onSave={editTicket} />
     </ItDeskLayout>
   );
 }

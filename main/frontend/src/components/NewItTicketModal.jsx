@@ -10,6 +10,7 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
   const [category, setCategory] = useState('Laptop / Desktop / Server');
   const [subcategory, setSubcategory] = useState(TICKET_CATEGORIES['Laptop / Desktop / Server'][0]);
   const [priority, setPriority] = useState('Medium');
+  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [employeeId, setEmployeeId] = useState(user?.employeeId || user?.employee_id || '');
   const [submitted, setSubmitted] = useState(false);
@@ -44,6 +45,7 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
     setSubmitting(true);
     try {
       await onSubmitSuccess({
+        title: title.trim() || `${subcategory} Issue`,
         category,
         subcategory,
         priority,
@@ -158,6 +160,21 @@ export default function NewItTicketModal({ isOpen, onClose, onSubmitSuccess }) {
                   className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground font-bold focus:outline-none cursor-not-allowed"
                 />
               </div>
+            </div>
+
+            {/* Ticket Title */}
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">
+                Title <span className="text-primary">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Laptop screen flickering"
+                className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
             </div>
 
             {/* Issue Description */}
