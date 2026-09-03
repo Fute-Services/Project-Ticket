@@ -41,8 +41,16 @@ export function setCsrfToken(token) {
 }
 
 api.interceptors.request.use((config) => {
-  if (csrfToken) {
-    config.headers['X-CSRF-Token'] = csrfToken;
+  // Prefer the cached value (race-free - see above) but fall back to a live
+  // cookie read if we don't have one yet. The cache only ever gets *set* by
+  // a login/register/refresh response actually completing in this tab - a
+  // tab that inherited an already-logged-in session (reload, new tab) and
+  // hasn't hit a 401-triggered refresh yet would otherwise be stuck sending
+  // no header at all for its entire first access-token lifetime (up to 15
+  // min), since nothing in that scenario ever populates the cache.
+  const token = csrfToken || readCookie('fute_csrf');
+  if (token) {
+    config.headers['X-CSRF-Token'] = token;
     // Belt-and-suspenders: a handful of browser extensions strip
     // non-standard headers on cross-site requests (frontend and backend are
     // separate domains here) without touching the body - sending the same
@@ -50,7 +58,7 @@ api.interceptors.request.use((config) => {
     // the header gets stripped in transit. Only for a plain JSON body -
     // FormData uploads (file attachments) aren't touched.
     if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData)) {
-      config.data = { ...config.data, _csrf: csrfToken };
+      config.data = { ...config.data, _csrf: token };
     }
   }
   return config;
