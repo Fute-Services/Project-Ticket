@@ -5,10 +5,11 @@ import { useTaskProject } from '../context/TaskProjectContext';
 import ItDeskLayout from '../components/ItDeskLayout';
 import NewItTicketModal from '../components/NewItTicketModal';
 import NewHrTicketModal from '../components/NewHrTicketModal';
+import EditTicketModal from '../components/EditTicketModal';
 import { issueTitle, ColorSelect } from '../components/TicketsQueueView';
 import DataTable from '../components/DataTable';
 import { Card, SectionHeader, StatCard, Badge, Drawer, RefreshBar } from '../components/ui';
-import { Plus, UserPlus, Search, X, Eye, Trash2, Clock, RotateCcw } from 'lucide-react';
+import { Plus, UserPlus, Search, X, Eye, Pencil, Clock, RotateCcw } from 'lucide-react';
 import TaskRow from '../components/tasks/TaskRow';
 import TaskDetailPane from '../components/tasks/TaskDetailPane';
 import CheckInWidget from '../components/CheckInWidget';
@@ -35,7 +36,7 @@ const TICKET_STATUS_BADGE = {
 
 const TICKET_STATUSES = ['Open', 'In Progress', 'Waiting Approval', 'Resolved', 'Closed'];
 
-function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onDelete, onReopen, onRefresh, lastUpdated, loading }) {
+function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onEdit, onReopen, onRefresh, lastUpdated, loading }) {
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [detailsTicket, setDetailsTicket] = useState(null);
@@ -187,7 +188,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
               key: 'title',
               label: 'Issue',
               width: '150px',
-              render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{issueTitle(t)}</span>,
+              render: (t) => <span className="text-foreground text-xs font-medium block truncate max-w-[150px]" title={t.description || t.title}>{issueTitle(t)}</span>,
             },
             {
               key: 'status',
@@ -279,16 +280,13 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!window.confirm(`Delete ticket ${t.token || ''}? This can't be undone.`)) return;
-                      onDelete(t.id)
-                        .then(() => toast.success('Ticket deleted'))
-                        .catch(() => toast.error('Could not delete ticket'));
+                      onEdit(t);
                     }}
-                    title="Delete Ticket"
-                    aria-label={`Delete ticket ${t.token || t.id}`}
-                    className="p-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 transition-colors cursor-pointer flex items-center justify-center"
+                    title="Edit Ticket"
+                    aria-label={`Edit ticket ${t.token || t.id}`}
+                    className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-colors cursor-pointer flex items-center justify-center"
                   >
-                    <Trash2 size={15} />
+                    <Pencil size={15} />
                   </button>
                 </div>
               ),
@@ -376,18 +374,13 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onD
             <button
               type="button"
               onClick={() => {
-                if (!window.confirm(`Delete ticket ${detailsTicket.token || ''}? This can't be undone.`)) return;
-                onDelete(detailsTicket.id)
-                  .then(() => {
-                    toast.success('Ticket deleted');
-                    setDetailsTicket(null);
-                  })
-                  .catch(() => toast.error('Could not delete ticket'));
+                onEdit(detailsTicket);
+                setDetailsTicket(null);
               }}
-              className="flex items-center justify-center gap-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 font-semibold text-xs rounded-xl px-3.5 py-2.5 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-semibold text-xs rounded-xl px-3.5 py-2.5 transition-colors cursor-pointer"
             >
-              <Trash2 size={14} />
-              Delete Ticket
+              <Pencil size={14} />
+              Edit Ticket
             </button>
           </div>
         )}
@@ -539,7 +532,7 @@ function MyTasksView({ tasks, projects, onToggle, onOpen, onRefresh, lastUpdated
 
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
-  const { tickets, addTicket, updateTicketField, deleteTicket, reopenTicket, refresh: refreshTickets, lastUpdated: ticketsUpdated, loading: ticketsLoading } = useTickets();
+  const { tickets, addTicket, updateTicketField, editTicket, reopenTicket, refresh: refreshTickets, lastUpdated: ticketsUpdated, loading: ticketsLoading } = useTickets();
   const { tasks, projects, toggleComplete, refresh: refreshTasks, lastUpdated: tasksUpdated, loading: tasksLoading } = useTaskProject();
   const [openTaskId, setOpenTaskId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -547,6 +540,7 @@ export default function EmployeeDashboardPage() {
   const [isHrTicketModalOpen, setIsHrTicketModalOpen] = useState(false);
   const [isExtraHoursOpen, setIsExtraHoursOpen] = useState(false);
   const [detailsTicket, setDetailsTicket] = useState(null);
+  const [editingTicket, setEditingTicket] = useState(null);
   const [extraHours, setExtraHours] = useState(null);
 
   // Own submissions + entries where this employee was named as a teammate
@@ -762,7 +756,7 @@ export default function EmployeeDashboardPage() {
                   key: 'title',
                   label: 'Issue',
                   width: '150px',
-                  render: (t) => <span className="text-foreground text-xs font-medium block truncate" title={t.description || t.title}>{issueTitle(t)}</span>,
+                  render: (t) => <span className="text-foreground text-xs font-medium block truncate max-w-[150px]" title={t.description || t.title}>{issueTitle(t)}</span>,
                 },
                 {
                   key: 'status',
@@ -845,7 +839,7 @@ export default function EmployeeDashboardPage() {
           onFieldChange={updateTicketField}
           onNewTicket={() => setIsTicketModalOpen(true)}
           onNewHrTicket={() => setIsHrTicketModalOpen(true)}
-          onDelete={deleteTicket}
+          onEdit={setEditingTicket}
           onReopen={reopenTicket}
           onRefresh={refreshTickets}
           lastUpdated={ticketsUpdated}
@@ -971,22 +965,19 @@ export default function EmployeeDashboardPage() {
             <button
               type="button"
               onClick={() => {
-                if (!window.confirm(`Delete ticket ${detailsTicket.token || ''}? This can't be undone.`)) return;
-                deleteTicket(detailsTicket.id)
-                  .then(() => {
-                    toast.success('Ticket deleted');
-                    setDetailsTicket(null);
-                  })
-                  .catch(() => toast.error('Could not delete ticket'));
+                setEditingTicket(detailsTicket);
+                setDetailsTicket(null);
               }}
-              className="flex items-center justify-center gap-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 font-semibold text-xs rounded-xl px-3.5 py-2.5 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-semibold text-xs rounded-xl px-3.5 py-2.5 transition-colors cursor-pointer"
             >
-              <Trash2 size={14} />
-              Delete Ticket
+              <Pencil size={14} />
+              Edit Ticket
             </button>
           </div>
         )}
       </Drawer>
+
+      <EditTicketModal ticket={editingTicket} onClose={() => setEditingTicket(null)} onSave={editTicket} />
     </ItDeskLayout>
   );
 }
