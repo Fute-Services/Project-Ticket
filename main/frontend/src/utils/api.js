@@ -18,9 +18,41 @@ function readCookie(name) {
 // this is what lets it be echoed back as a header. See
 // backend/middleware/csrfMiddleware.js for why that pair proves the request
 // came from our own frontend, not a forged cross-site one.
+//
+// Re-reading document.cookie on every single request used to race a
+// concurrent silent refresh (AuthContext/PermissionsContext poll every
+// 15s): the interceptor could read the *old* cookie value into the header
+// a moment before the browser's own cookie jar picked up a *new* value
+// from an in-flight /api/auth/refresh response, so the header and the
+// cookie the browser actually attached no longer matched - an intermittent,
+// hard-to-reproduce "CSRF token missing or invalid" for real, logged-in
+// users. Caching the value in memory and updating it explicitly, in the
+// same response handler that processes login/register/refresh (below),
+// removes that race entirely - there's no longer a gap between "the value
+// changed" and "the frontend knows it changed".
+//
+// Seeded from the cookie once at module load so a page that already has a
+// session (refreshed the tab, opened a new tab) doesn't send an empty
+// header on its very first request before any login/refresh response has
+// run in this particular tab.
+let csrfToken = readCookie('fute_csrf');
+export function setCsrfToken(token) {
+  csrfToken = token || null;
+}
+
 api.interceptors.request.use((config) => {
-  const csrf = readCookie('fute_csrf');
-  if (csrf) config.headers['X-CSRF-Token'] = csrf;
+  if (csrfToken) {
+    config.headers['X-CSRF-Token'] = csrfToken;
+    // Belt-and-suspenders: a handful of browser extensions strip
+    // non-standard headers on cross-site requests (frontend and backend are
+    // separate domains here) without touching the body - sending the same
+    // value as a body field too means the request still succeeds even if
+    // the header gets stripped in transit. Only for a plain JSON body -
+    // FormData uploads (file attachments) aren't touched.
+    if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData)) {
+      config.data = { ...config.data, _csrf: csrfToken };
+    }
+  }
   return config;
 });
 
@@ -97,6 +129,13 @@ api.interceptors.response.use(
     if (body && typeof body === 'object' && typeof body.success === 'boolean') {
       res.data = body.data;
     }
+    // Login/register/refresh each return a fresh csrfToken (see
+    // authController.js's issueSessionCookies) - caching it here, in the
+    // one place all three responses pass through, is what keeps the header
+    // interceptor above from ever needing to re-read document.cookie.
+    if (res.data && typeof res.data === 'object' && 'csrfToken' in res.data) {
+      setCsrfToken(res.data.csrfToken);
+    }
     return res;
   },
   async (err) => {
@@ -138,7 +177,7 @@ export const registerUser = (data) => api.post('/api/auth/register', data);
 export const loginUser = (data) => api.post('/api/auth/login', data);
 export const getMe = () => api.get('/api/auth/me');
 export const verifyPassword = (password) => api.post('/api/auth/verify-password', { password });
-export const logoutUser = () => api.post('/api/auth/logout');
+export const logoutUser = () => api.post('/api/auth/logout').finally(() => setCsrfToken(null));
 
 // Founder - role permissions' per-user overrides
 export const getUsers = (role) => api.get('/api/founder/users', { params: { role } });

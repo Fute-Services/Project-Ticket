@@ -36,11 +36,16 @@ const IDENTITY_TOOLKIT_KEY = usingEmulator ? 'emulator-key' : process.env.FIREBA
 
 // Issues a fresh access+refresh pair for a session and sets all three
 // cookies (access, refresh, csrf) — the one place that sequence happens, so
-// register/login/refresh can't drift out of sync with each other.
+// register/login/refresh can't drift out of sync with each other. Returns
+// the csrf token too (not just setting the cookie) — callers put it in the
+// JSON response body so the frontend can cache it in JS memory instead of
+// re-reading document.cookie on every request, which used to race against
+// a concurrent silent refresh rotating the cookie's value mid-flight (see
+// docs — the "CSRF token missing or invalid" intermittent failure).
 function issueSessionCookies(res, { id, email, role, full_name, sessionId, remember }) {
   const accessToken = signAccessToken({ id, email, role, full_name, sid: sessionId });
   setAuthCookie(res, accessToken);
-  setCsrfCookie(res, remember);
+  return setCsrfCookie(res, remember);
 }
 
 // POST /api/auth/register
@@ -89,11 +94,13 @@ async function register(req, res) {
 
   // The access token now lives only in an httpOnly cookie — never in the
   // response body — so no JS on this page (including a future XSS bug) can
-  // read it.
-  issueSessionCookies(res, { id: userRecord.uid, email, role, full_name, sessionId: session.id, remember: true });
+  // read it. csrfToken is different: it's already readable via its own
+  // (deliberately non-httpOnly) cookie, so returning it here too isn't a new
+  // exposure — see the comment on issueSessionCookies.
+  const csrfToken = issueSessionCookies(res, { id: userRecord.uid, email, role, full_name, sessionId: session.id, remember: true });
   setRefreshCookie(res, rawRefreshToken, true);
 
-  created(res, { id: userRecord.uid, role, full_name, email, permissionOverrides: {} }, 'Account created successfully');
+  created(res, { id: userRecord.uid, role, full_name, email, permissionOverrides: {}, csrfToken }, 'Account created successfully');
 }
 
 // POST /api/auth/login
@@ -171,7 +178,7 @@ async function login(req, res) {
   // frontend; now it governs the refresh+csrf cookies' own maxAge (persist
   // past closing the browser) vs none (a true browser-session cookie) — see
   // cookies.js. The access cookie itself is always short-lived either way.
-  issueSessionCookies(res, { id: uid, email: user.email, role: user.role, full_name: user.full_name, sessionId: session.id, remember });
+  const csrfToken = issueSessionCookies(res, { id: uid, email: user.email, role: user.role, full_name: user.full_name, sessionId: session.id, remember });
   setRefreshCookie(res, rawRefreshToken, remember);
 
   ok(res, {
@@ -184,6 +191,7 @@ async function login(req, res) {
     employeeId: user.employee_id || user.employeeId || '',
     permissionOverrides: user.permissionOverrides || {},
     dashboardLayout: user.dashboardLayout || null,
+    csrfToken,
   }, { message: 'Login successful' });
 }
 
@@ -219,10 +227,10 @@ async function refresh(req, res) {
   const user = userDoc.data();
   const remember = result.session.remember;
 
-  issueSessionCookies(res, { id: result.uid, email: user.email, role: user.role, full_name: user.full_name, sessionId: result.session.id, remember });
+  const csrfToken = issueSessionCookies(res, { id: result.uid, email: user.email, role: user.role, full_name: user.full_name, sessionId: result.session.id, remember });
   setRefreshCookie(res, result.newRawRefreshToken, remember);
 
-  ok(res, { refreshed: true }, { message: 'Session refreshed' });
+  ok(res, { refreshed: true, csrfToken }, { message: 'Session refreshed' });
 }
 
 // GET /api/auth/me — re-fetches the caller's own profile (role, department,
