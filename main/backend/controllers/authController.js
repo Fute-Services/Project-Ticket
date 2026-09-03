@@ -11,6 +11,7 @@ const {
   setCsrfCookie,
   clearCsrfCookie,
   REFRESH_COOKIE,
+  CSRF_COOKIE,
 } = require('../utils/cookies');
 require('dotenv').config();
 
@@ -236,6 +237,19 @@ async function refresh(req, res) {
 // GET /api/auth/me — re-fetches the caller's own profile (role, department,
 // permissionOverrides may have changed since they logged in; AuthContext
 // calls this on reload rather than trusting a possibly-stale cached copy).
+//
+// Also echoes back the caller's own current CSRF cookie value (not a new
+// one - just reads what the browser already sent on req.cookies, same
+// value, no rotation). This turned out to be necessary, not just a nice-to-
+// have: some browsers now block page JS from reading a cross-site cookie
+// via document.cookie entirely (confirmed live - it returned '' while the
+// same cookie was still visibly attached to every request), even though
+// it's explicitly non-httpOnly and still sent to the server correctly. The
+// server can always read req.cookies regardless of that restriction, so
+// handing the value back through a response body - which login/register/
+// refresh already do - is the only reliable channel left. /me runs on
+// every page load, which is what closes the gap for a tab that's already
+// logged in and never re-runs login/refresh on its own.
 async function getMe(req, res) {
   const userDoc = await db.collection('users').doc(req.user.id).get();
   if (!userDoc.exists) return fail(res, { status: 404, message: 'User profile not found', code: 'NOT_FOUND' });
@@ -250,6 +264,7 @@ async function getMe(req, res) {
     employeeId: user.employee_id || user.employeeId || '',
     permissionOverrides: user.permissionOverrides || {},
     dashboardLayout: user.dashboardLayout || null,
+    csrfToken: req.cookies?.[CSRF_COOKIE] || null,
   });
 }
 

@@ -77,17 +77,20 @@ function isMeEndpoint(url) {
   return /\/api\/auth\/me(\?|$)/.test(url || '');
 }
 
-// The CSRF cookie is set alongside the session cookies on login/register/
-// refresh and cleared alongside them on logout or a failed refresh, so its
-// presence is a reliable "a session exists (or very recently did)" signal
-// even though the actual session cookies are httpOnly and unreadable here.
-// Skipping the refresh attempt when it's absent avoids a pointless extra
-// round trip on every single logged-out page load (GET /me 401s, then
-// POST /refresh would 401 too, for no reason - there was never anything to
-// refresh into).
-function hasSessionCookie() {
-  return readCookie('fute_csrf') !== null;
-}
+// Used to skip a pointless refresh attempt on a logged-out page load (GET
+// /me 401s, then POST /refresh would 401 too - there was never anything to
+// refresh into). This used to check for the CSRF cookie's presence via
+// document.cookie, on the theory that it's a reliable "a session exists"
+// signal even with the real session cookies being httpOnly and unreadable
+// here - but some browsers block page JS from reading *any* cookie that
+// way entirely (confirmed live: document.cookie returned '' while the
+// cookie was still visibly attached to every request), which made this
+// always report "no session" and silently break the refresh-and-retry path
+// for real, logged-in users in exactly those browsers. Trading the minor
+// optimization away entirely is safer than a cookie-based signal that can
+// go quietly wrong per-browser: worst case now is one extra POST /refresh
+// call (which itself just 401s, same as today) on a first-ever anonymous
+// page view.
 
 function flattenErrorBody(err) {
   // Flatten {success:false, message, error:{code,details}} down to a plain
@@ -150,7 +153,7 @@ api.interceptors.response.use(
     const original = err.config;
     const status = err.response?.status;
 
-    if (status === 401 && original && !isAuthEndpoint(original.url) && !original._retriedAfterRefresh && hasSessionCookie()) {
+    if (status === 401 && original && !isAuthEndpoint(original.url) && !original._retriedAfterRefresh) {
       original._retriedAfterRefresh = true;
       try {
         await refreshOnce();
