@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 
 const NOTIFICATION_RULES_DOC = db.collection('settings').doc('notification_rules');
 

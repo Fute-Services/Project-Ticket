@@ -31,6 +31,12 @@ router.post(
   upload.single('file'),
   resources.uploadEmployeeDocument
 );
+router.get(
+  '/employees/:id/documents/:docType/download',
+  auth,
+  role('hr', 'founder'),
+  resources.downloadEmployeeDocument
+);
 
 // Employee's Own Leave & Performance — self-scoped, employeeId always from
 // the authenticated session (see myLeaveSummary/myPerformance), never a

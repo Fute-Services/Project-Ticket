@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 
 const SESSIONS = db.collection('sessions');
 const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;

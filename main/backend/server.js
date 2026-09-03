@@ -13,15 +13,13 @@ require('express-async-errors');
 // Without this, a missing JWT_SECRET started the server successfully and
 // only surfaced on the first login attempt (jwt.sign throwing inside the
 // request handler) — a config mistake turning into a production incident
-// instead of a failed deploy/CI smoke check. Firebase creds already have
-// their own check (config/firebase.js falls back to the emulator); this is
-// the one required secret with no safe fallback.
+// instead of a failed deploy/CI smoke check.
 if (!process.env.JWT_SECRET) {
   console.error('FATAL: JWT_SECRET is not set. Refusing to start.');
   process.exit(1);
 }
 
-const { db } = require('./config/firebase');
+const { db } = require('./config/db');
 const { ok, fail } = require('./utils/respond');
 const csrfMiddleware = require('./middleware/csrfMiddleware');
 const errorMiddleware = require('./middleware/errorMiddleware');
@@ -98,20 +96,20 @@ app.use('/api/sales-desk', require('./routes/salesDeskRoutes'));
 
 app.get('/', (req, res) => ok(res, { message: 'Fute Portal API running' }));
 
-// GET /healthz — unlike '/' above, this actually reaches Firestore, so an
+// GET /healthz — unlike '/' above, this actually reaches Mongo, so an
 // orchestrator can tell "process is up" apart from "the database it depends
-// on is reachable" instead of treating a wedged Firestore connection as healthy.
+// on is reachable" instead of treating a wedged connection as healthy.
 app.get('/healthz', async (req, res) => {
   const start = Date.now();
   try {
-    await db.collection('users').limit(1).get();
-    ok(res, { firestore: 'reachable', pingMs: Date.now() - start });
+    await db.ping();
+    ok(res, { mongo: 'reachable', pingMs: Date.now() - start });
   } catch (err) {
     // This endpoint is unauthenticated (orchestrators/uptime checks hit it
-    // pre-login) — err.message could echo Firestore/driver internals, so log
-    // the detail server-side and only confirm "unreachable" to the caller.
+    // pre-login) — err.message could echo driver internals, so log the
+    // detail server-side and only confirm "unreachable" to the caller.
     console.error('healthz check failed:', err);
-    fail(res, { status: 503, message: 'Firestore unreachable', code: 'SERVICE_UNAVAILABLE' });
+    fail(res, { status: 503, message: 'Database unreachable', code: 'SERVICE_UNAVAILABLE' });
   }
 });
 

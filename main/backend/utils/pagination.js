@@ -1,4 +1,4 @@
-const { FieldPath } = require('firebase-admin/firestore');
+const { FieldPath } = require('../config/db');
 
 const PAGE_SIZE = 20;
 

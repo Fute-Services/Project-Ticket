@@ -13,6 +13,9 @@ playwright/.cache/
 # Firebase emulator debug logs
 *-debug.log
 
+# Locally stored uploads (self-hosted file storage)
+main/backend/uploads/
+
 # Never commit credential-bearing files
 docs/*credential*
 docs/*Credential*

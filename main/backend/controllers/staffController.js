@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 const { ok } = require('../utils/respond');
 
 // GET .../staff — just enough (id, name) for a "Resolved By" dropdown to

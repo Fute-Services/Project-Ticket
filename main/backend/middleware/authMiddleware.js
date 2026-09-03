@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 const { isSessionRevoked } = require('../utils/sessions');
 const { fail } = require('../utils/respond');
 const { AUTH_COOKIE } = require('../utils/cookies');

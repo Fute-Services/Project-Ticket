@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 const { logAudit } = require('../utils/auditLog');
 const { ACTION_PERMISSIONS_DOC, clearActionPermissionsCache } = require('../middleware/permissionMiddleware');
 const { ok, fail } = require('../utils/respond');

@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { paginatedQuery } = require('../utils/pagination');
 const { ok, created, fail } = require('../utils/respond');

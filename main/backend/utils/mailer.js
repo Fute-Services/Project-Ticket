@@ -1,15 +1,17 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
+// SMTP_USER/SMTP_PASS are only set when pointed at a real relay — the
+// self-hosted maildev capture server (the default here) takes no auth at
+// all, and nodemailer errors if given an auth block with empty credentials.
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT),
   secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
+  ...(process.env.SMTP_USER ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } } : {}),
 });
+
+const MAIL_FROM = process.env.SMTP_USER || 'noreply@fute-portal.local';
 
 // Ticket/complaint fields (submitterName, department, etc.) are user-supplied
 // and get interpolated straight into HTML emails below — escape so a crafted
@@ -28,7 +30,7 @@ function escapeHtml(str) {
  */
 async function sendMail(to, subject, html) {
   await transporter.sendMail({
-    from: `"Fute Portal" <${process.env.SMTP_USER}>`,
+    from: `"Fute Portal" <${MAIL_FROM}>`,
     to,
     subject,
     html,

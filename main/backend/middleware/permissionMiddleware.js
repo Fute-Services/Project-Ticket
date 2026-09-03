@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 const { fail } = require('../utils/respond');
 
 const ACTION_PERMISSIONS_DOC = db.collection('settings').doc('action_permissions');

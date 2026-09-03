@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 
 const AUDIT_LOGS = db.collection('audit_logs');
 

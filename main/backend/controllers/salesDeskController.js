@@ -1,6 +1,6 @@
 const ExcelJS = require('exceljs');
-const { FieldValue } = require('firebase-admin/firestore');
-const { db } = require('../config/firebase');
+const { FieldValue } = require('../config/db');
+const { db } = require('../config/db');
 const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { ok, created, fail } = require('../utils/respond');
 

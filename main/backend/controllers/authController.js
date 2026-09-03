@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { auth, db, usingEmulator } = require('../config/firebase');
+const { auth, db } = require('../config/db');
 const { signAccessToken } = require('../utils/jwt');
 const { createSession, SESSIONS, clearRevokedCache, consumeRefreshToken, hashToken } = require('../utils/sessions');
 const { ok, created, fail } = require('../utils/respond');
@@ -25,14 +25,6 @@ const FAILED_LOGINS = db.collection('failed_logins');
 // on this below, both code paths are kept intact so switching back is a
 // one-line change, not a rewrite.
 const PASSWORD_LOGIN_ENABLED = true;
-
-// The emulator exposes the same Identity Toolkit REST surface locally —
-// any non-empty `key` works against it, unlike the real endpoint which
-// requires the project's actual Web API key.
-const IDENTITY_TOOLKIT_BASE = usingEmulator
-  ? `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1`
-  : 'https://identitytoolkit.googleapis.com/v1';
-const IDENTITY_TOOLKIT_KEY = usingEmulator ? 'emulator-key' : process.env.FIREBASE_API_KEY;
 
 // Issues a fresh access+refresh pair for a session and sets all three
 // cookies (access, refresh, csrf) — the one place that sequence happens, so
@@ -129,16 +121,8 @@ async function login(req, res) {
   }
 
   if (PASSWORD_LOGIN_ENABLED) {
-    // Verify password via Firebase Auth REST API (Admin SDK can't verify passwords directly)
-    const resp = await fetch(
-      `${IDENTITY_TOOLKIT_BASE}/accounts:signInWithPassword?key=${IDENTITY_TOOLKIT_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, returnSecureToken: true }),
-      }
-    );
-    if (!resp.ok) {
+    const valid = await auth.verifyPassword(email, password);
+    if (!valid) {
       const attempts = (preUser.failedLoginAttempts || 0) + 1;
       const updates = { failedLoginAttempts: attempts };
       if (attempts >= LOCK_THRESHOLD) {
@@ -253,15 +237,8 @@ async function verifyPassword(req, res) {
   const { password } = req.body;
   if (!password) return fail(res, { status: 400, message: 'password required', code: 'VALIDATION_ERROR' });
 
-  const resp = await fetch(
-    `${IDENTITY_TOOLKIT_BASE}/accounts:signInWithPassword?key=${IDENTITY_TOOLKIT_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: req.user.email, password, returnSecureToken: true }),
-    }
-  );
-  ok(res, { valid: resp.ok });
+  const valid = await auth.verifyPassword(req.user.email, password);
+  ok(res, { valid });
 }
 
 // POST /api/auth/logout — revokes the caller's own session so neither the

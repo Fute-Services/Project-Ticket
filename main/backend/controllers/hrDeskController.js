@@ -1,5 +1,11 @@
-const { db, bucket } = require('../config/firebase');
-const { Timestamp } = require('firebase-admin/firestore');
+const fs = require('fs');
+const path = require('path');
+const { db } = require('../config/db');
+
+// Employee documents are stored on local disk (self-hosted — no cloud
+// Storage bucket) under main/backend/uploads/, served only through the
+// auth-gated download route below, never as a static/public path.
+const UPLOAD_ROOT = path.join(__dirname, '..', 'uploads');
 const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { sendMail, escapeHtml } = require('../utils/mailer');
 const { ok, created, fail } = require('../utils/respond');
@@ -57,14 +63,14 @@ async function getSentEmails(req, res) {
   ok(res, rows);
 }
 
-// Firestore Timestamp fields (e.g. candidates.appliedOn) come back from
-// `.data()` as Timestamp instances, which JSON.stringify mangles into a raw
-// {_seconds,_nanoseconds} object — convert them to ISO strings so API
-// responses stay plain JSON.
+// Every date field in this app (including candidates.appliedOn) is stored
+// as a plain ISO string, so no conversion is needed on read — kept as a
+// passthrough in case a raw Date ever ends up in a doc (JSON.stringify
+// mangles those into a non-ISO shape otherwise).
 function serializeDoc(data) {
   const out = {};
   for (const [key, value] of Object.entries(data)) {
-    out[key] = value && typeof value.toDate === 'function' ? value.toDate().toISOString() : value;
+    out[key] = value instanceof Date ? value.toISOString() : value;
   }
   return out;
 }
@@ -171,40 +177,38 @@ const DOCUMENT_TYPES = {
 };
 
 // POST /api/hr-desk/employees/:id/documents/:docType — HR/founder only
-// (enforced in the route). Uploads straight to Firebase Storage (no local
-// disk write — multer's memoryStorage), then stores a long-lived signed
-// read URL + the original filename on the employee doc, matching the two
-// fields DOCUMENT_TYPES declares for this docType.
+// (enforced in the route). Writes straight to local disk (multer's
+// memoryStorage gives us the buffer), then stores the auth-gated download
+// URL + the original filename on the employee doc, matching the two fields
+// DOCUMENT_TYPES declares for this docType. The actual on-disk relative
+// path is kept separately (storagePaths.{docType}) since the download route
+// needs it but nothing else should — the URL field is what callers use.
 async function uploadEmployeeDocument(req, res) {
   const { id, docType } = req.params;
   const doc = DOCUMENT_TYPES[docType];
   if (!doc) return fail(res, { status: 400, message: `Unknown document type "${docType}"`, code: 'VALIDATION_ERROR' });
   if (!req.file) return fail(res, { status: 400, message: 'No file uploaded', code: 'VALIDATION_ERROR' });
-  if (!bucket) return fail(res, { status: 503, message: 'File storage is not configured on this server', code: 'SERVICE_UNAVAILABLE' });
 
   const employeeRef = db.collection('employees').doc(id);
   if (!(await employeeRef.get()).exists) return fail(res, { status: 404, message: 'Employee not found', code: 'NOT_FOUND' });
 
   const safeName = req.file.originalname.replace(/[^\w.\-]/g, '_');
-  const storagePath = `employee-documents/${id}/${docType}-${Date.now()}-${safeName}`;
-  const blob = bucket.file(storagePath);
-  let url;
+  const storagePath = path.join('employee-documents', id, `${docType}-${Date.now()}-${safeName}`);
+  const absolutePath = path.join(UPLOAD_ROOT, storagePath);
   try {
-    await blob.save(req.file.buffer, { contentType: req.file.mimetype });
-    // 50-year expiry — internal HR documents behind an unguessable signed
-    // URL, not meant to be re-signed on every view like a short-lived link.
-    [url] = await blob.getSignedUrl({ action: 'read', expires: '01-01-2075' });
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, req.file.buffer);
   } catch (e) {
-    // The Google Cloud Storage client sets its own `.status`/`.message` on
-    // this error (often the raw API error body as a JSON string) — without
-    // catching it here, server.js's global handler trusts that `.status`
-    // as if it were our own intentional one and shows that raw JSON
-    // straight to the user instead of a readable message.
-    console.error('Storage upload failed:', e.message);
-    throw Object.assign(new Error('Could not upload the file — file storage is not configured correctly. Ask an admin to check the Storage bucket setup.'), { status: 502 });
+    console.error('Local file storage write failed:', e.message);
+    throw Object.assign(new Error('Could not save the uploaded file on the server.'), { status: 502 });
   }
 
-  const updates = { [doc.urlField]: url, [doc.fileNameField]: req.file.originalname };
+  const downloadUrl = `/api/hr-desk/employees/${id}/documents/${docType}/download`;
+  const updates = {
+    [doc.urlField]: downloadUrl,
+    [doc.fileNameField]: req.file.originalname,
+    [`storagePaths.${docType}`]: storagePath,
+  };
   await employeeRef.update(updates);
 
   // Approval record — the document is already live (see the security-tier
@@ -235,6 +239,33 @@ async function uploadEmployeeDocument(req, res) {
   );
 
   ok(res, { id, ...updates, approvalId: approvalRef.id }, { message: 'Document uploaded successfully' });
+}
+
+// GET /api/hr-desk/employees/:id/documents/:docType/download — HR/founder
+// only (same role gate as the upload route). Replaces the old 50-year
+// public signed URL with a real access-controlled download: the file path
+// itself is never exposed to the client, only this route's own id/docType.
+async function downloadEmployeeDocument(req, res) {
+  const { id, docType } = req.params;
+  const doc = DOCUMENT_TYPES[docType];
+  if (!doc) return fail(res, { status: 400, message: `Unknown document type "${docType}"`, code: 'VALIDATION_ERROR' });
+
+  const employeeDoc = await db.collection('employees').doc(id).get();
+  if (!employeeDoc.exists) return fail(res, { status: 404, message: 'Employee not found', code: 'NOT_FOUND' });
+  const data = employeeDoc.data();
+  const storagePath = data.storagePaths?.[docType];
+  if (!storagePath) return fail(res, { status: 404, message: 'No file has been uploaded for this document type', code: 'NOT_FOUND' });
+
+  const absolutePath = path.join(UPLOAD_ROOT, storagePath);
+  // storagePath is always server-generated (never taken from client input),
+  // but a resolved-path check costs nothing and rules out any path-escape
+  // regression as this code evolves.
+  if (!absolutePath.startsWith(UPLOAD_ROOT)) {
+    return fail(res, { status: 400, message: 'Invalid document path', code: 'VALIDATION_ERROR' });
+  }
+  if (!fs.existsSync(absolutePath)) return fail(res, { status: 404, message: 'File is missing on the server', code: 'NOT_FOUND' });
+
+  res.download(absolutePath, data[doc.fileNameField] || 'document');
 }
 
 const attendanceCollection = db.collection('attendance');
@@ -499,6 +530,7 @@ module.exports = {
       'leaveEntitlement', 'uan',
       ...Object.values(DOCUMENT_TYPES).flatMap((d) => [d.urlField, d.fileNameField])]),
   uploadEmployeeDocument,
+  downloadEmployeeDocument,
   candidates: makeCrud('candidates', ['name', 'email'],
     ['name', 'email', 'phone', 'location', 'skills', 'secondarySkills', 'experience', 'relevantExperience',
       'education', 'currentCTC', 'expectedSalary', 'noticePeriod', 'currentCompany', 'portfolio', 'source',
@@ -506,7 +538,7 @@ module.exports = {
       'rejectionReason', 'assignedRecruiter', 'nextInterview',
       'hrScreeningStatus', 'payelFeedback', 'shortlisted', 'technicalRoundDate', 'technicalRoundStatus',
       'finalDecision', 'workMode', 'remarks', 'lastFollowUpDate', 'outputPath'],
-    { transforms: { appliedOn: (v) => (v ? Timestamp.fromDate(new Date(v)) : v) }, trackUpdatedBy: true }),
+    { transforms: { appliedOn: (v) => (v ? new Date(v).toISOString() : v) }, trackUpdatedBy: true }),
   interviews: makeCrud('interviews', ['candidate', 'type', 'date'],
     ['candidateId', 'candidate', 'type', 'interviewer', 'date', 'time', 'link', 'location', 'notes', 'status'],
     { afterWrite: syncNextInterview }),

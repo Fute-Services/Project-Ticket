@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase');
+const { db } = require('../config/db');
 const { UNPAGINATED_READ_LIMIT, FOUNDER_LIST_CAP, DASHBOARD_SCAN_CAP } = require('../utils/constants');
 const { AUDIT_LOGS } = require('../utils/auditLog');
 const { SESSIONS } = require('../utils/sessions');
