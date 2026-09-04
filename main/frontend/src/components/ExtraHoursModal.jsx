@@ -9,13 +9,17 @@ const EMPTY = { projectCode: '', fromTime: '', toTime: '', date: new Date().toIS
 
 // From/to time, hh:mm each - handles a shift that crosses midnight (toTime
 // earlier than fromTime) by treating it as landing the next day, rather than
-// going negative.
+// going negative. The empty-field check above means both times are always
+// filled by the time minutes is computed - a from===to match here is a
+// deliberate same-time selection, not an unset field, and can only sensibly
+// mean a full 24h shift (the same wraparound this function already applies
+// for a smaller-but-not-equal toTime), not a 0-hour entry.
 function hoursBetween(fromTime, toTime) {
   if (!fromTime || !toTime) return 0;
   const [fh, fm] = fromTime.split(':').map(Number);
   const [th, tm] = toTime.split(':').map(Number);
   let minutes = (th * 60 + tm) - (fh * 60 + fm);
-  if (minutes < 0) minutes += 24 * 60;
+  if (minutes <= 0) minutes += 24 * 60;
   return Math.round((minutes / 60) * 100) / 100;
 }
 

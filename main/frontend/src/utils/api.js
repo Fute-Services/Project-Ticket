@@ -153,6 +153,33 @@ api.interceptors.response.use(
     const original = err.config;
     const status = err.response?.status;
 
+    // A stale in-memory csrfToken (see the cache comment above) surfaces as
+    // this 403, not a 401 — e.g. another tab logged out and cleared the
+    // shared CSRF cookie, but this tab's cached value never got told. A
+    // fresh document.cookie read picks up whatever's actually there now: a
+    // new value if only the cache was stale (this tab is still logged in,
+    // just retry once), or nothing at all if the session is really gone
+    // (falls through to the logged-out handling below instead of looping).
+    if (
+      status === 403 &&
+      err.response?.data?.error?.code === 'CSRF_INVALID' &&
+      original &&
+      !original._retriedAfterCsrf
+    ) {
+      original._retriedAfterCsrf = true;
+      const fresh = readCookie('fute_csrf');
+      if (fresh && fresh !== csrfToken) {
+        setCsrfToken(fresh);
+        return api(original);
+      }
+      // No fresh cookie to recover with — the session really is gone (e.g.
+      // logged out in another tab), not just a stale cache. Same clean
+      // redirect the 401 path below uses, instead of surfacing a raw CSRF
+      // error for what's actually a normal logged-out state.
+      if (!isAuthEndpoint(original.url) && !isMeEndpoint(original.url)) redirectToLogin();
+      return Promise.reject(flattenErrorBody(err));
+    }
+
     if (status === 401 && original && !isAuthEndpoint(original.url) && !original._retriedAfterRefresh) {
       original._retriedAfterRefresh = true;
       try {
