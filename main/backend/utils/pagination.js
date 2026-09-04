@@ -12,8 +12,17 @@ function decodeCursor(raw) {
   return { value: raw.slice(0, idx), id: raw.slice(idx + 1) };
 }
 
+// Returns null (not a cursor) when the ordering field is missing on this
+// doc. Firestore's own orderBy() used to drop such legacy docs from ordered
+// results entirely; Mongo's sort doesn't, so they can land on a page
+// boundary here — encoding "undefined" into the cursor would compare a real
+// field value against the literal string "undefined" on the next page and
+// silently truncate pagination. Stopping here instead is the safe
+// equivalent of the old drop-from-ordered-results behavior.
 function encodeCursor(lastDoc, field) {
-  return `${lastDoc.data()[field]}|${lastDoc.id}`;
+  const value = lastDoc.data()[field];
+  if (value === undefined || value === null) return null;
+  return `${value}|${lastDoc.id}`;
 }
 
 // Runs `query` ordered by `field` desc (doc id as tiebreaker), starting

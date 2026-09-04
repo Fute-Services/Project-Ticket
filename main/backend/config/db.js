@@ -12,7 +12,14 @@ const uri = process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017';
 const dbName = process.env.MONGODB_DB_NAME || 'fute_portal';
 
 const client = new MongoClient(uri);
-const ready = client.connect();
+// A unique index is what actually rules out two concurrent registrations
+// racing past auth.createUser's findOne-then-insert check and creating two
+// accounts on the same email — the findOne is just a friendlier error path,
+// this index is the real guard.
+const ready = client.connect().then(async (c) => {
+  await c.db(dbName).collection('_auth_credentials').createIndex({ email: 1 }, { unique: true });
+  return c;
+});
 
 function col(name) {
   return ready.then(() => client.db(dbName).collection(name));
@@ -322,7 +329,16 @@ const auth = {
     }
     const uid = generateId();
     const passwordHash = await bcrypt.hash(password, 10);
-    await c.insertOne({ _id: uid, email, passwordHash, displayName, disabled: false });
+    try {
+      await c.insertOne({ _id: uid, email, passwordHash, displayName, disabled: false });
+    } catch (e) {
+      // Duplicate key on the unique email index — two registrations raced
+      // past the findOne check above; the index is what actually stops it.
+      if (e.code === 11000) {
+        throw Object.assign(new Error('The email address is already in use by another account.'), { code: 'auth/email-already-exists' });
+      }
+      throw e;
+    }
     return { uid };
   },
   async getUserByEmail(email) {

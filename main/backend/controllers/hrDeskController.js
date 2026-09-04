@@ -245,7 +245,10 @@ async function uploadEmployeeDocument(req, res) {
     `<p>${escapeHtml(req.user.full_name)} uploaded <strong>${escapeHtml(doc.label)}</strong> for <strong>${escapeHtml(employeeData.name)}</strong>. Awaiting sign-off.</p>`
   );
 
-  ok(res, { id, ...updates, approvalId: approvalRef.id }, { message: 'Document uploaded successfully' });
+  // Respond with the two client-facing fields only — `updates` also carries
+  // the internal `storagePaths.{docType}` dotted key (correct as a Mongo
+  // update path, but not a shape any reader of the response should see).
+  ok(res, { id, [doc.urlField]: downloadUrl, [doc.fileNameField]: req.file.originalname, approvalId: approvalRef.id }, { message: 'Document uploaded successfully' });
 }
 
 // GET /api/hr-desk/employees/:id/documents/:docType/download — HR/founder
@@ -285,9 +288,16 @@ async function downloadEmployeeDocument(req, res) {
 const documentTemplatesCollection = db.collection('document_templates');
 
 function saveTemplateFile(category, file) {
+  const safeCategory = String(category).replace(/[^\w.\- ]/g, '_');
   const safeName = file.originalname.replace(/[^\w.\-]/g, '_');
-  const storagePath = path.join('document-templates', category, `${Date.now()}-${safeName}`);
+  const storagePath = path.join('document-templates', safeCategory, `${Date.now()}-${safeName}`);
   const absolutePath = path.join(UPLOAD_ROOT, storagePath);
+  // category is caller-supplied (req.body.category) — sanitized above, but
+  // this containment check (same as the download routes) is what actually
+  // rules out a path-escape regardless of how it got past sanitization.
+  if (!absolutePath.startsWith(UPLOAD_ROOT)) {
+    throw Object.assign(new Error('Invalid document category'), { status: 400 });
+  }
   fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
   fs.writeFileSync(absolutePath, file.buffer);
   return storagePath;
