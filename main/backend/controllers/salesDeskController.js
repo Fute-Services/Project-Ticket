@@ -390,7 +390,10 @@ function normalizeWhatsappCampaign(raw) {
   return 'Not Started';
 }
 function normalizeLinkedinCampaign(raw) {
-  const s = String(raw || '').toLowerCase();
+  // Hyphen normalized to a space before matching — the sheet may read
+  // "follow up" or "follow-up" (the latter matching LINKEDIN_CAMPAIGN_VALUES'
+  // own "Follow-up Done" spelling), and a plain 'follow up' check missed it.
+  const s = String(raw || '').toLowerCase().replace(/-/g, ' ');
   if (!s) return 'Not Started';
   if (s.includes('follow up')) return 'Follow-up Done';
   if (s.includes('msg') || s.includes('camp')) return '1st Msg Sent';
@@ -571,9 +574,13 @@ async function importLeads(req, res) {
       if (existingDoc) {
         // Re-importing over an existing lead must never clobber fields the
         // sheet doesn't carry and a rep may have already filled in by hand
-        // (deal value, priority, call history) — only the sheet-sourced
-        // fields get overwritten.
-        const { dealValue, priority, callLog, ...sheetFields } = lead;
+        // — only the sheet-sourced fields get overwritten. dealValue/callLog
+        // are never sheet-sourced in either format. priority IS sheet-sourced
+        // for the Marketing Master Sheet (priorityOf(), above) but not the
+        // legacy format (a fixed 'Warm' default at parse time, not derived
+        // from the row) — stripping it there only, not for both.
+        const { dealValue, callLog, priority: legacyPriority, ...rest } = lead;
+        const sheetFields = isMarketingMaster ? { ...rest, priority: lead.priority } : rest;
         batch.update(existingDoc.ref, { ...sheetFields, updated_at: new Date().toISOString(), lastUpdatedBy: req.user.full_name });
         updated++;
       } else {
