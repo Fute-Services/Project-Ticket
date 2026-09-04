@@ -262,17 +262,6 @@ function createComplaintController(opts) {
 
   async function updateFields(req, res) {
     const { id } = req.params;
-    const updates = {};
-    for (const key of opts.editableFields) {
-      if (req.body[key] !== undefined) updates[key] = req.body[key];
-    }
-    if (Object.keys(updates).length === 0) {
-      return fail(res, {
-        status: 400,
-        message: `No editable fields provided (allowed: ${opts.editableFields.join(', ')})`,
-        code: 'VALIDATION_ERROR',
-      });
-    }
 
     const docRef = collection.doc(id);
     const doc = await docRef.get();
@@ -283,6 +272,23 @@ function createComplaintController(opts) {
     const isStaff = [opts.staffRole, 'founder', 'superadmin'].includes(req.user?.role);
     if (!isOwner && !isStaff) {
       return fail(res, { status: 403, message: 'Forbidden: Insufficient permissions', code: 'FORBIDDEN' });
+    }
+
+    // A non-staff owner is restricted to ownerEditableFields (ticket
+    // content only) — without this, isOwner alone let the submitter also
+    // set employeeStatus/solver/remarks and self-resolve or reassign their
+    // own ticket, since editableFields is staff's full field set.
+    const allowedFields = isStaff ? opts.editableFields : (opts.ownerEditableFields || []);
+    const updates = {};
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    if (Object.keys(updates).length === 0) {
+      return fail(res, {
+        status: 400,
+        message: `No editable fields provided (allowed: ${allowedFields.join(', ')})`,
+        code: 'VALIDATION_ERROR',
+      });
     }
 
     updates.updated_at = new Date().toISOString();

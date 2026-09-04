@@ -6,10 +6,13 @@ module.exports = createComplaintController({
   notifyNewComplaintRuleKey: 'hr_new_complaint',
   notifyEmailEnvVar: 'HR_EMAIL',
   notifyStatusUpdateRuleKey: 'hr_status_update',
-  // description/category/sub_category/priority let the submitter edit their
-  // own ticket's content after raising it (Employee Portal's ticket queue
-  // - Edit replaces what used to be a Delete-only action there).
+  // Full field set staff (hr/founder/superadmin) can edit via PATCH .../fields.
   editableFields: ['employeeStatus', 'solver', 'remarks', 'employeeId', 'description', 'category', 'sub_category', 'priority'],
+  // Subset the ticket's own submitter can touch — exactly what the
+  // Employee Portal's Edit Ticket form sends (EditTicketModal.jsx via
+  // TicketContext.editTicket). Resolution/assignment fields
+  // (employeeStatus/solver/remarks/employeeId) stay staff-only.
+  ownerEditableFields: ['description', 'category', 'sub_category', 'priority'],
   staffRole: 'hr',
   defaultSolver: 'Unassigned',
   buildDocData: (body) => ({
