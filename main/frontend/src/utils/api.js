@@ -396,6 +396,18 @@ export const getMyPerformance = () => api.get('/api/hr-desk/performance/me');
 export const sendHrEmail = (data) => api.post('/api/hr-desk/send-email', data);
 export const getSentHrEmails = () => api.get('/api/hr-desk/send-email');
 
+// Team Chat - channels (fixed + project-<id>, no membership restriction,
+// same posture as /api/coordinator/projects) and DMs (dm-<sorted-uids>,
+// backend enforces only the two participants can read/post). `since` is the
+// last-seen message's created_at, for TeamChatDrawer's poll to fetch only
+// what's new instead of refetching history every tick.
+export const chatApi = {
+  listMessages: (channelId, since) => api.get(`/api/chat/${channelId}/messages`, { params: since ? { since } : {} }),
+  send: (channelId, text) => api.post(`/api/chat/${channelId}/messages`, { text }),
+  directory: () => api.get('/api/chat/directory'),
+  resolveDm: (otherUserId) => api.get(`/api/chat/dm/${otherUserId}`),
+};
+
 // Sales Desk - same list/create/update/delete shape as hrDeskResource, just
 // against /api/sales-desk instead. A separate desk (own role, own
 // collection), not part of the HR module even though it reuses its pattern.
