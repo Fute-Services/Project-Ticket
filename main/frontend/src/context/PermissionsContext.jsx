@@ -140,7 +140,7 @@ export function PermissionsProvider({ children }) {
   useVisibilityAwarePolling(refresh, POLL_MS, Boolean(user));
 
   // Mirrors the backend's requirePermission default-allow behavior so the UI
-  // never hides a button the API would actually accept.
+  // never suppresses a button the API would actually accept.
   function can(role, resource, action) {
     if (role === 'superadmin') return true;
     const allowed = actionPermissions[role]?.[resource];

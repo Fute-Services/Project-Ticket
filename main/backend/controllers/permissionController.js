@@ -27,7 +27,7 @@ async function updateRolePermissions(req, res) {
 }
 
 // GET /api/founder/action-permissions — every logged-in user reads this so
-// the frontend can hide buttons for actions the backend would 403 anyway;
+// the frontend can suppress buttons for actions the backend would 403 anyway;
 // only Super Admin can change it. Separate doc from role_permissions (not a
 // key inside it) because updateRolePermissions does a full `.set()` of that
 // doc from the page-toggle UI — sharing one doc would let a page-visibility

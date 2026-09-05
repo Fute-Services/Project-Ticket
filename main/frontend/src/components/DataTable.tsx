@@ -9,7 +9,7 @@ export type Column<T = any> = {
   align?: 'left' | 'right';
   width?: string;
   render?: (row: T, index?: number) => React.ReactNode;
-  /** Hide on small screens - the row card shows it instead. */
+  /** Not shown on small screens - the row card shows it instead. */
   hideOnMobile?: boolean;
 };
 

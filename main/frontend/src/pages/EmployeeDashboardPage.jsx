@@ -209,9 +209,7 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onE
                   value={t.employeeStatus || 'Active'}
                   onChange={(v) => {
                     onFieldChange && onFieldChange(t.id, 'employeeStatus', v);
-                    toast.success(`Employee Status updated to "${v}"`, {
-                      description: `Reflected in IT Dashboard for ticket ${t.token || t.id}`,
-                    });
+                    toast.success(`Employee Status updated to "${v}"`);
                   }}
                   ariaLabel={`Employee status for ticket ${t.token}`}
                   options={['Active', 'Pending', 'Satisfied', 'Closed']}

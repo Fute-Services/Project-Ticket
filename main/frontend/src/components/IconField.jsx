@@ -3,7 +3,7 @@ import { useId } from 'react';
 /**
  * Labelled input with a leading icon - the Email/Password field pattern used
  * on both auth pages. `right` is an optional slot for a trailing control
- * (the password show/hide toggle).
+ * (the password visibility toggle).
  *
  * The label is tied to the input with a generated id. It used to be a bare
  * `<label>` sitting next to the field with no `htmlFor`, which looks correct

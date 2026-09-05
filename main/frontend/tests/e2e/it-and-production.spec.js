@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 import { loginAs, collectErrors, signOut, requireRole, ROLES } from './helpers';
 
 // DataTable renders a <table> for desktop and a separate <ul> of cards for
-// phones (both exist in the DOM at once; CSS hides whichever doesn't apply).
+// phones (both exist in the DOM at once; CSS suppresses whichever doesn't apply).
 // .first() picks DOM order, which is the table, so on mobile that resolves
-// to a hidden element these two tests need visible. Same skip
+// to a suppressed element these two tests need visible. Same skip
 // search-and-tables.spec.js already uses for the same reason.
 test.describe('Production Floor — interactive dashboard', () => {
   test('adding a render job updates frame/system stats and lists the job', async ({ page, viewport }) => {
@@ -127,8 +127,8 @@ test.describe('IT — data transfer routing rules', () => {
 });
 
 // DataTable renders a <table> for desktop and a separate <ul> of cards for
-// phones (both exist in the DOM at once; CSS hides whichever doesn't apply),
-// so a bare .first() on a row action can resolve to the hidden desktop copy
+// phones (both exist in the DOM at once; CSS suppresses whichever doesn't apply),
+// so a bare .first() on a row action can resolve to the suppressed desktop copy
 // below the md breakpoint. Same skip search-and-tables.spec.js already uses.
 test.describe('IT — asset audit and search', () => {
   test('Asset ID search narrows the table to a single asset', async ({ page, viewport }) => {

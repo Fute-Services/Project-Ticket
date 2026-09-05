@@ -22,7 +22,7 @@ const TONE = {
 };
 
 // Log rows carry a plain-word outcome; anything that reads as a miss gets the
-// destructive tone so a bad week can't hide inside a wall of neutral chips.
+// destructive tone so a bad week can't stay disguised inside a wall of neutral chips.
 const MISS = ['Lost', 'Late', 'Under target'];
 
 function logTone(status) {
