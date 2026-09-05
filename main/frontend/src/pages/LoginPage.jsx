@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth, homeFor } from '../context/AuthContext';
@@ -29,8 +29,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [launching, setLaunching] = useState(false);
-  const { login } = useAuth();
+  const { login, user, loading: sessionLoading } = useAuth();
   const navigate = useNavigate();
+
+  // A returning visitor with a still-valid session cookie (page reload,
+  // reopened tab) hits "/" and AuthContext's own GET /api/auth/me resolves
+  // in the background - but nothing here was reading that result, so they
+  // stayed stuck looking at this form instead of landing on their dashboard.
+  useEffect(() => {
+    if (!sessionLoading && user) {
+      navigate(homeFor(user.role), { replace: true });
+    }
+  }, [sessionLoading, user, navigate]);
 
   function update(field, value) {
     setForm((p) => ({ ...p, [field]: value }));
@@ -70,6 +80,10 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  // Already signed in - the effect above is navigating away this render;
+  // don't flash the form in the meantime.
+  if (user) return null;
 
   return (
     <AuthLayout>
