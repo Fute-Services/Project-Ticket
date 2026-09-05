@@ -3,7 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
 const resources = require('../controllers/hrDeskController');
-const { upload } = require('../utils/upload');
+const { upload, validateFileSignature } = require('../utils/upload');
 
 router.post('/send-email', auth, role('hr', 'founder'), resources.sendEmail);
 router.get('/send-email', auth, role('hr', 'founder'), resources.getSentEmails);
@@ -29,6 +29,7 @@ router.post(
   auth,
   role('hr', 'founder'),
   upload.single('file'),
+  validateFileSignature,
   resources.uploadEmployeeDocument
 );
 router.get(
@@ -55,8 +56,8 @@ router.get('/extra-hours', auth, role('hr', 'founder'), resources.listExtraHours
 // `upload.single('file')` like uploadEmployeeDocument above, not the plain-
 // JSON loop below.
 router.get('/document-templates', auth, role('hr', 'founder'), resources.documentTemplates.list);
-router.post('/document-templates', auth, role('hr', 'founder'), upload.single('file'), resources.documentTemplates.create);
-router.patch('/document-templates/:id', auth, role('hr', 'founder'), upload.single('file'), resources.documentTemplates.update);
+router.post('/document-templates', auth, role('hr', 'founder'), upload.single('file'), validateFileSignature, resources.documentTemplates.create);
+router.patch('/document-templates/:id', auth, role('hr', 'founder'), upload.single('file'), validateFileSignature, resources.documentTemplates.update);
 router.delete('/document-templates/:id', auth, role('hr', 'founder'), resources.documentTemplates.remove);
 router.get('/document-templates/:id/download', auth, role('hr', 'founder'), resources.documentTemplates.download);
 

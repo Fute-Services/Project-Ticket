@@ -29,6 +29,7 @@
   "overrides": {
     "jose": "^4.15.9",
     "qs": "^6.16.0",
+    "uuid": "^11.1.1",
     "maildev": {
       "nodemailer": "^9.1.1"
     }

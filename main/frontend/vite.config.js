@@ -2,8 +2,33 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Security headers for `vite preview` (how the self-hosted build on
+// 192.168.1.23:80 is served) — the backend already gets these via Helmet,
+// but the static frontend host had none (docs/security/VULN-01). If the
+// office server ends up served by something other than `vite preview`
+// (e.g. IIS), these headers need to be configured at that layer instead.
+const securityHeaders = {
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: https:",
+    "connect-src 'self' http://192.168.1.23:5000 https://generativelanguage.googleapis.com",
+    "frame-ancestors 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ].join('; '),
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'SAMEORIGIN',
+  'Referrer-Policy': 'same-origin',
+};
+
 export default defineConfig({
   plugins: [react()],
+  preview: {
+    headers: securityHeaders,
+  },
   resolve: {
     // shadcn/ui generates imports as `@/components/...` and `@/lib/utils`.
     // Nothing used this alias before the migration; it exists for shadcn and

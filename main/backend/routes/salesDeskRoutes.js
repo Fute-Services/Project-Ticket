@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
-const { uploadSpreadsheet } = require('../utils/upload');
+const { uploadSpreadsheet, validateFileSignature } = require('../utils/upload');
 const resources = require('../controllers/salesDeskController');
 
 // Sales Desk — 'sales' and 'founder' only (mirrors HR Desk's own hr/founder
@@ -14,7 +14,7 @@ router.patch('/leads/:id', auth, role('sales', 'founder'), resources.updateLead)
 router.delete('/leads/:id', auth, role('sales', 'founder'), resources.deleteLead);
 router.post('/leads/:id/log-call', auth, role('sales', 'founder'), resources.logCall);
 
-router.post('/leads/import', auth, role('sales', 'founder'), uploadSpreadsheet.single('file'), resources.importLeads);
+router.post('/leads/import', auth, role('sales', 'founder'), uploadSpreadsheet.single('file'), validateFileSignature, resources.importLeads);
 router.get('/email-campaign/export', auth, role('sales', 'founder'), resources.exportEmailCampaign);
 
 router.get('/settings', auth, role('sales', 'founder'), resources.getSettings);
