@@ -8,11 +8,15 @@ module.exports = createComplaintController({
   notifyStatusUpdateRuleKey: 'hr_status_update',
   // Full field set staff (hr/founder/superadmin) can edit via PATCH .../fields.
   editableFields: ['employeeStatus', 'solver', 'remarks', 'employeeId', 'description', 'category', 'sub_category', 'priority'],
-  // Subset the ticket's own submitter can touch — exactly what the
-  // Employee Portal's Edit Ticket form sends (EditTicketModal.jsx via
-  // TicketContext.editTicket). Resolution/assignment fields
-  // (employeeStatus/solver/remarks/employeeId) stay staff-only.
-  ownerEditableFields: ['description', 'category', 'sub_category', 'priority'],
+  // Subset the ticket's own submitter can touch — the Employee Portal's
+  // Edit Ticket form (description/category/sub_category/priority) plus
+  // employeeStatus, which the ticket queue's "Employee Status" column
+  // (TicketsQueueView.jsx) is specifically the requester's own signal about
+  // their side of the ticket, not a staff resolution field — its own
+  // tooltip already says as much ("Only the employee who raised this ticket
+  // can edit Employee Status"), it just wasn't actually allowed here.
+  // Resolution/assignment fields (solver/remarks/employeeId) stay staff-only.
+  ownerEditableFields: ['description', 'category', 'sub_category', 'priority', 'employeeStatus'],
   staffRole: 'hr',
   defaultSolver: 'Unassigned',
   buildDocData: (body) => ({
