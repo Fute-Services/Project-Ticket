@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
+const validateFields = require('../middleware/validateFields');
 const resources = require('../controllers/hrDeskController');
 const { upload, validateFileSignature } = require('../utils/upload');
 
-router.post('/send-email', auth, role('hr', 'founder'), resources.sendEmail);
+router.post('/send-email', auth, role('hr', 'founder'), validateFields({ to: 300, subject: 300, body: 20000 }), resources.sendEmail);
 router.get('/send-email', auth, role('hr', 'founder'), resources.getSentEmails);
 
 // Reading the employee roster is also needed outside HR — Coordinators pick

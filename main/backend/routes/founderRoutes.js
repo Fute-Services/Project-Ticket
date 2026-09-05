@@ -1,5 +1,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+const MongoRateLimitStore = require('../utils/rateLimitStore');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
@@ -12,6 +13,7 @@ const expensiveReadLimiter = rateLimit({
   limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  store: new MongoRateLimitStore('expensive-read'),
   message: { success: false, message: 'Too many requests, please slow down', error: { code: 'RATE_LIMITED', details: null } },
 });
 // Split from a single 951-line founderController.js into one file per real
@@ -42,8 +44,22 @@ const { listDepartments, createDepartment, updateDepartment, deleteDepartment } 
 const { getSlaPolicies, updateSlaPolicies, getSlaCompliance } = require('../controllers/slaController');
 const { getNotificationRules, updateNotificationRules } = require('../controllers/notificationController');
 const { getDashboardOverview, search, getActivityTimeline, updateDashboardLayout } = require('../controllers/dashboardController');
+const { chatWithCabinet } = require('../controllers/aiCabinetController');
+
+// Same 20/min ceiling as the other genuinely expensive calls below — an
+// upstream Gemini call, not a DB read, but still costly enough (latency and
+// $) to throttle rather than leave uncapped.
+const aiCabinetLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: new MongoRateLimitStore('ai-cabinet'),
+  message: { success: false, message: 'Too many requests, please slow down', error: { code: 'RATE_LIMITED', details: null } },
+});
 
 router.get('/complaints', auth, role('founder'), getAllComplaints);
+router.post('/ai-cabinet', auth, role('founder'), aiCabinetLimiter, chatWithCabinet);
 // Role Permissions moved to Super Admin — these three are no longer
 // Founder's to call, even directly against the API.
 router.get('/users', auth, role('superadmin'), listUsers);

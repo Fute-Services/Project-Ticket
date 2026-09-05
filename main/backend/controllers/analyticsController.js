@@ -114,11 +114,13 @@ async function getAnalytics(req, res) {
 
 function csvEscape(value) {
   let s = String(value ?? '');
-  // A value starting with =, +, -, or @ is interpreted as a live formula by
-  // Excel/Sheets the moment the export is opened (CSV/formula injection) —
-  // prefix with a leading apostrophe first so it's forced back to plain
-  // text, matching the standard neutralization those tools respect.
-  if (/^[=+\-@]/.test(s)) s = `'${s}`;
+  // A value starting with =, +, -, @, a tab, or a carriage return is
+  // interpreted as a live formula by Excel/Sheets the moment the export is
+  // opened (CSV/formula injection — tab/CR are the two the plain =/+/-/@
+  // check alone misses) — prefix with a leading apostrophe first so it's
+  // forced back to plain text, matching the standard neutralization those
+  // tools respect.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

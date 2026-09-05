@@ -1,8 +1,9 @@
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const { auth, db } = require('../config/db');
 const { signAccessToken } = require('../utils/jwt');
 const { createSession, SESSIONS, clearRevokedCache, consumeRefreshToken, hashToken } = require('../utils/sessions');
-const { ok, created, fail } = require('../utils/respond');
+const { ok, fail } = require('../utils/respond');
 const {
   setAuthCookie,
   clearAuthCookie,
@@ -20,7 +21,21 @@ require('dotenv').config();
 // threshold rather than a configurable setting, since tuning it isn't a
 // real operational need yet.
 const LOCK_THRESHOLD = 5;
+// Anyone who knows a staff email address (every colleague does) could
+// otherwise lock that account forever with 5 bad guesses, with no
+// self-service way back in — including locking out the Super Admin who'd
+// need to undo it. Auto-expiring the lock bounds that to a 15-minute
+// inconvenience for the real owner instead of a permanent denial-of-service.
+const LOCK_DURATION_MS = 15 * 60 * 1000;
 const FAILED_LOGINS = db.collection('failed_logins');
+// An unknown email used to fail instantly, while a known one took as long as
+// a real bcrypt compare (config/db.js's auth.verifyPassword) — that
+// difference is measurable and lets someone confirm which email addresses
+// have accounts. Comparing against this fixed dummy hash on the unknown-email
+// path costs the same ~bcrypt round-trip, so both paths take about the same
+// time. The hash itself is meaningless — bcrypt of a fixed placeholder
+// string, never a real password.
+const DUMMY_PASSWORD_HASH = '$2a$10$.xtLnHGjyShYVNhvBbVagOVFjRiM/OxUKt6kJNDSAz5DTO.T/th9.';
 
 // Toggle: flip to `true` to require the password again — login() branches
 // on this below, both code paths are kept intact so switching back is a
@@ -29,7 +44,7 @@ const PASSWORD_LOGIN_ENABLED = true;
 
 // Issues a fresh access+refresh pair for a session and sets all three
 // cookies (access, refresh, csrf) — the one place that sequence happens, so
-// register/login/refresh can't drift out of sync with each other. Returns
+// login/refresh can't drift out of sync with each other. Returns
 // the csrf token too (not just setting the cookie) — callers put it in the
 // JSON response body so the frontend can cache it in JS memory instead of
 // re-reading document.cookie on every request, which used to race against
@@ -39,61 +54,6 @@ function issueSessionCookies(res, { id, email, role, full_name, sessionId, remem
   const accessToken = signAccessToken({ id, email, role, full_name, sid: sessionId });
   setAuthCookie(res, accessToken);
   return setCsrfCookie(res, remember);
-}
-
-// POST /api/auth/register
-async function register(req, res) {
-  const { email, password, full_name, department } = req.body;
-  if (!email || !password || !full_name) {
-    return fail(res, { status: 400, message: 'email, password and full_name are required', code: 'VALIDATION_ERROR' });
-  }
-  // Same floor as the Super Admin's own password-reset flow (superAdminUserController.js)
-  // — self-registration used to accept any non-empty string, relying only on
-  // Firebase Auth's weaker 6-char default.
-  if (password.length < 10) {
-    return fail(res, { status: 400, message: 'password must be at least 10 characters', code: 'VALIDATION_ERROR' });
-  }
-
-  let userRecord;
-  try {
-    userRecord = await auth.createUser({ email, password, displayName: full_name });
-  } catch (err) {
-    return fail(res, { status: 400, message: err.message, code: 'REGISTRATION_FAILED' });
-  }
-
-  // Self-registration can only ever create a plain employee account —
-  // privileged roles (hr/it/coordinator/founder) are granted exclusively by
-  // an authenticated founder via POST /api/founder/users. Role used to be
-  // guessed from the caller-supplied email string itself, which let anyone
-  // grant themselves hr/it/coordinator by picking a matching email.
-  const role = 'employee';
-
-  await db.collection('users').doc(userRecord.uid).set({
-    email,
-    full_name,
-    role,
-    department: department || null,
-    created_at: new Date().toISOString(),
-  });
-
-  const rawRefreshToken = crypto.randomBytes(32).toString('hex');
-  const session = await createSession({
-    uid: userRecord.uid,
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
-    refreshToken: rawRefreshToken,
-    remember: true,
-  });
-
-  // The access token now lives only in an httpOnly cookie — never in the
-  // response body — so no JS on this page (including a future XSS bug) can
-  // read it. csrfToken is different: it's already readable via its own
-  // (deliberately non-httpOnly) cookie, so returning it here too isn't a new
-  // exposure — see the comment on issueSessionCookies.
-  const csrfToken = issueSessionCookies(res, { id: userRecord.uid, email, role, full_name, sessionId: session.id, remember: true });
-  setRefreshCookie(res, rawRefreshToken, true);
-
-  created(res, { id: userRecord.uid, role, full_name, email, permissionOverrides: {}, csrfToken }, 'Account created successfully');
 }
 
 // POST /api/auth/login
@@ -112,6 +72,20 @@ async function login(req, res) {
     const userRecord = await auth.getUserByEmail(email);
     uid = userRecord.uid;
   } catch {
+    // Matches the known-email path's full shape, not just its bcrypt cost:
+    // that path reads _auth_credentials twice (once here via getUserByEmail,
+    // again inside auth.verifyPassword) plus the `users` profile doc below,
+    // before ever reaching its own bcrypt.compare. Two real lookups on
+    // non-existent keys (same indexed-miss cost as a real one) plus the
+    // dummy compare keeps this path's total shape — not just one number —
+    // close enough that timing alone can't distinguish them.
+    if (PASSWORD_LOGIN_ENABLED) {
+      await Promise.all([
+        db.collection('_auth_credentials').doc('__timing_probe__').get(),
+        db.collection('users').doc('__timing_probe__').get(),
+        bcrypt.compare(password, DUMMY_PASSWORD_HASH),
+      ]);
+    }
     return fail(res, { status: 401, message: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
   }
 
@@ -121,11 +95,20 @@ async function login(req, res) {
   const preUser = preSnap.data();
 
   if (preUser.locked) {
-    return fail(res, {
-      status: 423,
-      message: 'Account locked after too many failed login attempts — ask a Super Admin to unlock it',
-      code: 'ACCOUNT_LOCKED',
-    });
+    const lockedAtMs = preUser.lockedAt ? new Date(preUser.lockedAt).getTime() : 0;
+    const lockExpired = Date.now() - lockedAtMs >= LOCK_DURATION_MS;
+    if (!lockExpired) {
+      return fail(res, {
+        status: 423,
+        message: 'Account locked after too many failed login attempts — try again in 15 minutes, or ask a Super Admin to unlock it',
+        code: 'ACCOUNT_LOCKED',
+      });
+    }
+    // Lock has aged out — clear it so this attempt is evaluated normally
+    // instead of permanently blocking on a lock nobody ever lifts.
+    await userRef.set({ locked: false, failedLoginAttempts: 0 }, { merge: true });
+    preUser.locked = false;
+    preUser.failedLoginAttempts = 0;
   }
 
   if (PASSWORD_LOGIN_ENABLED) {
@@ -230,8 +213,8 @@ async function refresh(req, res) {
 // same cookie was still visibly attached to every request), even though
 // it's explicitly non-httpOnly and still sent to the server correctly. The
 // server can always read req.cookies regardless of that restriction, so
-// handing the value back through a response body - which login/register/
-// refresh already do - is the only reliable channel left. /me runs on
+// handing the value back through a response body - which login/refresh
+// already do - is the only reliable channel left. /me runs on
 // every page load, which is what closes the gap for a tab that's already
 // logged in and never re-runs login/refresh on its own.
 async function getMe(req, res) {
@@ -279,4 +262,4 @@ async function logout(req, res) {
   ok(res, { loggedOut: true }, { message: 'Logged out successfully' });
 }
 
-module.exports = { register, login, refresh, getMe, verifyPassword, logout };
+module.exports = { login, refresh, getMe, verifyPassword, logout };

@@ -11,6 +11,24 @@ require('dotenv').config();
 const uri = process.env.MONGODB_URL || 'mongodb://127.0.0.1:27017';
 const dbName = process.env.MONGODB_DB_NAME || 'fute_portal';
 
+// A URI with no credentials (no `user:pass@` before the host) means
+// MongoDB auth is off — anyone who can reach the port gets full read/write
+// with no login at all. This can only be fixed on the MongoDB server itself
+// (enable --auth, create a user, put its credentials in MONGODB_URL) — the
+// app can't turn auth on from here, only refuse to run unprotected.
+const hasCredentials = /\/\/[^/@]+:[^/@]+@/.test(uri);
+if (!hasCredentials) {
+  const message =
+    'MONGODB_URL has no username/password — MongoDB auth is off, so anyone who ' +
+    'can reach this port has full unauthenticated read/write access to every ' +
+    'collection. Enable --auth on the MongoDB server, create a user, and set ' +
+    'MONGODB_URL to mongodb://<user>:<pass>@<host>:27017/?authSource=admin (see .env.example).';
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(message);
+  }
+  console.warn(`WARNING: ${message}`);
+}
+
 const client = new MongoClient(uri);
 // A unique index is what actually rules out two concurrent registrations
 // racing past auth.createUser's findOne-then-insert check and creating two
@@ -18,6 +36,57 @@ const client = new MongoClient(uri);
 // this index is the real guard.
 const ready = client.connect().then(async (c) => {
   await c.db(dbName).collection('_auth_credentials').createIndex({ email: 1 }, { unique: true });
+  // TTL index for utils/rateLimitStore.js — lets a rate-limit window doc
+  // expire itself at resetTime instead of needing a manual cleanup job.
+  await c.db(dbName).collection('rate_limits').createIndex({ resetTime: 1 }, { expireAfterSeconds: 0 });
+  // A ticket's token is its lookup key (complaintControllerFactory.js's
+  // searchByToken) — nothing enforced two tickets couldn't land on the same
+  // one, which would make that lookup return whichever ticket happened to
+  // be first. This index is the actual guard; createComplaint's
+  // catch-and-retry on a duplicate is just the friendly error path.
+  //
+  // Wrapped, unlike _auth_credentials' index above: this app carries real
+  // data migrated from Firebase, and createIndex({unique:true}) fails
+  // outright if any existing docs already violate it (two legacy tickets
+  // sharing a token, or missing the field entirely — Mongo treats a missing
+  // indexed field as null, so two such docs collide on each other). Letting
+  // that failure escape here would reject the `ready` promise every other
+  // collection read/write in the app awaits, taking down the whole API over
+  // a single collection's dirty data — surfacing it as a loud warning
+  // instead means the app still starts, just without the new-ticket
+  // collision guard until the existing data is cleaned up.
+  for (const name of ['hr_complaints', 'it_complaints']) {
+    try {
+      await c.db(dbName).collection(name).createIndex({ token: 1 }, { unique: true });
+    } catch (e) {
+      console.warn(
+        `WARNING: could not create a unique index on ${name}.token (${e.message}). ` +
+        'This usually means existing documents already have a duplicate or missing token — ' +
+        'find and fix them, then restart. Until then, two tickets in this collection could ' +
+        'collide on the same reference number.'
+      );
+    }
+  }
+
+  // Ticket delete, force-logout-all-devices, and the sales lead import all
+  // group several writes into one atomic transaction — Mongo only allows
+  // that on a replica set/mongos, never a standalone server. A missing
+  // replica set otherwise stays invisible until someone actually clicks one
+  // of those features and hits translateReplicaSetError below.
+  try {
+    const hello = await c.db(dbName).command({ hello: 1 });
+    if (!hello.setName) {
+      console.warn(
+        'WARNING: MongoDB is not running as a replica set. Deleting a ticket, ' +
+        'forcing a user to log out of all devices, and importing sales leads ' +
+        'from a spreadsheet will all fail until the replica-set setup step on ' +
+        'the deployment checklist is finished.'
+      );
+    }
+  } catch (e) {
+    console.warn(`WARNING: could not verify MongoDB replica-set status: ${e.message}`);
+  }
+
   return c;
 });
 
@@ -252,6 +321,26 @@ function collection(name) {
   };
 }
 
+// Mongo only allows multi-document transactions on a replica set/mongos, not
+// a standalone server — session.withTransaction() throws MongoServerError
+// code 20 ("Transaction numbers are only allowed on a replica set member or
+// mongos") if that's not configured yet. Left as a raw driver error, this
+// surfaces to the client as an opaque 500 with no indication of what's
+// actually wrong (see docs/DEPLOYMENT_PIPELINE_STATUS.md — rs0 not yet
+// independently confirmed). Re-tagged here with a status so errorMiddleware
+// shows the real reason instead of "Internal server error".
+function isReplicaSetError(err) {
+  return err && (err.code === 20 || /replica set|mongos/i.test(err.message || ''));
+}
+
+function translateReplicaSetError(err) {
+  if (!isReplicaSetError(err)) return err;
+  return Object.assign(
+    new Error('This action requires MongoDB to be running as a replica set, which is not yet configured on this server. Ask an admin to finish the replica-set setup step on the deployment checklist.'),
+    { status: 503, code: 'REPLICA_SET_REQUIRED', cause: err }
+  );
+}
+
 function batch() {
   const ops = []; // { type: 'set'|'update'|'delete', ref, data, opts }
   return {
@@ -277,6 +366,8 @@ function batch() {
             else await op.ref.delete({ session });
           }
         });
+      } catch (err) {
+        throw translateReplicaSetError(err);
       } finally {
         await session.endSession();
       }
@@ -299,6 +390,8 @@ async function runTransaction(fn) {
       result = await fn(tx);
     });
     return result;
+  } catch (err) {
+    throw translateReplicaSetError(err);
   } finally {
     await session.endSession();
   }
@@ -311,9 +404,9 @@ async function ping() {
 
 // --- Auth (replaces Firebase Auth's admin.createUser/getUserByEmail/
 // updateUser/deleteUser). Firebase Auth and the Firestore `users` profile
-// doc were always two separate systems sharing only a uid (register()/
-// deleteUser() write/delete each independently — see authController.js and
-// superAdminUserController.js) — kept that way here in a dedicated
+// doc were always two separate systems sharing only a uid (createUser()/
+// deleteUser() write/delete each independently — see superAdminUserController.js)
+// — kept that way here in a dedicated
 // credentials collection, rather than merging into `users`, since several
 // callers do a full (non-merge) `.set()` on the profile doc that would
 // otherwise silently wipe the password hash.
@@ -374,4 +467,13 @@ const auth = {
   },
 };
 
-module.exports = { db: { collection, batch, runTransaction, ping }, auth, FieldValue, FieldPath, ObjectId };
+// Escape hatch out of the Firestore-shaped shim above, for the rare caller
+// that genuinely needs a native Mongo op the shim doesn't expose (e.g.
+// utils/rateLimitStore.js's atomic findOneAndUpdate) rather than working
+// around it with get-then-set, which isn't atomic.
+async function rawCollection(name) {
+  await ready;
+  return client.db(dbName).collection(name);
+}
+
+module.exports = { db: { collection, batch, runTransaction, ping }, auth, FieldValue, FieldPath, ObjectId, rawCollection };

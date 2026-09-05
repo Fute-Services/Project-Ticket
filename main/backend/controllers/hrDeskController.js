@@ -642,6 +642,43 @@ async function myPerformance(req, res) {
   ok(res, snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 
+const employeesCrud = makeCrud('employees', ['name', 'department'],
+  ['name', 'department', 'designation', 'status', 'email', 'phone', 'manager', 'joiningDate',
+    'employmentType', 'probationCompletionDate',
+    'empCode', 'biometricVpnNumber', 'accountNumber', 'salary', 'emergencyContact',
+    'emergencyContactRelation', 'personalEmail', 'dob', 'bloodGroup', 'permanentAddress',
+    'presentAddress', 'aadharNumber', 'panDetails', 'voterId', 'driveLink', 'bgVerification',
+    'leaveEntitlement', 'uan',
+    ...Object.values(DOCUMENT_TYPES).flatMap((d) => [d.urlField, d.fileNameField])],
+  // driveLink is rendered as a clickable <a href> on the employee's profile
+  // (Directory.jsx) — a non-http(s) value (e.g. a javascript: URI) would run
+  // whatever it contains with the HR viewer's own session when clicked.
+  { transforms: { driveLink: (v) => (/^https?:\/\//i.test(v || '') ? v : '') } });
+
+// GET /api/hr-desk/employees — HR/founder get the full HR record (needed to
+// actually do HR work). Coordinator is still allowed by role (hrDeskRoutes.js)
+// for any future caller, but was previously getting the same full record
+// back too — Aadhaar/PAN/voter ID/bank account/salary/DOB/home address/
+// emergency contacts/document links for all 39 employees — for what was
+// only ever a name picker. That picker (coordinator/Tasks.jsx) now reads
+// real login accounts from GET /api/coordinator/employees instead, so
+// nothing currently calls this route as 'coordinator' — this narrowing
+// stays anyway, in case something does again later.
+const COORDINATOR_EMPLOYEE_FIELDS = ['name', 'department', 'designation', 'status'];
+
+async function listEmployees(req, res) {
+  if (req.user.role !== 'coordinator') return employeesCrud.list(req, res);
+
+  const snap = await db.collection('employees').limit(UNPAGINATED_READ_LIMIT).get();
+  const rows = snap.docs.map((d) => {
+    const data = d.data();
+    const row = { id: d.id };
+    for (const field of COORDINATOR_EMPLOYEE_FIELDS) row[field] = data[field];
+    return row;
+  });
+  ok(res, rows);
+}
+
 module.exports = {
   sendEmail,
   getSentEmails,
@@ -659,14 +696,10 @@ module.exports = {
     update: updateDocumentTemplate,
     download: downloadDocumentTemplate,
   },
-  employees: makeCrud('employees', ['name', 'department'],
-    ['name', 'department', 'designation', 'status', 'email', 'phone', 'manager', 'joiningDate',
-      'employmentType', 'probationCompletionDate',
-      'empCode', 'biometricVpnNumber', 'accountNumber', 'salary', 'emergencyContact',
-      'emergencyContactRelation', 'personalEmail', 'dob', 'bloodGroup', 'permanentAddress',
-      'presentAddress', 'aadharNumber', 'panDetails', 'voterId', 'driveLink', 'bgVerification',
-      'leaveEntitlement', 'uan',
-      ...Object.values(DOCUMENT_TYPES).flatMap((d) => [d.urlField, d.fileNameField])]),
+  employees: {
+    ...employeesCrud,
+    list: listEmployees,
+  },
   uploadEmployeeDocument,
   downloadEmployeeDocument,
   candidates: makeCrud('candidates', ['name', 'email'],

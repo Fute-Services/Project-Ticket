@@ -1,24 +1,37 @@
-import { expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-/**
- * Real Firebase accounts in the `fute-portal` project. Only founder, it, and
- * employee currently have known credentials (password `Test@1234`) — hr,
- * coordinator, and production need real accounts created via the founder's
- * Role Permissions page before those specs will pass.
- */
+// Real account credentials never live in a tracked file — this used to hard-code
+// 6 real futeservices.com emails and a shared plaintext password, which stayed
+// in the project's git history forever even after being "removed". Each var
+// below must be supplied via `main/frontend/.env.test` (gitignored, see
+// .env.test.example for the required names) or the shell environment; a spec
+// for a role with no credentials configured is skipped, not run against a
+// blank/fake password.
+function envRole(prefix, home) {
+  const email = process.env[`E2E_${prefix}_EMAIL`];
+  const password = process.env[`E2E_${prefix}_PASSWORD`];
+  return { email, password, home, configured: Boolean(email && password) };
+}
+
 export const ROLES = {
-  founder: { email: 'founder.test@futeservices.com', password: 'Test@1234', home: '/founder/dashboard' },
-  hr: { email: 'hr.test@futeservices.com', password: 'Test@1234', home: '/hr/overview' },
-  it: { email: 'system.it.test@futeservices.com', password: 'Test@1234', home: '/it/dashboard' },
-  coordinator: { email: 'coordinator.test@futeservices.com', password: 'Test@1234', home: '/coordinator/overview' },
-  employee: { email: 'test.employee@futeservices.com', password: 'Test@1234', home: '/employee/dashboard' },
-  production: { email: 'production.test@futeservices.com', password: 'Test@1234', home: '/department/production' },
+  founder: envRole('FOUNDER', '/founder/dashboard'),
+  hr: envRole('HR', '/hr/overview'),
+  it: envRole('IT', '/it/dashboard'),
+  coordinator: envRole('COORDINATOR', '/coordinator/overview'),
+  employee: envRole('EMPLOYEE', '/employee/dashboard'),
+  production: envRole('PRODUCTION', '/department/production'),
 };
 
-export const PASSWORD = 'Test@1234';
+export const PASSWORD = ROLES.employee.password;
+
+/** Skips the current test if `role` has no E2E_<ROLE>_EMAIL/PASSWORD configured. */
+export function requireRole(role) {
+  test.skip(!ROLES[role].configured, `Set E2E_${role.toUpperCase()}_EMAIL/PASSWORD (see .env.test.example) to run specs for '${role}'`);
+}
 
 /** Sign in through the real login form and land on the role's home route. */
 export async function loginAs(page, role) {
+  requireRole(role);
   const { email, password, home } = ROLES[role];
   await page.goto('/');
   await page.getByLabel(/email/i).fill(email);

@@ -14,7 +14,13 @@ const securityHeaders = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https:",
-    "connect-src 'self' http://192.168.1.23:5000 https://generativelanguage.googleapis.com",
+    // No generativelanguage.googleapis.com here on purpose — the AI Cabinet
+    // used to call Gemini directly from the browser, but that now goes
+    // through our own backend (aiCabinetController.js) instead, so the
+    // browser has no legitimate reason to reach Google directly anymore;
+    // keeping that allowance would just be one more place data could leak
+    // to if a future XSS ever happened.
+    "connect-src 'self' http://192.168.1.23:5000",
     "frame-ancestors 'self'",
     "object-src 'none'",
     "base-uri 'self'",

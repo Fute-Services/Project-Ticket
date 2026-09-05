@@ -1,7 +1,6 @@
 import { Check, Figma, Github, MessageSquare, Paperclip } from 'lucide-react';
 import { Drawer, Field, inputClass } from '../ui';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../../data/coordinatorMockData';
-import { employees } from '../../data/hrMockData';
 
 function toHref(link) {
   return /^https?:\/\//i.test(link) ? link : `https://${link}`;
@@ -15,7 +14,7 @@ function toHref(link) {
  * Employee dashboard needs: people should see the full task without being
  * able to reassign it to someone else.
  */
-export default function TaskDetailPane({ task, project, open, onClose, onChange, onToggle, readOnly = false }) {
+export default function TaskDetailPane({ task, project, open, onClose, onChange, onToggle, readOnly = false, employees = [] }) {
   if (!task) return null;
   const done = task.status === 'Completed';
 
@@ -60,10 +59,10 @@ export default function TaskDetailPane({ task, project, open, onClose, onChange,
             {readOnly ? (
               <p className="text-sm text-foreground">{task.assignee || '-'}</p>
             ) : (
-              <select value={task.assignee} onChange={(e) => set({ assignee: e.target.value })} className={inputClass}>
+              <select value={task.assigneeId || ''} onChange={(e) => set({ assigneeId: e.target.value })} className={inputClass}>
                 {employees.map((e) => (
-                  <option key={e.id} value={e.name}>
-                    {e.name}
+                  <option key={e.id} value={e.id}>
+                    {e.full_name}
                   </option>
                 ))}
               </select>

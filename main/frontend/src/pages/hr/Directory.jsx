@@ -8,6 +8,7 @@ import { employeesApi, performanceApi, leaveEntriesApi } from '../../utils/api';
 import { useHrDesk } from '../../context/HrDeskContext';
 import { useApprovals } from '../../context/ApprovalContext';
 import { ColorSelect } from '../../components/TicketsQueueView';
+import { escapeHtml } from '../../utils/escapeHtml';
 
 const EMPTY_FORM = {
   name: '', department: '', designation: '', email: '', phone: '', manager: '', status: 'Active', joiningDate: '',
@@ -130,22 +131,32 @@ function printPayslip(payslipForm) {
   const monthLabel = new Date(year, (month || 1) - 1, 1).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
 
   const row = (label, value) =>
-    `<tr><td style="padding:5px 10px;color:#555;">${label}</td><td style="padding:5px 10px;text-align:right;font-weight:600;">₹${(Number(value) || 0).toLocaleString('en-IN')}</td></tr>`;
+    `<tr><td style="padding:5px 10px;color:#555;">${escapeHtml(label)}</td><td style="padding:5px 10px;text-align:right;font-weight:600;">₹${(Number(value) || 0).toLocaleString('en-IN')}</td></tr>`;
+
+  const companyName = escapeHtml(payslipForm.companyName) || 'Company';
+  const employeeName = escapeHtml(payslipForm.employeeName);
+  const employeeId = escapeHtml(payslipForm.employeeId) || '-';
+  const companyAddress = escapeHtml(payslipForm.companyAddress);
+  const cityPincode = escapeHtml(payslipForm.cityPincode);
+  const country = escapeHtml(payslipForm.country);
+  const paidDays = escapeHtml(payslipForm.paidDays);
+  const lopDays = escapeHtml(payslipForm.lopDays);
+  const payDate = escapeHtml(payslipForm.payDate);
 
   const win = window.open('', '_blank');
   if (!win) return;
   win.document.write(`
     <html>
-      <head><title>Payslip - ${payslipForm.employeeName} - ${monthLabel}</title></head>
+      <head><title>Payslip - ${employeeName} - ${monthLabel}</title></head>
       <body style="font-family:sans-serif;padding:28px;color:#1a1a1a;">
         <div style="max-width:640px;margin:auto;border:1px solid #ddd;border-radius:10px;padding:24px;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
             <div>
-              <img src="${window.location.origin}/logo.png" alt="${payslipForm.companyName || 'Company'}" style="height:36px;margin-bottom:8px;display:block;" />
-              <h2 style="margin:0 0 2px;">${payslipForm.companyName || 'Company'}</h2>
-              ${payslipForm.companyAddress ? `<p style="margin:0;color:#777;font-size:12px;">${payslipForm.companyAddress}</p>` : ''}
-              ${payslipForm.cityPincode ? `<p style="margin:0;color:#777;font-size:12px;">${payslipForm.cityPincode}</p>` : ''}
-              ${payslipForm.country ? `<p style="margin:0;color:#777;font-size:12px;">${payslipForm.country}</p>` : ''}
+              <img src="${window.location.origin}/logo.png" alt="${companyName}" style="height:36px;margin-bottom:8px;display:block;" />
+              <h2 style="margin:0 0 2px;">${companyName}</h2>
+              ${companyAddress ? `<p style="margin:0;color:#777;font-size:12px;">${companyAddress}</p>` : ''}
+              ${cityPincode ? `<p style="margin:0;color:#777;font-size:12px;">${cityPincode}</p>` : ''}
+              ${country ? `<p style="margin:0;color:#777;font-size:12px;">${country}</p>` : ''}
             </div>
             <div style="text-align:right;">
               <p style="margin:0;color:#777;font-size:12px;">Payslip For the Month</p>
@@ -153,12 +164,12 @@ function printPayslip(payslipForm) {
             </div>
           </div>
           <table style="width:100%;font-size:13px;margin-bottom:14px;">
-            <tr><td style="padding:3px 0;color:#777;">Employee Name</td><td style="text-align:right;font-weight:600;">${payslipForm.employeeName}</td></tr>
-            <tr><td style="padding:3px 0;color:#777;">Employee ID</td><td style="text-align:right;">${payslipForm.employeeId || '-'}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Employee Name</td><td style="text-align:right;font-weight:600;">${employeeName}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Employee ID</td><td style="text-align:right;">${employeeId}</td></tr>
             <tr><td style="padding:3px 0;color:#777;">Pay Period</td><td style="text-align:right;">${monthLabel}</td></tr>
-            <tr><td style="padding:3px 0;color:#777;">Paid Days</td><td style="text-align:right;">${payslipForm.paidDays}</td></tr>
-            <tr><td style="padding:3px 0;color:#777;">Loss of Pay Days</td><td style="text-align:right;">${payslipForm.lopDays}</td></tr>
-            <tr><td style="padding:3px 0;color:#777;">Pay Date</td><td style="text-align:right;">${payslipForm.payDate}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Paid Days</td><td style="text-align:right;">${paidDays}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Loss of Pay Days</td><td style="text-align:right;">${lopDays}</td></tr>
+            <tr><td style="padding:3px 0;color:#777;">Pay Date</td><td style="text-align:right;">${payDate}</td></tr>
           </table>
           <table style="width:100%;border-collapse:collapse;font-size:13px;border-top:1px solid #eee;">
             <tr style="background:#f6f6f6;"><td style="padding:6px 10px;font-weight:700;">Earnings</td><td></td></tr>
@@ -171,7 +182,7 @@ function printPayslip(payslipForm) {
             <tr><td style="padding:6px 10px;font-weight:700;">Total Deductions</td><td style="text-align:right;font-weight:700;">₹${totalDeductions.toLocaleString('en-IN')}</td></tr>
             <tr><td style="padding:8px 10px;font-weight:800;font-size:15px;">Net Payable</td><td style="text-align:right;font-weight:800;font-size:15px;">₹${net.toLocaleString('en-IN')}</td></tr>
           </table>
-          <p style="margin-top:14px;font-size:12px;color:#777;">Amount in words: ${numberToWordsINR(net)}</p>
+          <p style="margin-top:14px;font-size:12px;color:#777;">Amount in words: ${escapeHtml(numberToWordsINR(net))}</p>
         </div>
       </body>
     </html>
@@ -642,10 +653,10 @@ export default function Directory() {
                     ))}
                     <div className="flex items-center justify-between gap-3 px-3 py-1.5">
                       <span className="text-muted-foreground shrink-0">Drive Link</span>
-                      {selected.driveLink ? (
+                      {/^https?:\/\//i.test(selected.driveLink || '') ? (
                         <a href={selected.driveLink} target="_blank" rel="noreferrer" className="text-primary font-medium hover:underline truncate">Open folder</a>
                       ) : (
-                        <span className="text-foreground font-medium">-</span>
+                        <span className="text-foreground font-medium truncate">{selected.driveLink || '-'}</span>
                       )}
                     </div>
                     <div className="flex items-center justify-between gap-3 px-3 py-1.5">

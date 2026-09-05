@@ -19,7 +19,6 @@ import { Toaster } from './components/ui/sonner';
 // (HR, Coordinator, SuperAdmin, Founder, Department) up front. LoginPage
 // stays a regular import above since it's the default route and should
 // paint immediately with no extra chunk round-trip.
-const SignupPage = lazy(() => import('./pages/SignupPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const EmployeeDashboardPage = lazy(() => import('./pages/EmployeeDashboardPage'));
 const HrOverview = lazy(() => import('./pages/hr/Overview'));
@@ -123,8 +122,8 @@ export default function App() {
       <BrowserRouter>
       <Suspense fallback={<AppSkeleton />}>
         <Routes>
-          {/* Sign-in is the front door. Signup is reached from the panel's own
-              cross-link, so there's no separate landing page to pass through. */}
+          {/* Sign-in is the front door. There's no self-service signup — staff
+              accounts are created by a Super Admin. */}
           <Route path="/" element={<LoginPage />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/signup" element={<Navigate to="/" replace />} />

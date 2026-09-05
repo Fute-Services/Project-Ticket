@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ROLES, PASSWORD, loginAs, collectErrors, signOut } from './helpers';
+import { ROLES, PASSWORD, loginAs, requireRole, collectErrors, signOut } from './helpers';
 
 test.describe('authentication', () => {
   test('rejects invalid credentials without creating a session', async ({ page }) => {
@@ -14,6 +14,7 @@ test.describe('authentication', () => {
   });
 
   test('signs in with valid credentials and routes by role', async ({ page }) => {
+    requireRole('employee');
     await page.goto('/');
     await page.getByLabel(/email/i).fill(ROLES.employee.email);
     await page.getByLabel('PASSWORD', { exact: true }).fill(PASSWORD);
@@ -33,6 +34,7 @@ test.describe('authentication', () => {
   });
 
   test('remember me unchecked keeps the session out of localStorage', async ({ page }) => {
+    requireRole('employee');
     await page.goto('/');
     await page.getByLabel(/email/i).fill(ROLES.employee.email);
     await page.getByLabel('PASSWORD', { exact: true }).fill(PASSWORD);

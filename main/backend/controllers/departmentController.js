@@ -1,5 +1,6 @@
 const { db } = require('../config/db');
 const { logAudit } = require('../utils/auditLog');
+const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { ok, created, fail } = require('../utils/respond');
 
 const DEPARTMENTS = db.collection('departments');
@@ -11,7 +12,7 @@ const DEPARTMENTS = db.collection('departments');
 // since that field is used inconsistently (job titles, team names) across
 // other roles and isn't a reliable source for a clean department list.
 async function listDepartments(req, res) {
-  const snap = await DEPARTMENTS.get();
+  const snap = await DEPARTMENTS.limit(UNPAGINATED_READ_LIMIT).get();
   ok(res, snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }
 

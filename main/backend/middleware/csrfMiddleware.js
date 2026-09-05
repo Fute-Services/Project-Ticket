@@ -2,7 +2,7 @@ const { CSRF_COOKIE } = require('../utils/cookies');
 const { fail } = require('../utils/respond');
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-// Login/register happen before any session/CSRF cookie exists yet — nothing
+// Login happens before any session/CSRF cookie exists yet — nothing
 // to compare a header against. A forged cross-site login can't read the
 // response anyway (CORS), and there's no existing session for it to hijack,
 // so there's nothing here worth protecting the way there is on every
@@ -14,7 +14,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 // checks) and its response never reaches the attacker's page (CORS) — a
 // forged call just silently rotates the victim's own session, which isn't
 // something an attacker can leverage.
-const EXEMPT_PATHS = new Set(['/api/auth/login', '/api/auth/register', '/api/auth/refresh']);
+const EXEMPT_PATHS = new Set(['/api/auth/login', '/api/auth/refresh']);
 
 // Double-submit cookie check. Session auth just switched from a
 // JS-attached Authorization header (immune to CSRF — a forged cross-site

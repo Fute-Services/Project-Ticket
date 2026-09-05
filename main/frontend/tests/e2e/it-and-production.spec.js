@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAs, collectErrors, signOut, ROLES } from './helpers';
+import { loginAs, collectErrors, signOut, requireRole, ROLES } from './helpers';
 
 // DataTable renders a <table> for desktop and a separate <ul> of cards for
 // phones (both exist in the DOM at once; CSS hides whichever doesn't apply).
@@ -50,6 +50,7 @@ test.describe('Production Floor — interactive dashboard', () => {
 
   test('Report to IT creates a ticket that appears in the IT queue with its metadata', async ({ page, viewport }) => {
     test.skip(!!viewport && viewport.width < 768, 'table layout is desktop-only');
+    requireRole('it');
     const errors = collectErrors(page);
     await loginAs(page, 'production');
 

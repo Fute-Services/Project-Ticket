@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
 const { requirePermission } = require('../middleware/permissionMiddleware');
+const validateFields = require('../middleware/validateFields');
 const {
   createComplaint,
   getAllComplaints,
@@ -16,12 +17,22 @@ const {
 const { createAsset, getAllAssets, updateAsset, deleteAsset } = require('../controllers/assetController');
 const { listStaffByRole } = require('../controllers/staffController');
 
-router.post('/complaints', auth, createComplaint);
+router.post(
+  '/complaints',
+  auth,
+  validateFields({ name: 200, department: 100, description: 5000, priority: 50, employeeId: 100, category: 100, sub_category: 100, vpnNo: 100 }),
+  createComplaint
+);
 router.get('/complaints', auth, role('it', 'founder'), getAllComplaints);
 router.get('/complaints/my', auth, getMyComplaints);
 router.get('/complaints/search', auth, searchByToken);
 router.patch('/complaints/:id/status', auth, role('it', 'founder'), updateStatus);
-router.patch('/complaints/:id/fields', auth, updateFields);
+router.patch(
+  '/complaints/:id/fields',
+  auth,
+  validateFields({ description: 5000, category: 100, sub_category: 100, priority: 50, remarks: 5000, employeeStatus: 100, vpnNo: 100, employeeId: 100 }),
+  updateFields
+);
 router.delete('/complaints/:id', auth, deleteComplaint);
 
 // Only the submitter employee can reopen their own resolved ticket

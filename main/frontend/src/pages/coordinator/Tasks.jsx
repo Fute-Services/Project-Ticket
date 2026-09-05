@@ -7,13 +7,13 @@ import TaskRow from '../../components/tasks/TaskRow';
 import TaskDetailPane from '../../components/tasks/TaskDetailPane';
 import { TASK_STATUSES, TASK_PRIORITIES } from '../../data/coordinatorMockData';
 import { useTaskProject } from '../../context/TaskProjectContext';
-import { useHrDesk } from '../../context/HrDeskContext';
+import { getAssignableEmployees } from '../../utils/api';
 import { toast } from 'sonner';
 
 const EMPTY_FORM = (projects, employees) => ({
   title: '',
   projectId: projects[0]?.id || '',
-  assignee: employees[0]?.name || '',
+  assigneeId: employees[0]?.id || '',
   priority: 'Medium',
   dueDate: '',
   duration: '',
@@ -29,20 +29,27 @@ function toHref(link) {
 
 export default function Tasks() {
   const { tasks, projects, addTask, moveTask, updateTask, toggleComplete, hasMoreTasks, loadMoreTasks, loadingMore } = useTaskProject();
-  // Real roster, not a hardcoded mock list - a task assigned to a name that
-  // doesn't match any real signed-in user's full_name never shows up in
-  // that person's "My Tasks" (EmployeeDashboardPage matches by exact name).
-  const { employees } = useHrDesk();
+  // Real employee-role login accounts, not the HR employee roster — a task
+  // is only visible/actionable to whoever's account actually matches
+  // assigneeId (see taskProjectController.js), so the picker has to offer
+  // accounts, not HR employee records that might have no login at all.
+  const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(() => EMPTY_FORM(projects, []));
   const [projectFilter, setProjectFilter] = useState('All');
   const [openTaskId, setOpenTaskId] = useState(null);
 
-  // The form's default assignee only has a real name to fall back to once
+  useEffect(() => {
+    getAssignableEmployees()
+      .then(({ data }) => setEmployees(data))
+      .catch((e) => console.error('Failed to load assignable employees:', e.response?.data?.error || e.message));
+  }, []);
+
+  // The form's default assignee only has a real id to fall back to once
   // the roster has loaded - backfill it the same way the default project
   // does once `projects` arrives.
   useEffect(() => {
-    if (employees.length) setForm((f) => (f.assignee ? f : { ...f, assignee: employees[0].name }));
+    if (employees.length) setForm((f) => (f.assigneeId ? f : { ...f, assigneeId: employees[0].id }));
   }, [employees]);
 
   const visible = projectFilter === 'All' ? tasks : tasks.filter((t) => t.projectId === projectFilter);
@@ -68,7 +75,8 @@ export default function Tasks() {
       await addTask(form);
       setForm(EMPTY_FORM(projects, employees));
       setShowModal(false);
-      toast.success('Task assigned', { description: `${form.title} → ${form.assignee}` });
+      const assigneeName = employees.find((e) => e.id === form.assigneeId)?.full_name || 'assignee';
+      toast.success('Task assigned', { description: `${form.title} → ${assigneeName}` });
     } catch (err) {
       toast.error('Could not assign task', { description: err.response?.data?.error || err.message });
     } finally {
@@ -268,6 +276,7 @@ export default function Tasks() {
         onClose={() => setOpenTaskId(null)}
         onChange={updateTask}
         onToggle={completeWithUndo}
+        employees={employees}
       />
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title="Assign Task">
@@ -285,8 +294,8 @@ export default function Tasks() {
           <Field label="Assignee">
             <select
               required
-              value={form.assignee}
-              onChange={(e) => setForm((f) => ({ ...f, assignee: e.target.value }))}
+              value={form.assigneeId}
+              onChange={(e) => setForm((f) => ({ ...f, assigneeId: e.target.value }))}
               className={inputClass}
               disabled={employees.length === 0}
             >
@@ -294,7 +303,7 @@ export default function Tasks() {
                 <option value="">Loading employees…</option>
               ) : (
                 employees.map((e) => (
-                  <option key={e.id} value={e.name}>{e.name}</option>
+                  <option key={e.id} value={e.id}>{e.full_name}</option>
                 ))
               )}
             </select>

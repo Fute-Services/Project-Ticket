@@ -600,12 +600,14 @@ async function exportEmailCampaign(req, res) {
   const snap = await leadsCollection.limit(SALES_LEADS_READ_LIMIT).get();
   const rows = snap.docs.map((d) => d.data()).filter((r) => r.email);
   // companyName/contactName are user-entered (manually, or from a future
-  // untrusted import) — a value starting with =, +, -, or @ is interpreted
-  // as a live formula by Excel/Sheets on open (CSV/formula injection), so
-  // it's neutralized with a leading apostrophe before quote-escaping.
+  // untrusted import) — a value starting with =, +, -, @, a tab, or a
+  // carriage return is interpreted as a live formula by Excel/Sheets on
+  // open (CSV/formula injection — tab/CR are the two OWASP lists that a
+  // bare =/+/-/@ check alone misses), so it's neutralized with a leading
+  // apostrophe before quote-escaping.
   const escapeCsv = (v) => {
     let s = String(v || '');
-    if (/^[=+\-@]/.test(s)) s = `'${s}`;
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return `"${s.replace(/"/g, '""')}"`;
   };
   const header = 'Company,Title,Contact Name,Email\n';

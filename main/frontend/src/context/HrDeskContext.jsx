@@ -24,10 +24,12 @@ export function HrDeskProvider({ children }) {
   const [extraHours, setExtraHours] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Mirrors hrDeskRoutes.js's own role gates: employees is readable by
-  // hr/founder/coordinator (Coordinator picks a real employee as a task
-  // assignee), the other three are hr/founder only.
-  const canSeeEmployees = Boolean(user) && ['hr', 'founder', 'coordinator'].includes(user.role);
+  // Mirrors hrDeskRoutes.js's own role gate — hr/founder only. Coordinator
+  // used to be included here (it picked a task assignee from this list),
+  // but that picker now reads real login accounts from
+  // GET /api/coordinator/employees instead (see coordinator/Tasks.jsx),
+  // so a coordinator session no longer needs this fetch at all.
+  const canSeeEmployees = Boolean(user) && ['hr', 'founder'].includes(user.role);
   const canSeeHrDesk = Boolean(user) && ['hr', 'founder'].includes(user.role);
 
   const refreshEmployees = useCallback(async () => {

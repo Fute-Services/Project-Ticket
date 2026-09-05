@@ -78,6 +78,14 @@ async function decide(req, res) {
     return fail(res, { status: 403, message: 'Only the founder can decide leave for this department', code: 'FORBIDDEN' });
   }
 
+  // An HR user is still an employee who can apply for their own leave
+  // (applyLeave above has no role restriction) — without this, nothing
+  // stopped that same HR account from then approving its own request a
+  // moment later.
+  if (leave.user_id === req.user.id) {
+    return fail(res, { status: 403, message: "You can't decide your own leave request", code: 'FORBIDDEN' });
+  }
+
   const updated_at = new Date().toISOString();
   const decidedBy = req.user.full_name;
   await docRef.update({ status, updated_at, decidedBy });

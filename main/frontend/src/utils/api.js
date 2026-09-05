@@ -5,7 +5,7 @@ const api = axios.create({
   // The session lives in an httpOnly cookie now (backend/controllers/authController.js) -
   // without this, the browser won't send it on cross-origin requests
   // (frontend and backend are separate Vercel domains), and won't store the
-  // Set-Cookie from a login/register response either.
+  // Set-Cookie from a login response either.
   withCredentials: true,
 });
 
@@ -27,7 +27,7 @@ function readCookie(name) {
 // cookie the browser actually attached no longer matched - an intermittent,
 // hard-to-reproduce "CSRF token missing or invalid" for real, logged-in
 // users. Caching the value in memory and updating it explicitly, in the
-// same response handler that processes login/register/refresh (below),
+// same response handler that processes login/refresh (below),
 // removes that race entirely - there's no longer a gap between "the value
 // changed" and "the frontend knows it changed".
 //
@@ -43,7 +43,7 @@ export function setCsrfToken(token) {
 api.interceptors.request.use((config) => {
   // Prefer the cached value (race-free - see above) but fall back to a live
   // cookie read if we don't have one yet. The cache only ever gets *set* by
-  // a login/register/refresh response actually completing in this tab - a
+  // a login/refresh response actually completing in this tab - a
   // tab that inherited an already-logged-in session (reload, new tab) and
   // hasn't hit a 401-triggered refresh yet would otherwise be stuck sending
   // no header at all for its entire first access-token lifetime (up to 15
@@ -65,7 +65,7 @@ api.interceptors.request.use((config) => {
 });
 
 function isAuthEndpoint(url) {
-  return /\/api\/auth\/(login|register|refresh)(\?|$)/.test(url || '');
+  return /\/api\/auth\/(login|refresh)(\?|$)/.test(url || '');
 }
 
 // GET /me is how AuthContext asks "am I logged in" on every page load,
@@ -140,9 +140,9 @@ api.interceptors.response.use(
     if (body && typeof body === 'object' && typeof body.success === 'boolean') {
       res.data = body.data;
     }
-    // Login/register/refresh each return a fresh csrfToken (see
+    // Login/refresh each return a fresh csrfToken (see
     // authController.js's issueSessionCookies) - caching it here, in the
-    // one place all three responses pass through, is what keeps the header
+    // one place both responses pass through, is what keeps the header
     // interceptor above from ever needing to re-read document.cookie.
     if (res.data && typeof res.data === 'object' && 'csrfToken' in res.data) {
       setCsrfToken(res.data.csrfToken);
@@ -199,9 +199,9 @@ api.interceptors.response.use(
 
     // A 401 that's already been through a refresh attempt, or arrived with
     // no session cookie at all to try refreshing, really does mean logged
-    // out. Login/register 401s are excluded (that's just a wrong password,
-    // not a reason to bounce someone off the form they're filling in) and
-    // so is /me (see above - that's the "am I logged in" probe itself).
+    // out. Login 401s are excluded (that's just a wrong password, not a
+    // reason to bounce someone off the form they're filling in) and so is
+    // /me (see above - that's the "am I logged in" probe itself).
     if (status === 401 && !isAuthEndpoint(original?.url) && !isMeEndpoint(original?.url)) {
       redirectToLogin();
     }
@@ -211,7 +211,6 @@ api.interceptors.response.use(
 );
 
 // Auth
-export const registerUser = (data) => api.post('/api/auth/register', data);
 export const loginUser = (data) => api.post('/api/auth/login', data);
 export const getMe = () => api.get('/api/auth/me');
 export const verifyPassword = (password) => api.post('/api/auth/verify-password', { password });
@@ -238,6 +237,8 @@ export const exportAnalyticsCsv = (params) => api.get('/api/founder/analytics/ex
 export const globalSearch = (q) => api.get('/api/founder/search', { params: { q } });
 export const getActivityTimeline = (limit) => api.get('/api/founder/activity-timeline', { params: { limit } });
 export const getDashboardOverview = () => api.get('/api/founder/dashboard-overview');
+// AI Cabinet — server holds the Gemini key, see aiCabinetController.js.
+export const askAiCabinet = ({ query, context, model }) => api.post('/api/founder/ai-cabinet', { query, context, model });
 export const updateDashboardLayout = (widgets) => api.patch('/api/founder/dashboard-layout', { widgets });
 
 // Super Admin - SLA policies (per-priority, per-queue) and compliance
@@ -328,6 +329,10 @@ export const deleteAsset = (id) => api.delete(`/api/it/assets/${id}`);
 // Tasks/Projects - Coordinator, Founder, and Employee "My Tasks/Projects" all read
 export const getProjects = () => api.get('/api/coordinator/projects');
 export const getTasks = (after) => api.get('/api/coordinator/tasks', { params: after ? { after } : {} });
+// Real employee-role accounts for the assignee picker (id, full_name) — see
+// taskProjectController.js's createTask/updateTask, which match a task's
+// owner by this id, not by name.
+export const getAssignableEmployees = () => api.get('/api/coordinator/employees');
 export const createTask = (data) => api.post('/api/coordinator/tasks', data);
 export const updateTaskStatus = (id, status) => api.patch(`/api/coordinator/tasks/${id}/status`, { status });
 export const updateTask = (id, patch) => api.patch(`/api/coordinator/tasks/${id}`, patch);

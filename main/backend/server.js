@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const MongoRateLimitStore = require('./utils/rateLimitStore');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 // Patches Express 4's router so a rejected promise thrown inside any async
@@ -36,14 +37,15 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 // Baseline throttle for every route below, on top of the stricter limiter
-// authRoutes.js already applies to /login, /register and /verify-password —
-// this just stops any other endpoint (complaints, tasks, assets, ...) from
+// authRoutes.js already applies to /login and /verify-password — this
+// just stops any other endpoint (complaints, tasks, assets, ...) from
 // being hammered with zero limit at all by a compromised or careless client.
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  store: new MongoRateLimitStore('global'),
   message: { success: false, message: 'Too many requests, please try again later', error: { code: 'RATE_LIMITED', details: null } },
 }));
 
@@ -59,8 +61,12 @@ const allowedOrigins = [
   'https://project-ticket-plum.vercel.app',
 ].filter(Boolean);
 // Vite picks the next free port when 5173 is taken (5174, 5178, ...), so
-// match any localhost port in dev rather than hardcoding one.
-const isLocalhost = (origin) => /^http:\/\/localhost:\d+$/.test(origin);
+// match any localhost port in dev rather than hardcoding one. Dev-only: any
+// program running locally on a machine can open a request to "localhost",
+// so trusting that origin in production would let malware/any other local
+// app on a staff member's computer talk to the API as their logged-in
+// session — this rule is only safe while NODE_ENV isn't 'production'.
+const isLocalhost = (origin) => process.env.NODE_ENV !== 'production' && /^http:\/\/localhost:\d+$/.test(origin);
 app.use(cors({
   origin(origin, callback) {
     // No Origin header (curl, server-to-server, same-origin) — allow.

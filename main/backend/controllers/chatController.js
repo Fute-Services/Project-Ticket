@@ -2,13 +2,11 @@ const { db } = require('../config/db');
 const { ok, created, fail } = require('../utils/respond');
 
 const messagesCollection = db.collection('chat_messages');
+const projectsCollection = db.collection('projects');
 const HISTORY_LIMIT = 50;
 
 // A DM channel id encodes both participants (dm-<uidA>-<uidB>, sorted so
-// either side opening the thread lands on the same id). Fixed channels
-// (general, it-support, ...) and project-<id> channels carry no such
-// encoding — they're open to any authenticated user, same posture
-// taskProjectController.getProjects already takes with project data itself.
+// either side opening the thread lands on the same id).
 function isDmChannel(channelId) {
   return channelId.startsWith('dm-');
 }
@@ -17,9 +15,27 @@ function dmParticipants(channelId) {
   return channelId.slice(3).split('-');
 }
 
-function canAccessChannel(channelId, userId) {
-  if (!isDmChannel(channelId)) return true;
-  return dmParticipants(channelId).includes(userId);
+// project-<id> channels are only for that project's members (matched by
+// full_name, same field taskProjectController's task-assignee checks use) —
+// coordinator/founder manage every project so they're never excluded.
+function isProjectChannel(channelId) {
+  return channelId.startsWith('project-');
+}
+
+async function canAccessProjectChannel(channelId, user) {
+  if (user.role === 'coordinator' || user.role === 'founder') return true;
+  const projectId = channelId.slice('project-'.length);
+  const doc = await projectsCollection.doc(projectId).get();
+  return doc.exists && (doc.data().members || []).includes(user.full_name);
+}
+
+// Fixed company-wide channels (general, it-support, hr-announcements,
+// project-coordination) stay open to any authenticated user by design —
+// only DM and per-project channels need a membership check.
+async function canAccessChannel(channelId, user) {
+  if (isDmChannel(channelId)) return dmParticipants(channelId).includes(user.id);
+  if (isProjectChannel(channelId)) return canAccessProjectChannel(channelId, user);
+  return true;
 }
 
 function makeDmChannelId(uidA, uidB) {
@@ -31,7 +47,7 @@ function makeDmChannelId(uidA, uidB) {
 // newer than that (the poll's incremental fetch, see TeamChatDrawer.jsx).
 async function listMessages(req, res) {
   const { channelId } = req.params;
-  if (!canAccessChannel(channelId, req.user.id)) {
+  if (!(await canAccessChannel(channelId, req.user))) {
     return fail(res, { status: 403, message: 'Forbidden: Insufficient permissions', code: 'FORBIDDEN' });
   }
 
@@ -52,7 +68,7 @@ async function listMessages(req, res) {
 // comes from the JWT (req.user), never the request body.
 async function sendMessage(req, res) {
   const { channelId } = req.params;
-  if (!canAccessChannel(channelId, req.user.id)) {
+  if (!(await canAccessChannel(channelId, req.user))) {
     return fail(res, { status: 403, message: 'Forbidden: Insufficient permissions', code: 'FORBIDDEN' });
   }
 

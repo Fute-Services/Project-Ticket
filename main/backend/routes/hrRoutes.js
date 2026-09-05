@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
+const validateFields = require('../middleware/validateFields');
 const {
   createComplaint,
   getAllComplaints,
@@ -15,7 +16,12 @@ const {
 const { listStaffByRole } = require('../controllers/staffController');
 
 // Any logged-in user can submit an HR complaint
-router.post('/complaints', auth, createComplaint);
+router.post(
+  '/complaints',
+  auth,
+  validateFields({ name: 200, department: 100, description: 5000, priority: 50, employeeId: 100 }),
+  createComplaint
+);
 
 // Only HR staff and founders can see all complaints
 router.get('/complaints', auth, role('hr', 'founder'), getAllComplaints);
@@ -23,14 +29,20 @@ router.get('/complaints', auth, role('hr', 'founder'), getAllComplaints);
 // Any logged-in user can see their own complaints
 router.get('/complaints/my', auth, getMyComplaints);
 
-// Any logged-in user can search by token
+// Any logged-in user can look up a ticket by token, but only gets it back
+// if they're the submitter or HR/founder staff (enforced in the controller).
 router.get('/complaints/search', auth, searchByToken);
 
 // Only HR staff and founders can update status
 router.patch('/complaints/:id/status', auth, role('hr', 'founder'), updateStatus);
 
 // HR staff, founders, or the submitter employee can update ticket fields
-router.patch('/complaints/:id/fields', auth, updateFields);
+router.patch(
+  '/complaints/:id/fields',
+  auth,
+  validateFields({ description: 5000, category: 100, sub_category: 100, priority: 50, remarks: 5000, employeeStatus: 100, employeeId: 100 }),
+  updateFields
+);
 
 // Only the submitter employee can delete their own ticket
 router.delete('/complaints/:id', auth, deleteComplaint);

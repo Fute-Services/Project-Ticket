@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { db } = require('../config/db');
 const { UNPAGINATED_READ_LIMIT } = require('../utils/constants');
 const { sendMail, newComplaintEmail, statusUpdateEmail } = require('../utils/mailer');
@@ -13,10 +14,14 @@ require('dotenv').config();
 // factory is the one place that logic lives now; `opts` below is where the
 // two queues' real differences (token prefix, extra fields, notification
 // rule keys, approval-record shape) are declared.
+// crypto.randomInt (CSPRNG) instead of Math.random() — this token is a
+// lookup key that grants read access to a ticket (see searchByToken below),
+// so it needs to be unguessable, not just look random. Math.random()'s
+// output is predictable from a handful of samples.
 function generateToken(prefix) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
-  for (let i = 0; i < 6; i++) result += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 6; i++) result += chars[crypto.randomInt(chars.length)];
   return `FT-${prefix}-${result}`;
 }
 
@@ -151,23 +156,43 @@ function createComplaintController(opts) {
       ...extra,
     };
 
-    const docRef = await collection.add(docData);
+    // Astronomically unlikely to collide (36^6 possible tokens) but not
+    // impossible, and a duplicate would make searchByToken's lookup return
+    // whichever ticket happened to be created first — the unique index on
+    // `token` (config/db.js) is the actual guard; this just retries with a
+    // fresh token on the rare collision instead of failing the request.
+    let docRef;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        docRef = await collection.add(docData);
+        break;
+      } catch (err) {
+        if (err.code === 11000 && attempt < 4) {
+          docData.token = generateToken(opts.tokenPrefix);
+          continue;
+        }
+        throw err;
+      }
+    }
     const data = { id: docRef.id, ...docData };
 
     try {
       const rules = await loadNotificationRules();
       if (rules[opts.notifyNewComplaintRuleKey].enabled) {
+        // docData.token, not the outer `token` — on the rare collision retry
+        // above, docData.token was reassigned to the one actually saved;
+        // the original `token` would report a value that isn't this ticket's.
         await sendMail(
           rules[opts.notifyNewComplaintRuleKey].recipientEmail || process.env[opts.notifyEmailEnvVar],
-          `New ${opts.tokenPrefix} Complaint — ${token}`,
-          newComplaintEmail(token, name, department, priority)
+          `New ${opts.tokenPrefix} Complaint — ${docData.token}`,
+          newComplaintEmail(docData.token, name, department, priority)
         );
       }
     } catch (e) {
       console.error('Mail error:', e.message);
     }
 
-    created(res, { complaint: data, token }, 'Complaint submitted successfully');
+    created(res, { complaint: data, token: docData.token }, 'Complaint submitted successfully');
   }
 
   // GET .../complaints?after=<cursor> — staff/founder sees all, 20 at a time.
@@ -189,13 +214,25 @@ function createComplaintController(opts) {
     ok(res, sortByRecent(enriched));
   }
 
+  // A ticket's reference number gets shared casually (email, chat, on
+  // screen), so it can't be treated as a secret capability on its own —
+  // this only returns the ticket to the person who raised it, or to
+  // staff/founder/superadmin, same ownership rule updateFields uses below.
   async function searchByToken(req, res) {
     const { token } = req.query;
     if (!token) return fail(res, { status: 400, message: 'token query param required', code: 'VALIDATION_ERROR' });
     const snap = await collection.where('token', '==', token.toUpperCase()).limit(1).get();
     if (snap.empty) return fail(res, { status: 404, message: 'Complaint not found', code: 'NOT_FOUND' });
     const doc = snap.docs[0];
-    ok(res, { id: doc.id, ...doc.data() });
+    const docData = doc.data();
+
+    const isOwner = docData.user_id === req.user?.id;
+    const isStaff = [opts.staffRole, 'founder', 'superadmin'].includes(req.user?.role);
+    if (!isOwner && !isStaff) {
+      return fail(res, { status: 403, message: 'Forbidden: Insufficient permissions', code: 'FORBIDDEN' });
+    }
+
+    ok(res, { id: doc.id, ...docData });
   }
 
   // PATCH .../complaints/:id/status — staff/founder updates status. The
@@ -320,6 +357,7 @@ function createComplaintController(opts) {
       .collection('approvals')
       .where('complaintRef.collection', '==', opts.collectionName)
       .where('complaintRef.id', '==', id)
+      .limit(20)
       .get();
     linkedApprovals.docs.forEach((d) => batch.delete(d.ref));
 

@@ -48,7 +48,7 @@ async function revokeSession(req, res) {
 async function forceLogoutUser(req, res) {
   const { uid } = req.params;
   const { reason } = req.body;
-  const snap = await SESSIONS.where('uid', '==', uid).where('revoked', '==', false).get();
+  const snap = await SESSIONS.where('uid', '==', uid).where('revoked', '==', false).limit(UNPAGINATED_READ_LIMIT).get();
   if (snap.empty) return ok(res, { uid, revokedCount: 0 }, { message: 'No active sessions to revoke' });
 
   const batch = db.batch();
@@ -77,7 +77,7 @@ async function listFailedLogins(req, res) {
 
 // GET /api/founder/security/locked-accounts
 async function listLockedAccounts(req, res) {
-  const snap = await db.collection('users').where('locked', '==', true).get();
+  const snap = await db.collection('users').where('locked', '==', true).limit(UNPAGINATED_READ_LIMIT).get();
   ok(res, snap.docs.map((d) => ({
     id: d.id,
     email: d.data().email,

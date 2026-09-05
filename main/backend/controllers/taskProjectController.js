@@ -5,6 +5,7 @@ const { ok, created, fail } = require('../utils/respond');
 
 const tasksCollection = db.collection('tasks');
 const projectsCollection = db.collection('projects');
+const usersCollection = db.collection('users');
 
 // GET /api/coordinator/projects — read across Coordinator, Founder, and
 // Employee "My Projects" views, so no role restriction.
@@ -20,28 +21,37 @@ async function getProjects(req, res) {
 
 // GET /api/coordinator/tasks?after=<cursor> — Coordinator/Founder get the
 // full team-wide board (they need to see everyone's tasks to assign/manage
-// them); an Employee only ever gets their own — the frontend used to fetch
-// every task in the system and filter to `assignee === user.full_name`
-// client-side (EmployeeDashboardPage), which meant any employee account
-// could read the whole org's task backlog, PR/Figma links included, straight
-// from the API regardless of what the UI displayed.
+// them); an Employee only ever gets their own. Matched by `assigneeId` (the
+// real, unique user id) rather than `assignee` (a display name) — two
+// employees who happen to share a full name used to also share every task
+// matched to that name, each able to read and complete the other's tasks.
 async function getTasks(req, res) {
-  const query = req.user.role === 'employee' ? tasksCollection.where('assignee', '==', req.user.full_name) : tasksCollection;
+  const query = req.user.role === 'employee' ? tasksCollection.where('assigneeId', '==', req.user.id) : tasksCollection;
   const { docs, nextCursor } = await paginatedQuery(query, 'created_at', req.query.after);
   ok(res, { items: docs.map((d) => ({ id: d.id, ...d.data() })), nextCursor });
 }
 
 // POST /api/coordinator/tasks — coordinator/founder assign a new task.
+// Takes `assigneeId` (a real employee-role user id, from
+// GET /api/coordinator/employees) rather than trusting a client-supplied
+// name — the display name is resolved from that account's own profile so it
+// can't drift from who the task is actually assigned to.
 async function createTask(req, res) {
-  const { projectId, title, assignee } = req.body;
-  if (!projectId || !title || !assignee) {
-    return fail(res, { status: 400, message: 'projectId, title and assignee are required', code: 'VALIDATION_ERROR' });
+  const { projectId, title, assigneeId } = req.body;
+  if (!projectId || !title || !assigneeId) {
+    return fail(res, { status: 400, message: 'projectId, title and assigneeId are required', code: 'VALIDATION_ERROR' });
+  }
+
+  const assigneeDoc = await usersCollection.doc(assigneeId).get();
+  if (!assigneeDoc.exists || assigneeDoc.data().role !== 'employee' || assigneeDoc.data().active === false) {
+    return fail(res, { status: 400, message: 'assigneeId must be an active employee account', code: 'VALIDATION_ERROR' });
   }
 
   const docData = {
     projectId,
     title,
-    assignee,
+    assigneeId,
+    assignee: assigneeDoc.data().full_name,
     priority: req.body.priority || 'Medium',
     status: 'Pending',
     dueDate: req.body.dueDate || '',
@@ -60,8 +70,8 @@ async function createTask(req, res) {
 // PATCH /api/coordinator/tasks/:id/status — open to any logged-in user so
 // the assigned employee can toggle their own task complete/incomplete, and
 // the coordinator can drag-move tasks across the board — but only *that*
-// task's own assignee (tasks store `assignee` as the employee's full name,
-// see createTask above) or a coordinator/founder, never an arbitrary other
+// task's own assignee (matched by `assigneeId`, the real user id — see
+// createTask above) or a coordinator/founder, never an arbitrary other
 // employee guessing/enumerating task ids from the open GET /tasks list.
 async function updateTaskStatus(req, res) {
   const { id } = req.params;
@@ -75,7 +85,7 @@ async function updateTaskStatus(req, res) {
   const isOwnerOrManager =
     req.user.role === 'coordinator' ||
     req.user.role === 'founder' ||
-    doc.data().assignee === req.user.full_name;
+    doc.data().assigneeId === req.user.id;
   if (!isOwnerOrManager) return fail(res, { status: 403, message: 'Access denied', code: 'FORBIDDEN' });
 
   const updated_at = new Date().toISOString();
@@ -83,10 +93,13 @@ async function updateTaskStatus(req, res) {
   ok(res, { id, ...doc.data(), status, updated_at }, { message: 'Task status updated successfully' });
 }
 
-const EDITABLE_FIELDS = ['title', 'assignee', 'priority', 'dueDate', 'duration', 'comments', 'attachments', 'figma', 'pr'];
+const EDITABLE_FIELDS = ['title', 'priority', 'dueDate', 'duration', 'comments', 'attachments', 'figma', 'pr'];
 
 // PATCH /api/coordinator/tasks/:id — coordinator/founder edit any field
-// (the task detail pane's general editor).
+// (the task detail pane's general editor). Reassignment goes through
+// `assigneeId` specifically (not the bare `assignee` field) so the display
+// name always gets re-resolved from the target account's own profile,
+// instead of a hand-typed name silently detaching from any real assigneeId.
 async function updateTask(req, res) {
   const { id } = req.params;
   const updates = {};
@@ -94,6 +107,16 @@ async function updateTask(req, res) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
   }
   if (req.body.status !== undefined) updates.status = req.body.status;
+
+  if (req.body.assigneeId !== undefined) {
+    const assigneeDoc = await usersCollection.doc(req.body.assigneeId).get();
+    if (!assigneeDoc.exists || assigneeDoc.data().role !== 'employee' || assigneeDoc.data().active === false) {
+      return fail(res, { status: 400, message: 'assigneeId must be an active employee account', code: 'VALIDATION_ERROR' });
+    }
+    updates.assigneeId = req.body.assigneeId;
+    updates.assignee = assigneeDoc.data().full_name;
+  }
+
   if (Object.keys(updates).length === 0) return fail(res, { status: 400, message: 'No editable fields provided', code: 'VALIDATION_ERROR' });
 
   const docRef = tasksCollection.doc(id);

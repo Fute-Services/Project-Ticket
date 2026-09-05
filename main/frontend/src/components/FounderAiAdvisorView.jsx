@@ -62,8 +62,8 @@ export default function FounderAiAdvisorView({ onNavigate }) {
   const { approvals } = approvalContext;
   const { tasks, projects } = taskProjectContext;
 
-  // App settings for LLM API config
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('fs_gemini_key') || '');
+  // App settings for LLM API config. The Gemini key itself is server-side
+  // only now (see aiCabinetController.js) — nothing to store here anymore.
   const [modelName, setModelName] = useState(() => localStorage.getItem('fs_gemini_model') || 'gemini-2.5-flash');
   const [useRealApi, setUseRealApi] = useState(() => localStorage.getItem('fs_use_real_api') === 'true');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -336,16 +336,12 @@ export default function FounderAiAdvisorView({ onNavigate }) {
     setMessages([{ sender: 'user', text: queryText, timestamp: nowTime() }]);
 
     if (useRealApi) {
-      if (!apiKey.trim()) {
-        toast.warning('Add a Gemini API key in LLM Setup to use Cloud mode.', { description: 'Falling back to the local simulation for now.' });
-      } else {
-        try {
-          const steps = await callGeminiCabinet({ apiKey, model: modelName, query: queryText, context: buildDashboardContext() });
-          runSimulationSteps(steps);
-          return;
-        } catch (err) {
-          toast.error('Cloud Gemini Cabinet unavailable.', { description: String(err.message || err).slice(0, 160) });
-        }
+      try {
+        const steps = await callGeminiCabinet({ model: modelName, query: queryText, context: buildDashboardContext() });
+        runSimulationSteps(steps);
+        return;
+      } catch (err) {
+        toast.error('Cloud Gemini Cabinet unavailable.', { description: String(err.message || err).slice(0, 160) });
       }
     }
 
@@ -406,7 +402,6 @@ export default function FounderAiAdvisorView({ onNavigate }) {
   // Save Settings for Gemini
   const handleSaveSettings = (e) => {
     e.preventDefault();
-    localStorage.setItem('fs_gemini_key', apiKey);
     localStorage.setItem('fs_gemini_model', modelName);
     localStorage.setItem('fs_use_real_api', useRealApi.toString());
     setIsSettingsOpen(false);
@@ -1227,20 +1222,9 @@ export default function FounderAiAdvisorView({ onNavigate }) {
                 {/* Gemini Setup (conditional) */}
                 {useRealApi && (
                   <div className="flex flex-col gap-4 bg-muted/30 border border-border p-4 rounded-xl">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <span>Gemini API Key</span>
-                        <span className="text-[9px] text-destructive">*</span>
-                      </label>
-                      <input
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="AIzaSy..."
-                        required={useRealApi}
-                        className="bg-background border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
-                      />
-                    </div>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      The API key is configured on the server — there's nothing to enter here.
+                    </p>
 
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-foreground">Model Variant</label>

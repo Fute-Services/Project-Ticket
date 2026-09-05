@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { tasks as allTasks } from '../../data/coordinatorMockData';
 import TeamChatDrawer from '../TeamChatDrawer';
+import { useTaskProject } from '../../context/TaskProjectContext';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/coordinator/overview' },
@@ -43,6 +44,17 @@ export default function CoordinatorLayout({ children }) {
   const [query, setQuery] = useState('');
   const [dateRangeLabel, setDateRangeLabel] = useState('Today');
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // A coordinator manages every project (not just ones they're a member
+  // of — see taskProjectController.getProjects and chatController's
+  // canAccessProjectChannel, which lets coordinator/founder into any
+  // project-<id> channel), so every project gets a channel here, unlike
+  // EmployeeDashboardPage's membership-filtered myProjectChannels.
+  const { projects } = useTaskProject();
+  const projectChannels = useMemo(
+    () => projects.map((p) => ({ id: `project-${p.id}`, name: p.name, desc: `${p.members?.length || 0} members + coordinator` })),
+    [projects]
+  );
 
   const searchIndex = useMemo(buildSearchIndex, []);
   const results = useMemo(() => {
@@ -286,7 +298,7 @@ export default function CoordinatorLayout({ children }) {
         <main className="flex-1 p-3.5 lg:p-5 min-w-0 overflow-y-auto flex flex-col">{children}</main>
       </div>
 
-      <TeamChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <TeamChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} projectChannels={projectChannels} />
     </div>
   );
 }

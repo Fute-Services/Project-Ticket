@@ -132,11 +132,8 @@ async function updateUserPermissions(req, res) {
 }
 
 // POST /api/founder/users — { email, password, full_name, role, department }
-// Unlike POST /api/auth/register (self-signup, role always auto-detected
-// from the email pattern — a user can never pick their own role), this lets
-// Super Admin assign the role explicitly, since they're deliberately creating
-// the account for a specific role's permissions panel rather than the email
-// happening to match a pattern like system.fute*.
+// The only way to create an account — there is no public self-signup route.
+// Super Admin assigns the role explicitly here.
 async function createUser(req, res) {
   const { email, password, full_name, role, department } = req.body;
   if (!email || !password || !full_name || !role) {
@@ -283,6 +280,11 @@ async function resetUserPassword(req, res) {
   if (!userDoc.exists) return fail(res, { status: 404, message: 'User not found', code: 'NOT_FOUND' });
 
   await auth.updateUser(uid, { password });
+  // This is specifically the tool a Super Admin uses to get a locked-out
+  // user back in — without also clearing the lock, the reset password
+  // works but login() still 423s on the stale `locked` flag, with nothing
+  // telling the admin why the person they just "fixed" still can't sign in.
+  await userRef.set({ locked: false, failedLoginAttempts: 0 }, { merge: true });
   await logAudit({
     actor: req.user,
     action: 'reset_user_password',

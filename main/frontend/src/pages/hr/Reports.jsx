@@ -5,6 +5,7 @@ import { departmentPerformance } from '../../data/hrMockData';
 import { useLeave } from '../../context/LeaveContext';
 import { useHrDesk } from '../../context/HrDeskContext';
 import { getAllLeaves } from '../../utils/api';
+import { escapeHtml } from '../../utils/escapeHtml';
 
 // Leave requests now come from LeaveContext 20 at a time (see
 // LeaveContext.jsx) so the poll that keeps HR's queue fresh doesn't re-read
@@ -82,8 +83,17 @@ function buildReports({ employees, attendanceRecords, leaveRequests, candidates,
   ];
 }
 
+// A value starting with =, +, -, @, a tab, or a carriage return is
+// interpreted as a live formula by Excel/Sheets the moment this file is
+// opened (CSV/formula injection) — prefix with a leading apostrophe first
+// so it's forced back to plain text, matching the backend's own CSV
+// exports (analyticsController.js/salesDeskController.js csvEscape).
 function toCsv(headers, rows) {
-  const escape = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  const escape = (v) => {
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
   return [headers.map(escape).join(','), ...rows.map((r) => r.map(escape).join(','))].join('\n');
 }
 
@@ -105,8 +115,19 @@ function downloadCsv(filename, headers, rows) {
 // names the sheet). Not a true .xlsx, but it opens as an actual spreadsheet
 // with real columns/rows - unlike the "Excel" button before this, which
 // silently produced the same file as "CSV".
+// Excel still parses each cell's text as a live formula if it starts with
+// =, +, -, @, a tab, or a carriage return — same CSV/formula-injection risk
+// as toCsv above, just reached through an HTML table instead of raw CSV.
+// escapeHtml alone only stops HTML/script injection in this file, not that;
+// neutralize the formula prefix first, then escape for the HTML context.
+function excelCell(v) {
+  let s = String(v ?? '');
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return escapeHtml(s);
+}
+
 function downloadExcel(filename, headers, rows) {
-  const escape = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const escape = excelCell;
   const headerRow = `<tr>${headers.map((h) => `<th>${escape(h)}</th>`).join('')}</tr>`;
   const bodyRows = rows.map((r) => `<tr>${r.map((c) => `<td>${escape(c)}</td>`).join('')}</tr>`).join('');
   const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -129,16 +150,17 @@ function downloadExcel(filename, headers, rows) {
 function openPrintable(title, headers, rows) {
   const win = window.open('', '_blank');
   if (!win) return;
+  const safeTitle = escapeHtml(title);
   const tableRows = rows
-    .map((r) => `<tr>${r.map((c) => `<td style="padding:6px 10px;border:1px solid #ddd;">${c}</td>`).join('')}</tr>`)
+    .map((r) => `<tr>${r.map((c) => `<td style="padding:6px 10px;border:1px solid #ddd;">${escapeHtml(c)}</td>`).join('')}</tr>`)
     .join('');
   win.document.write(`
     <html>
-      <head><title>${title}</title></head>
+      <head><title>${safeTitle}</title></head>
       <body style="font-family:sans-serif;padding:24px;">
-        <h2>${title}</h2>
+        <h2>${safeTitle}</h2>
         <table style="border-collapse:collapse;width:100%;font-size:13px;">
-          <thead><tr>${headers.map((h) => `<th style="padding:6px 10px;border:1px solid #ddd;text-align:left;background:#f3f3f3;">${h}</th>`).join('')}</tr></thead>
+          <thead><tr>${headers.map((h) => `<th style="padding:6px 10px;border:1px solid #ddd;text-align:left;background:#f3f3f3;">${escapeHtml(h)}</th>`).join('')}</tr></thead>
           <tbody>${tableRows}</tbody>
         </table>
       </body>

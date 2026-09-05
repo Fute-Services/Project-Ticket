@@ -13,7 +13,7 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-// One doc per successful login/register. `sid` is embedded in the access
+// One doc per successful login. `sid` is embedded in the access
 // JWT so a revoke can take effect immediately instead of waiting out the
 // token's life — without this, "force logout" would be cosmetic.
 // `remember` is stored here (not just used once at login) so a later
