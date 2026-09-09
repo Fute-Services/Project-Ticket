@@ -35,6 +35,7 @@ const CoordinatorOverview = lazy(() => import('./pages/coordinator/Overview'));
 const CoordinatorTasks = lazy(() => import('./pages/coordinator/Tasks'));
 const CoordinatorProjects = lazy(() => import('./pages/coordinator/Projects'));
 const CoordinatorProjectDetail = lazy(() => import('./pages/coordinator/ProjectDetail'));
+const CoordinatorDeliveryTracker = lazy(() => import('./pages/coordinator/DeliveryTracker'));
 
 const FounderLandingPage = lazy(() => import('./pages/FounderLandingPage'));
 const FounderDashboardPage = lazy(() => import('./pages/FounderDashboardPage'));
@@ -96,6 +97,7 @@ const COORDINATOR_ROUTES = [
   { path: '/coordinator/tasks', element: <CoordinatorTasks /> },
   { path: '/coordinator/projects', element: <CoordinatorProjects /> },
   { path: '/coordinator/projects/:projectId', element: <CoordinatorProjectDetail /> },
+  { path: '/coordinator/delivery-tracker', element: <CoordinatorDeliveryTracker /> },
 ];
 
 // ponytail: every non-auth provider below already role-gates its own fetch

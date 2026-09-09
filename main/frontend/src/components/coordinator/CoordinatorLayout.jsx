@@ -6,6 +6,7 @@ import {
   LayoutGrid,
   ListChecks,
   FolderKanban,
+  Truck,
   Search,
   Bell,
   LogOut,
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/coordinator/overview' },
   { label: 'Projects', icon: FolderKanban, path: '/coordinator/projects' },
   { label: 'Tasks', icon: ListChecks, path: '/coordinator/tasks' },
+  { label: 'Delivery Tracker', icon: Truck, path: '/coordinator/delivery-tracker' },
 ];
 
 function buildSearchIndex() {
