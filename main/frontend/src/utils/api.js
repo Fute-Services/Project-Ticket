@@ -328,6 +328,8 @@ export const deleteAsset = (id) => api.delete(`/api/it/assets/${id}`);
 
 // Tasks/Projects - Coordinator, Founder, and Employee "My Tasks/Projects" all read
 export const getProjects = () => api.get('/api/coordinator/projects');
+export const createProject = (data) => api.post('/api/coordinator/projects', data);
+export const updateProject = (id, patch) => api.patch(`/api/coordinator/projects/${id}`, patch);
 export const getTasks = (after) => api.get('/api/coordinator/tasks', { params: after ? { after } : {} });
 // Real employee-role accounts for the assignee picker (id, full_name) — see
 // taskProjectController.js's createTask/updateTask, which match a task's

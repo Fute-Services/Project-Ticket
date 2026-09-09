@@ -3,10 +3,12 @@ const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
 const validateFields = require('../middleware/validateFields');
-const { getProjects, getTasks, createTask, updateTaskStatus, updateTask } = require('../controllers/taskProjectController');
+const { getProjects, createProject, updateProject, getTasks, createTask, updateTaskStatus, updateTask } = require('../controllers/taskProjectController');
 const { listStaffByRole } = require('../controllers/staffController');
 
 router.get('/projects', auth, getProjects);
+router.post('/projects', auth, role('coordinator', 'founder'), validateFields({ name: 200, client: 200, figma: 500, repo: 500 }), createProject);
+router.patch('/projects/:id', auth, role('coordinator', 'founder'), validateFields({ name: 200, client: 200, figma: 500, repo: 500 }), updateProject);
 router.get('/tasks', auth, getTasks);
 // Real employee-role login accounts, for the assignee picker — a task must
 // be assignable only to an account that can actually see it on their own

@@ -15,9 +15,10 @@ function dmParticipants(channelId) {
   return channelId.slice(3).split('-');
 }
 
-// project-<id> channels are only for that project's members (matched by
-// full_name, same field taskProjectController's task-assignee checks use) —
-// coordinator/founder manage every project so they're never excluded.
+// project-<id> channels are only for that project's tagged members (matched
+// by memberIds, the same real user-id field taskProjectController's
+// task-assignee checks use) — coordinator/founder manage every project so
+// they're never excluded.
 function isProjectChannel(channelId) {
   return channelId.startsWith('project-');
 }
@@ -26,7 +27,7 @@ async function canAccessProjectChannel(channelId, user) {
   if (user.role === 'coordinator' || user.role === 'founder') return true;
   const projectId = channelId.slice('project-'.length);
   const doc = await projectsCollection.doc(projectId).get();
-  return doc.exists && (doc.data().members || []).includes(user.full_name);
+  return doc.exists && (doc.data().memberIds || []).includes(user.id);
 }
 
 // Fixed company-wide channels (general, it-support, hr-announcements,

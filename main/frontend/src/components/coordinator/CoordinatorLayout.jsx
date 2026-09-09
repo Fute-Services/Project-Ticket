@@ -52,7 +52,7 @@ export default function CoordinatorLayout({ children }) {
   // EmployeeDashboardPage's membership-filtered myProjectChannels.
   const { projects } = useTaskProject();
   const projectChannels = useMemo(
-    () => projects.map((p) => ({ id: `project-${p.id}`, name: p.name, desc: `${p.members?.length || 0} members + coordinator` })),
+    () => projects.map((p) => ({ id: `project-${p.id}`, name: p.name, desc: `${(p.memberIds || []).length} members + coordinator` })),
     [projects]
   );
 

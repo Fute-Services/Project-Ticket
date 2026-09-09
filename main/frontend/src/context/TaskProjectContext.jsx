@@ -3,6 +3,8 @@ import { useAuth } from './AuthContext';
 import {
   getProjects,
   getTasks,
+  createProject as createProjectApi,
+  updateProject as updateProjectApi,
   createTask as createTaskApi,
   updateTaskStatus as updateTaskStatusApi,
   updateTask as updateTaskApi,
@@ -75,6 +77,29 @@ export function TaskProjectProvider({ children }) {
 
   useVisibilityAwarePolling(refresh, SHARED_POLL_MS, isSharedBoard);
 
+  async function addProject(project) {
+    try {
+      const { data } = await createProjectApi(project);
+      setProjects((prev) => [data, ...prev]);
+      return data;
+    } catch (e) {
+      console.error('Failed to create project:', e.response?.data?.error || e.message);
+      throw e;
+    }
+  }
+
+  /** Patch any subset of a project's fields (including memberIds) - used by the project detail/edit form. */
+  async function updateProject(id, patch) {
+    try {
+      const { data } = await updateProjectApi(id, patch);
+      setProjects((prev) => prev.map((p) => (p.id === id ? data : p)));
+      return data;
+    } catch (e) {
+      console.error('Failed to update project:', e.response?.data?.error || e.message);
+      throw e;
+    }
+  }
+
   async function addTask(task) {
     try {
       const { data } = await createTaskApi(task);
@@ -121,7 +146,7 @@ export function TaskProjectProvider({ children }) {
 
   return (
     <TaskProjectContext.Provider
-      value={{ tasks, projects, loading, addTask, moveTask, updateTask, toggleComplete, refresh, hasMoreTasks: hasMore, loadMoreTasks, loadingMore, lastUpdated, isSharedBoard }}
+      value={{ tasks, projects, loading, addProject, updateProject, addTask, moveTask, updateTask, toggleComplete, refresh, hasMoreTasks: hasMore, loadMoreTasks, loadingMore, lastUpdated, isSharedBoard }}
     >
       {children}
     </TaskProjectContext.Provider>

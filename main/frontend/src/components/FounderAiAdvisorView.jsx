@@ -483,7 +483,7 @@ export default function FounderAiAdvisorView({ onNavigate }) {
           progress: p.progress,
           client: p.client,
           dueDate: p.dueDate,
-          membersCount: p.members.length
+          membersCount: (p.memberIds || []).length
         })),
         delayedTasks: tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress').slice(0, 3).map(t => ({
           id: t.id,

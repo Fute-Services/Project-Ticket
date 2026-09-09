@@ -579,8 +579,12 @@ export default function EmployeeDashboardPage() {
     () => tasks.filter((t) => t.assignee === user?.full_name),
     [tasks, user]
   );
+  // The backend's GET /coordinator/projects already scopes an employee to
+  // only the projects they're tagged on (memberIds) - `projects` here never
+  // contains anything else, but keep the id-based check as a second gate
+  // rather than trusting every project in state is already scoped.
   const myProjects = useMemo(
-    () => projects.filter((p) => p.members.includes(user?.full_name)),
+    () => projects.filter((p) => Array.isArray(p.memberIds) && p.memberIds.includes(user?.id)),
     [projects, user]
   );
 
@@ -589,7 +593,7 @@ export default function EmployeeDashboardPage() {
   const openTask = openTaskId ? tasks.find((t) => t.id === openTaskId) : null;
 
   const myProjectChannels = useMemo(
-    () => myProjects.map((p) => ({ id: `project-${p.id}`, name: p.name, desc: `${p.members.length} members + coordinator` })),
+    () => myProjects.map((p) => ({ id: `project-${p.id}`, name: p.name, desc: `${(p.memberIds || []).length} members + coordinator` })),
     [myProjects]
   );
 

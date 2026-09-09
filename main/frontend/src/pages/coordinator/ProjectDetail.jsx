@@ -1,8 +1,12 @@
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Figma, Github } from 'lucide-react';
+import { ArrowLeft, Figma, Github, Pencil, Plus } from 'lucide-react';
 import CoordinatorLayout from '../../components/coordinator/CoordinatorLayout';
-import { Card, SectionHeader, Badge } from '../../components/ui';
+import { Card, SectionHeader, Badge, Modal, Field, inputClass } from '../../components/ui';
 import { useTaskProject } from '../../context/TaskProjectContext';
+import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
+import { TASK_PRIORITIES } from '../../data/coordinatorMockData';
+import { toast } from 'sonner';
 
 const PROJECT_STATUS_TONE = {
   'On Track': 'bg-primary/10 text-primary border-primary/20',
@@ -22,13 +26,112 @@ function initials(name) {
   return name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 }
 
+const EMPTY_TASK_FORM = (memberIds) => ({
+  title: '',
+  assigneeId: memberIds[0] || '',
+  priority: 'Medium',
+  dueDate: '',
+  duration: '',
+  figma: '',
+  pr: '',
+});
+
 export default function CoordinatorProjectDetail() {
   const navigate = useNavigate();
   const { projectId } = useParams();
-  const { tasks, projects } = useTaskProject();
+  const { tasks, projects, addTask, updateProject } = useTaskProject();
+  const { employees, nameOf } = useEmployeeDirectory();
 
   const project = projects.find((p) => p.id === projectId);
   const projectTasks = tasks.filter((t) => t.projectId === projectId);
+  const memberIds = project?.memberIds || [];
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [taskForm, setTaskForm] = useState(() => EMPTY_TASK_FORM(memberIds));
+  const [assigning, setAssigning] = useState(false);
+
+  // Coordinator's "who's doing what" view - every task on this project,
+  // bucketed by the member holding it. A task's owner can be untagged from
+  // the project later (see updateProject) while keeping their existing
+  // tasks (a deliberate choice, not a bug) - that owner falls out of
+  // `memberIds`/the employee directory lookup, so those tasks are grouped
+  // by their own stored `assignee` name instead of a nameless "Unassigned"
+  // catch-all.
+  const tasksByMember = useMemo(() => {
+    const byAssignee = new Map();
+    for (const t of projectTasks) {
+      const key = t.assigneeId || '';
+      if (!byAssignee.has(key)) byAssignee.set(key, []);
+      byAssignee.get(key).push(t);
+    }
+    const groups = memberIds.map((id) => ({ id, name: nameOf(id), items: byAssignee.get(id) || [] }));
+    for (const [id, items] of byAssignee) {
+      if (id && !memberIds.includes(id)) {
+        groups.push({ id, name: `${items[0].assignee || 'Unknown'} (no longer tagged)`, items });
+      }
+    }
+    const noAssignee = byAssignee.get('') || [];
+    if (noAssignee.length) groups.push({ id: null, name: 'Unassigned', items: noAssignee });
+    return groups;
+  }, [memberIds, projectTasks, nameOf]);
+
+  function openEdit() {
+    setEditForm({
+      name: project.name,
+      client: project.client,
+      startDate: project.startDate || '',
+      dueDate: project.dueDate || '',
+      status: project.status,
+      figma: project.figma || '',
+      repo: project.repo || '',
+      memberIds,
+    });
+    setEditOpen(true);
+  }
+
+  function toggleEditMember(id) {
+    setEditForm((f) => ({
+      ...f,
+      memberIds: f.memberIds.includes(id) ? f.memberIds.filter((m) => m !== id) : [...f.memberIds, id],
+    }));
+  }
+
+  async function submitEdit(e) {
+    e.preventDefault();
+    setSavingEdit(true);
+    try {
+      await updateProject(project.id, editForm);
+      toast.success('Project updated', { description: editForm.name });
+      setEditOpen(false);
+    } catch (err) {
+      toast.error('Could not update project', { description: err.response?.data?.error || err.message });
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  function openAssign() {
+    setTaskForm(EMPTY_TASK_FORM(memberIds));
+    setAssignOpen(true);
+  }
+
+  async function submitAssign(e) {
+    e.preventDefault();
+    setAssigning(true);
+    try {
+      await addTask({ ...taskForm, projectId: project.id });
+      toast.success('Task assigned', { description: `${taskForm.title} → ${nameOf(taskForm.assigneeId)}` });
+      setAssignOpen(false);
+    } catch (err) {
+      toast.error('Could not assign task', { description: err.response?.data?.error || err.message });
+    } finally {
+      setAssigning(false);
+    }
+  }
 
   if (!project) {
     return (
@@ -80,6 +183,13 @@ export default function CoordinatorProjectDetail() {
                 <Github size={13} /> Repo
               </a>
             )}
+            <button
+              type="button"
+              onClick={openEdit}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card border border-border hover:border-muted/50 text-xs font-semibold text-foreground transition-colors cursor-pointer"
+            >
+              <Pencil size={13} /> Edit
+            </button>
           </div>
         </div>
 
@@ -95,41 +205,175 @@ export default function CoordinatorProjectDetail() {
             />
           </div>
 
-          <SectionHeader title="Team" />
+          <SectionHeader title="Team" subtitle={`${memberIds.length} tagged`} />
           <div className="flex flex-wrap gap-2">
-            {project.members.map((m) => (
-              <div key={m} className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-muted border border-border">
-                <span className="w-6 h-6 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-xs font-bold text-primary">
-                  {initials(m)}
-                </span>
-                <span className="text-xs text-foreground">{m}</span>
-              </div>
-            ))}
+            {memberIds.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-1">No one tagged on this project yet — edit it to add members.</p>
+            ) : (
+              memberIds.map((id) => {
+                const m = nameOf(id);
+                return (
+                  <div key={id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-muted border border-border">
+                    <span className="w-6 h-6 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-xs font-bold text-primary">
+                      {initials(m)}
+                    </span>
+                    <span className="text-xs text-foreground">{m}</span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </Card>
 
         <Card>
-          <SectionHeader title="Tasks" subtitle={`${projectTasks.length} tasks in this project`} />
-          <div className="flex flex-col gap-2.5">
-            {projectTasks.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">No tasks assigned yet.</p>
-            ) : (
-              projectTasks.map((t) => (
-                <div key={t.id} className="p-3 rounded-lg bg-muted border border-border flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-foreground truncate">{t.title}</div>
-                    <div className="text-xs text-muted-foreground truncate">{t.assignee} · due {t.dueDate}{t.duration ? ` · ${t.duration}` : ''}</div>
+          <SectionHeader
+            title="Tasks"
+            subtitle={`${projectTasks.length} tasks · who's doing what`}
+            action={
+              <button
+                type="button"
+                onClick={openAssign}
+                disabled={memberIds.length === 0}
+                title={memberIds.length === 0 ? 'Tag at least one member before assigning tasks' : undefined}
+                className="flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold px-3 py-2 rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus size={13} /> Assign Task
+              </button>
+            }
+          />
+          {projectTasks.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-4 text-center">No tasks assigned yet.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {tasksByMember.map(({ id, name, items }) =>
+                items.length === 0 ? null : (
+                  <div key={id ?? 'unassigned'}>
+                    <div className="text-xs font-semibold text-muted-foreground mb-1.5">{name} · {items.length}</div>
+                    <div className="flex flex-col gap-2">
+                      {items.map((t) => (
+                        <div key={t.id} className="p-3 rounded-lg bg-muted border border-border flex items-center justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-bold text-foreground truncate">{t.title}</div>
+                            <div className="text-xs text-muted-foreground truncate">due {t.dueDate}{t.duration ? ` · ${t.duration}` : ''}</div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge value={t.priority} />
+                            <Badge value={t.status} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge value={t.priority} />
-                    <Badge value={t.status} />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                )
+              )}
+            </div>
+          )}
         </Card>
       </div>
+
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Project">
+        {editForm && (
+          <form onSubmit={submitEdit} className="flex flex-col gap-3">
+            <Field label="Name">
+              <input required value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} className={inputClass} />
+            </Field>
+            <Field label="Client">
+              <input required value={editForm.client} onChange={(e) => setEditForm((f) => ({ ...f, client: e.target.value }))} className={inputClass} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Start Date">
+                <input type="date" value={editForm.startDate} onChange={(e) => setEditForm((f) => ({ ...f, startDate: e.target.value }))} className={inputClass} />
+              </Field>
+              <Field label="Due Date">
+                <input required type="date" value={editForm.dueDate} onChange={(e) => setEditForm((f) => ({ ...f, dueDate: e.target.value }))} className={inputClass} />
+              </Field>
+            </div>
+            <Field label="Status">
+              <select value={editForm.status} onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))} className={inputClass}>
+                {Object.keys(PROJECT_STATUS_TONE).map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Figma design link (optional)">
+              <input value={editForm.figma} onChange={(e) => setEditForm((f) => ({ ...f, figma: e.target.value }))} className={inputClass} />
+            </Field>
+            <Field label="GitHub repo link (optional)">
+              <input value={editForm.repo} onChange={(e) => setEditForm((f) => ({ ...f, repo: e.target.value }))} className={inputClass} />
+            </Field>
+            <Field label="Team — tag employees on this project">
+              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto border border-input rounded-md p-2">
+                {employees.map((emp) => (
+                  <label key={emp.id} className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5">
+                    <input
+                      type="checkbox"
+                      checked={editForm.memberIds.includes(emp.id)}
+                      onChange={() => toggleEditMember(emp.id)}
+                      className="cursor-pointer"
+                    />
+                    {emp.full_name}
+                  </label>
+                ))}
+              </div>
+            </Field>
+            <button
+              type="submit"
+              disabled={savingEdit}
+              className="mt-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {savingEdit ? 'Saving…' : 'Save Changes'}
+            </button>
+          </form>
+        )}
+      </Modal>
+
+      <Modal open={assignOpen} onClose={() => setAssignOpen(false)} title="Assign Task">
+        <form onSubmit={submitAssign} className="flex flex-col gap-3">
+          <Field label="Title">
+            <input required value={taskForm.title} onChange={(e) => setTaskForm((f) => ({ ...f, title: e.target.value }))} className={inputClass} />
+          </Field>
+          <Field label="Assignee" hint="Only members tagged on this project can be assigned.">
+            <select
+              required
+              value={taskForm.assigneeId}
+              onChange={(e) => setTaskForm((f) => ({ ...f, assigneeId: e.target.value }))}
+              className={inputClass}
+            >
+              {memberIds.map((id) => (
+                <option key={id} value={id}>{nameOf(id)}</option>
+              ))}
+            </select>
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Priority">
+              <select value={taskForm.priority} onChange={(e) => setTaskForm((f) => ({ ...f, priority: e.target.value }))} className={inputClass}>
+                {TASK_PRIORITIES.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Due Date">
+              <input required type="date" value={taskForm.dueDate} onChange={(e) => setTaskForm((f) => ({ ...f, dueDate: e.target.value }))} className={inputClass} />
+            </Field>
+          </div>
+          <Field label="Duration">
+            <input value={taskForm.duration} onChange={(e) => setTaskForm((f) => ({ ...f, duration: e.target.value }))} className={inputClass} placeholder="e.g. 3 days" />
+          </Field>
+          <Field label="Figma design link (optional)">
+            <input value={taskForm.figma} onChange={(e) => setTaskForm((f) => ({ ...f, figma: e.target.value }))} className={inputClass} placeholder="figma.com/file/..." />
+          </Field>
+          <Field label="GitHub PR / repo link (optional)">
+            <input value={taskForm.pr} onChange={(e) => setTaskForm((f) => ({ ...f, pr: e.target.value }))} className={inputClass} placeholder="github.com/fute/repo/pull/123" />
+          </Field>
+          <button
+            type="submit"
+            disabled={assigning}
+            className="mt-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {assigning ? 'Assigning…' : 'Assign'}
+          </button>
+        </form>
+      </Modal>
     </CoordinatorLayout>
   );
 }

@@ -15,6 +15,7 @@ import { Card, SectionHeader, StatCard, Badge } from '../../components/ui';
 import DonutChart from '../../components/DonutChart';
 import { TASK_STATUSES } from '../../data/coordinatorMockData';
 import { useTaskProject } from '../../context/TaskProjectContext';
+import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 
 const TODAY = '2026-08-06';
 
@@ -58,6 +59,7 @@ function toDonutData(rows, key, statuses, colorMap) {
 export default function CoordinatorOverview() {
   const navigate = useNavigate();
   const { tasks, projects } = useTaskProject();
+  const { nameOf } = useEmployeeDirectory();
 
   const pending = tasks.filter((t) => t.status === 'Pending').length;
   const inProgress = tasks.filter((t) => t.status === 'In Progress').length;
@@ -157,16 +159,19 @@ export default function CoordinatorOverview() {
                   <div className="flex items-center justify-between gap-2 pt-1">
                     {/* Team member avatars */}
                     <div className="flex items-center -space-x-1.5">
-                      {p.members.map((m) => (
-                        <span
-                          key={m}
-                          title={m}
-                          className="w-6 h-6 rounded-full bg-primary/20 border border-primary/40 ring-2 ring-muted flex items-center justify-center text-xs font-bold text-primary"
-                        >
-                          {initials(m)}
-                        </span>
-                      ))}
-                      <span className="pl-3 text-xs text-muted-foreground">{p.members.length} members</span>
+                      {(p.memberIds || []).map((id) => {
+                        const m = nameOf(id);
+                        return (
+                          <span
+                            key={id}
+                            title={m}
+                            className="w-6 h-6 rounded-full bg-primary/20 border border-primary/40 ring-2 ring-muted flex items-center justify-center text-xs font-bold text-primary"
+                          >
+                            {initials(m)}
+                          </span>
+                        );
+                      })}
+                      <span className="pl-3 text-xs text-muted-foreground">{(p.memberIds || []).length} members</span>
                     </div>
 
                     {/* Linked assets */}

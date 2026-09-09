@@ -6,6 +6,7 @@ import { useLeave } from '../context/LeaveContext';
 import { useHrDesk } from '../context/HrDeskContext';
 import { useSalesDesk } from '../context/SalesDeskContext';
 import { useTaskProject } from '../context/TaskProjectContext';
+import { useEmployeeDirectory } from '../hooks/useEmployeeDirectory';
 import {
   Bell,
   Users,
@@ -232,6 +233,7 @@ export default function FounderDashboardPage() {
   const pendingLeaves = leaveRequests.filter((l) => l.status === 'Pending');
 
   const { tasks: allTasks, projects: allProjects } = useTaskProject();
+  const { nameOf } = useEmployeeDirectory();
 
   // Founder's own rollup (Founder's Own View gap) - real data, same
   // HrDeskContext every HR page already shares (founder is already granted
@@ -634,8 +636,8 @@ export default function FounderDashboardPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {p.members.map((m) => (
-                        <span key={m} className="text-xs px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground">{m}</span>
+                      {(p.memberIds || []).map((id) => (
+                        <span key={id} className="text-xs px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground">{nameOf(id)}</span>
                       ))}
                     </div>
                   </div>
