@@ -39,11 +39,26 @@ export function homeFor(role) {
 // cosmetic optimization so a page refresh doesn't flash the login screen
 // before GET /api/auth/me resolves; it's never trusted on its own, only ever
 // used to pre-paint while that request is in flight below.
+// A real user object always has at least a string `id` and `role` - a
+// non-object, an array, or a stray {"0":"<","1":"!",...} (what you get from
+// JSON.stringify({...someString}) - see the guard in refreshSelf below for
+// how that shape got in here in the first place) fails this and gets
+// treated as no cache at all, rather than being trusted as "logged in" and
+// sent to a route that doesn't match who's actually signed in.
+function isValidCachedUser(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value) && typeof value.id === 'string' && typeof value.role === 'string';
+}
+
 function readCachedUser() {
   const stored = sessionStorage.getItem('fute_user');
   if (!stored) return null;
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    if (!isValidCachedUser(parsed)) {
+      sessionStorage.removeItem('fute_user');
+      return null;
+    }
+    return parsed;
   } catch {
     sessionStorage.removeItem('fute_user');
     return null;
@@ -67,6 +82,15 @@ export function AuthProvider({ children }) {
   const refreshSelf = useCallback(() => {
     return getMe()
       .then(({ data }) => {
+        // A non-JSON response (an HTML error page from an unhealthy
+        // server/proxy, say) surfaces here as `data` being a raw string
+        // rather than the expected object - spreading a string into an
+        // object literal silently produces a {"0":"<","1":"!",...}
+        // char-indexed object instead of throwing, which used to get
+        // cached and trusted as "logged in" on every later page load.
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+          throw new Error('Malformed /api/auth/me response - expected a user object');
+        }
         const empId = data.employee_id || data.employeeId || '';
         const freshUser = { ...data, employee_id: empId, employeeId: empId };
         setUser(freshUser);
