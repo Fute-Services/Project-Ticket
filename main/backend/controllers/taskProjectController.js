@@ -61,12 +61,19 @@ async function createProject(req, res) {
     name,
     code: req.body.code || '',
     client,
+    clientPhone: req.body.clientPhone || '',
+    clientEmail: req.body.clientEmail || '',
     startDate: req.body.startDate || '',
     dueDate,
     status: req.body.status || 'On Track',
     progress: Number.isFinite(req.body.progress) ? req.body.progress : 0,
     figma: req.body.figma || '',
     repo: req.body.repo || '',
+    documentsLink: req.body.documentsLink || '',
+    budget: Number.isFinite(req.body.budget) ? req.body.budget : 0,
+    invoicedAmount: Number.isFinite(req.body.invoicedAmount) ? req.body.invoicedAmount : 0,
+    paidAmount: Number.isFinite(req.body.paidAmount) ? req.body.paidAmount : 0,
+    checklist: [],
     memberIds,
     created_at: new Date().toISOString(),
   };
@@ -75,7 +82,11 @@ async function createProject(req, res) {
   created(res, { id: docRef.id, ...docData }, 'Project created successfully');
 }
 
-const PROJECT_EDITABLE_FIELDS = ['name', 'code', 'client', 'startDate', 'dueDate', 'status', 'figma', 'repo', 'archived'];
+const PROJECT_EDITABLE_FIELDS = [
+  'name', 'code', 'client', 'clientPhone', 'clientEmail', 'startDate', 'dueDate', 'status',
+  'figma', 'repo', 'documentsLink', 'archived',
+];
+const PROJECT_NUMERIC_FIELDS = ['progress', 'budget', 'invoicedAmount', 'paidAmount'];
 
 // PATCH /api/coordinator/projects/:id — coordinator/founder edit project
 // fields and/or the tagged team (memberIds).
@@ -87,13 +98,21 @@ async function updateProject(req, res) {
   }
 
   // Handled separately from the plain-copy loop above so a non-numeric value
-  // can't silently overwrite the progress bar's expected type — createProject
+  // can't silently overwrite these fields' expected type — createProject
   // already guards against this the same way.
-  if (req.body.progress !== undefined) {
-    if (!Number.isFinite(req.body.progress)) {
-      return fail(res, { status: 400, message: 'progress must be a number', code: 'VALIDATION_ERROR' });
+  for (const key of PROJECT_NUMERIC_FIELDS) {
+    if (req.body[key] === undefined) continue;
+    if (!Number.isFinite(req.body[key])) {
+      return fail(res, { status: 400, message: `${key} must be a number`, code: 'VALIDATION_ERROR' });
     }
-    updates.progress = req.body.progress;
+    updates[key] = req.body[key];
+  }
+
+  if (req.body.checklist !== undefined) {
+    if (!Array.isArray(req.body.checklist)) {
+      return fail(res, { status: 400, message: 'checklist must be an array', code: 'VALIDATION_ERROR' });
+    }
+    updates.checklist = req.body.checklist;
   }
 
   if (req.body.memberIds !== undefined) {
@@ -165,6 +184,9 @@ async function createTask(req, res) {
     attachments: 0,
     figma: req.body.figma || '',
     pr: req.body.pr || '',
+    checklist: [],
+    actualHours: 0,
+    blockedBy: req.body.blockedBy || '',
     created_at: new Date().toISOString(),
   };
 
@@ -226,7 +248,43 @@ async function updateTaskRemarks(req, res) {
   ok(res, { id, ...doc.data(), ...updates }, { message: 'Remarks updated' });
 }
 
-const EDITABLE_FIELDS = ['title', 'priority', 'dueDate', 'duration', 'comments', 'attachments', 'figma', 'pr'];
+// PATCH /api/coordinator/tasks/:id/progress — { checklist?, actualHours? }.
+// Same owner-or-manager shape as updateTaskRemarks: an assignee checking off
+// their own subtasks or logging hours worked isn't a "reassign/reprioritize"
+// action, so it doesn't need the coordinator-only updateTask below.
+async function updateTaskProgress(req, res) {
+  const { id } = req.params;
+  const docRef = tasksCollection.doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) return fail(res, { status: 404, message: 'Task not found', code: 'NOT_FOUND' });
+
+  const isOwnerOrManager =
+    req.user.role === 'coordinator' ||
+    req.user.role === 'founder' ||
+    doc.data().assigneeId === req.user.id;
+  if (!isOwnerOrManager) return fail(res, { status: 403, message: 'Access denied', code: 'FORBIDDEN' });
+
+  const updates = {};
+  if (req.body.checklist !== undefined) {
+    if (!Array.isArray(req.body.checklist)) {
+      return fail(res, { status: 400, message: 'checklist must be an array', code: 'VALIDATION_ERROR' });
+    }
+    updates.checklist = req.body.checklist;
+  }
+  if (req.body.actualHours !== undefined) {
+    if (!Number.isFinite(req.body.actualHours)) {
+      return fail(res, { status: 400, message: 'actualHours must be a number', code: 'VALIDATION_ERROR' });
+    }
+    updates.actualHours = req.body.actualHours;
+  }
+  if (Object.keys(updates).length === 0) return fail(res, { status: 400, message: 'No editable fields provided', code: 'VALIDATION_ERROR' });
+
+  updates.updated_at = new Date().toISOString();
+  await docRef.update(updates);
+  ok(res, { id, ...doc.data(), ...updates }, { message: 'Task progress updated' });
+}
+
+const EDITABLE_FIELDS = ['title', 'priority', 'dueDate', 'duration', 'comments', 'attachments', 'figma', 'pr', 'blockedBy'];
 
 // PATCH /api/coordinator/tasks/:id — coordinator/founder edit any field
 // (the task detail pane's general editor). Reassignment goes through
@@ -240,6 +298,20 @@ async function updateTask(req, res) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
   }
   if (req.body.status !== undefined) updates.status = req.body.status;
+
+  if (req.body.actualHours !== undefined) {
+    if (!Number.isFinite(req.body.actualHours)) {
+      return fail(res, { status: 400, message: 'actualHours must be a number', code: 'VALIDATION_ERROR' });
+    }
+    updates.actualHours = req.body.actualHours;
+  }
+
+  if (req.body.checklist !== undefined) {
+    if (!Array.isArray(req.body.checklist)) {
+      return fail(res, { status: 400, message: 'checklist must be an array', code: 'VALIDATION_ERROR' });
+    }
+    updates.checklist = req.body.checklist;
+  }
 
   const docRef = tasksCollection.doc(id);
   const doc = await docRef.get();
@@ -267,4 +339,4 @@ async function updateTask(req, res) {
   ok(res, { id, ...doc.data(), ...updates }, { message: 'Task updated successfully' });
 }
 
-module.exports = { getProjects, createProject, updateProject, getTasks, createTask, updateTaskStatus, updateTask, updateTaskRemarks };
+module.exports = { getProjects, createProject, updateProject, getTasks, createTask, updateTaskStatus, updateTask, updateTaskRemarks, updateTaskProgress };

@@ -119,6 +119,7 @@ async function createProductionRecord(req, res) {
     deliveryRemarks: req.body.deliveryRemarks || '',
     outputDriveLink: req.body.outputDriveLink || '',
     billingStatus: req.body.billingStatus || 'Not Billed',
+    invoiceNumber: req.body.invoiceNumber || '',
     created_at: new Date().toISOString(),
   };
 
@@ -129,7 +130,7 @@ async function createProductionRecord(req, res) {
 const EDITABLE_FIELDS = [
   'projectCode', 'scopeOfWork', 'qty', 'assignedPersonId', 'clientPOC', 'productionStatus',
   'deliveryDeadline', 'inputsStatus', 'pcCoordinatorId', 'closureStatus', 'actualDeliveryDate',
-  'deliveryRemarks', 'outputDriveLink', 'billingStatus',
+  'deliveryRemarks', 'outputDriveLink', 'billingStatus', 'invoiceNumber',
 ];
 
 async function updateProductionRecord(req, res) {

@@ -339,6 +339,7 @@ export const createTask = (data) => api.post('/api/coordinator/tasks', data);
 export const updateTaskStatus = (id, status) => api.patch(`/api/coordinator/tasks/${id}/status`, { status });
 export const updateTask = (id, patch) => api.patch(`/api/coordinator/tasks/${id}`, patch);
 export const updateTaskRemarks = (id, remarks) => api.patch(`/api/coordinator/tasks/${id}/remarks`, { remarks });
+export const updateTaskProgress = (id, patch) => api.patch(`/api/coordinator/tasks/${id}/progress`, patch);
 
 // Production & Delivery Tracker - coordinator/founder only.
 export const getProductionRecords = (projectId) => api.get('/api/coordinator/production-records', { params: projectId ? { projectId } : {} });

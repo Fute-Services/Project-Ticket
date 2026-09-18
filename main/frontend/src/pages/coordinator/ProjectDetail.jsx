@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Figma, Github, Pencil, Plus } from 'lucide-react';
+import { ArrowLeft, Figma, Github, Pencil, Plus, FileText, Phone, Mail, X } from 'lucide-react';
 import CoordinatorLayout from '../../components/coordinator/CoordinatorLayout';
 import { Card, SectionHeader, Badge, Modal, Field, inputClass } from '../../components/ui';
 import { useTaskProject } from '../../context/TaskProjectContext';
@@ -53,6 +53,7 @@ export default function CoordinatorProjectDetail() {
   const [assignOpen, setAssignOpen] = useState(false);
   const [taskForm, setTaskForm] = useState(() => EMPTY_TASK_FORM(memberIds));
   const [assigning, setAssigning] = useState(false);
+  const [milestoneDraft, setMilestoneDraft] = useState('');
 
   // Coordinator's "who's doing what" view - every task on this project,
   // bucketed by the member holding it. A task's owner can be untagged from
@@ -88,14 +89,39 @@ export default function CoordinatorProjectDetail() {
     setEditForm({
       name: project.name,
       client: project.client,
+      clientPhone: project.clientPhone || '',
+      clientEmail: project.clientEmail || '',
       startDate: project.startDate || '',
       dueDate: project.dueDate || '',
       status: project.status,
       figma: project.figma || '',
       repo: project.repo || '',
+      documentsLink: project.documentsLink || '',
       memberIds,
     });
     setEditOpen(true);
+  }
+
+  const checklist = project.checklist || [];
+  function newChecklistId() {
+    return `m${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+  }
+  function addMilestone(e) {
+    e.preventDefault();
+    const text = milestoneDraft.trim();
+    if (!text) return;
+    updateProject(project.id, { checklist: [...checklist, { id: newChecklistId(), text, done: false }] });
+    setMilestoneDraft('');
+  }
+  function toggleMilestone(id) {
+    updateProject(project.id, { checklist: checklist.map((c) => (c.id === id ? { ...c, done: !c.done } : c)) });
+  }
+  function removeMilestone(id) {
+    updateProject(project.id, { checklist: checklist.filter((c) => c.id !== id) });
+  }
+
+  function setBilling(field, value) {
+    updateProject(project.id, { [field]: value === '' ? 0 : Number(value) });
   }
 
   function toggleEditMember(id) {
@@ -176,6 +202,20 @@ export default function CoordinatorProjectDetail() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground">{project.client} · {project.startDate} → {project.dueDate}</p>
+            {(project.clientPhone || project.clientEmail) && (
+              <div className="flex items-center gap-3 mt-1">
+                {project.clientPhone && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Phone size={11} /> {project.clientPhone}
+                  </span>
+                )}
+                {project.clientEmail && (
+                  <a href={`mailto:${project.clientEmail}`} className="flex items-center gap-1 text-xs text-primary hover:underline">
+                    <Mail size={11} /> {project.clientEmail}
+                  </a>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {project.figma && (
@@ -186,6 +226,11 @@ export default function CoordinatorProjectDetail() {
             {project.repo && (
               <a href={`https://${project.repo}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card border border-border hover:border-muted/50 text-xs text-muted-foreground hover:text-muted-foreground transition-colors">
                 <Github size={13} /> Repo
+              </a>
+            )}
+            {project.documentsLink && (
+              <a href={`https://${project.documentsLink}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card border border-border hover:border-muted/50 text-xs text-muted-foreground hover:text-muted-foreground transition-colors">
+                <FileText size={13} /> Documents
               </a>
             )}
             <button
@@ -276,6 +321,48 @@ export default function CoordinatorProjectDetail() {
         </Card>
 
         <Card>
+          <SectionHeader title="Milestones" subtitle="Project-level checklist" />
+          <div className="flex flex-col gap-1.5">
+            {checklist.map((c) => (
+              <div key={c.id} className="flex items-center gap-2 group">
+                <input type="checkbox" checked={c.done} onChange={() => toggleMilestone(c.id)} className="cursor-pointer" />
+                <span className={`text-sm flex-1 ${c.done ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{c.text}</span>
+                <button type="button" onClick={() => removeMilestone(c.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive cursor-pointer transition-opacity">
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+            {checklist.length === 0 && <p className="text-xs text-muted-foreground">No milestones yet.</p>}
+          </div>
+          <form onSubmit={addMilestone} className="flex items-center gap-2 mt-2.5">
+            <input
+              value={milestoneDraft}
+              onChange={(e) => setMilestoneDraft(e.target.value)}
+              placeholder="Add a milestone…"
+              className={`${inputClass} flex-1`}
+            />
+            <button type="submit" disabled={!milestoneDraft.trim()} className="p-2 rounded-md bg-muted hover:bg-accent text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0">
+              <Plus size={14} />
+            </button>
+          </form>
+
+          <div className="h-px bg-border my-5" />
+
+          <SectionHeader title="Billing" subtitle="Budget vs. invoiced vs. paid" />
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Budget">
+              <input key={`budget-${project.budget}`} type="number" min="0" defaultValue={project.budget || 0} onBlur={(e) => setBilling('budget', e.target.value)} className={inputClass} />
+            </Field>
+            <Field label="Invoiced">
+              <input key={`inv-${project.invoicedAmount}`} type="number" min="0" defaultValue={project.invoicedAmount || 0} onBlur={(e) => setBilling('invoicedAmount', e.target.value)} className={inputClass} />
+            </Field>
+            <Field label="Paid">
+              <input key={`paid-${project.paidAmount}`} type="number" min="0" defaultValue={project.paidAmount || 0} onBlur={(e) => setBilling('paidAmount', e.target.value)} className={inputClass} />
+            </Field>
+          </div>
+        </Card>
+
+        <Card>
           <SectionHeader title="Activity" subtitle="Every update posted on this project's tasks, newest first" />
           {projectUpdates.length === 0 ? (
             <p className="text-xs text-muted-foreground">No updates posted yet.</p>
@@ -306,6 +393,14 @@ export default function CoordinatorProjectDetail() {
               <input required value={editForm.client} onChange={(e) => setEditForm((f) => ({ ...f, client: e.target.value }))} className={inputClass} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
+              <Field label="Client Phone (optional)">
+                <input value={editForm.clientPhone} onChange={(e) => setEditForm((f) => ({ ...f, clientPhone: e.target.value }))} className={inputClass} />
+              </Field>
+              <Field label="Client Email (optional)">
+                <input type="email" value={editForm.clientEmail} onChange={(e) => setEditForm((f) => ({ ...f, clientEmail: e.target.value }))} className={inputClass} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <Field label="Start Date">
                 <input type="date" value={editForm.startDate} onChange={(e) => setEditForm((f) => ({ ...f, startDate: e.target.value }))} className={inputClass} />
               </Field>
@@ -325,6 +420,9 @@ export default function CoordinatorProjectDetail() {
             </Field>
             <Field label="GitHub repo link (optional)">
               <input value={editForm.repo} onChange={(e) => setEditForm((f) => ({ ...f, repo: e.target.value }))} className={inputClass} />
+            </Field>
+            <Field label="Documents link (optional)">
+              <input value={editForm.documentsLink} onChange={(e) => setEditForm((f) => ({ ...f, documentsLink: e.target.value }))} className={inputClass} placeholder="drive.google.com/..." />
             </Field>
             <Field label="Team — tag employees on this project">
               <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto border border-input rounded-md p-2">

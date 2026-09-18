@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, MessageSquare, Paperclip, Figma, Github } from 'lucide-react';
 import CoordinatorLayout from '../../components/coordinator/CoordinatorLayout';
-import { Card, SectionHeader, Badge, Pill, Modal, Field, inputClass } from '../../components/ui';
+import { Card, SectionHeader, Badge, Modal, Field, inputClass } from '../../components/ui';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import TaskRow from '../../components/tasks/TaskRow';
 import TaskDetailPane from '../../components/tasks/TaskDetailPane';
 import { TASK_STATUSES, TASK_PRIORITIES } from '../../data/coordinatorMockData';
 import { useTaskProject } from '../../context/TaskProjectContext';
-import { getAssignableEmployees } from '../../utils/api';
+import { getAssignableEmployees, updateTask as updateTaskApi } from '../../utils/api';
 import { toast } from 'sonner';
 
 const EMPTY_FORM = (projects, employees) => ({
@@ -28,7 +28,7 @@ function toHref(link) {
 }
 
 export default function Tasks() {
-  const { tasks, projects, addTask, moveTask, updateTask, addTaskRemark, toggleComplete, hasMoreTasks, loadMoreTasks, loadingMore } = useTaskProject();
+  const { tasks, projects, addTask, moveTask, updateTask, addTaskRemark, updateTaskProgress, toggleComplete, hasMoreTasks, loadMoreTasks, loadingMore, refresh } = useTaskProject();
   // Real employee-role login accounts, not the HR employee roster — a task
   // is only visible/actionable to whoever's account actually matches
   // assigneeId (see taskProjectController.js), so the picker has to offer
@@ -67,6 +67,41 @@ export default function Tasks() {
   );
 
   const [assigning, setAssigning] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkAssigneeId, setBulkAssigneeId] = useState('');
+  const [bulkReassigning, setBulkReassigning] = useState(false);
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkReassign() {
+    if (!bulkAssigneeId || selectedIds.size === 0) return;
+    setBulkReassigning(true);
+    // Calls the raw API directly (not context's updateTask, which swallows
+    // request failures for its own optimistic-inline-edit UI) so a rejected
+    // assignment - e.g. the target isn't tagged on that task's project -
+    // actually surfaces as an error here instead of a false "success" toast.
+    const ids = [...selectedIds];
+    const results = await Promise.allSettled(ids.map((id) => updateTaskApi(id, { assigneeId: bulkAssigneeId })));
+    const failed = results.filter((r) => r.status === 'rejected');
+    await refresh();
+    if (failed.length === 0) {
+      toast.success(`Reassigned ${ids.length} task(s)`, { description: employees.find((e) => e.id === bulkAssigneeId)?.full_name });
+      setSelectedIds(new Set());
+      setBulkAssigneeId('');
+    } else {
+      toast.error(`${failed.length} of ${ids.length} task(s) could not be reassigned`, {
+        description: failed[0].reason?.response?.data?.message || failed[0].reason?.message,
+      });
+    }
+    setBulkReassigning(false);
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -114,16 +149,12 @@ export default function Tasks() {
           }
         />
 
-        <div className="flex flex-wrap gap-2">
-          <Pill active={projectFilter === 'All'} onClick={() => setProjectFilter('All')}>
-            All Projects
-          </Pill>
+        <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} className={`${inputClass} w-auto max-w-[260px]`}>
+          <option value="All">All Projects</option>
           {projects.map((p) => (
-            <Pill key={p.id} active={projectFilter === p.id} onClick={() => setProjectFilter(p.id)}>
-              {p.name}
-            </Pill>
+            <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </div>
+        </select>
 
         <Tabs defaultValue="list" className="w-full">
           <TabsList>
@@ -134,7 +165,29 @@ export default function Tasks() {
           {/* List - the default, because scanning names top-to-bottom is
               faster than reading across columns once there are more than a
               handful of tasks. */}
-          <TabsContent value="list" className="mt-4">
+          <TabsContent value="list" className="mt-4 flex flex-col gap-3">
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-primary/10 border border-primary/20">
+                <span className="text-xs font-semibold text-foreground">{selectedIds.size} selected</span>
+                <select value={bulkAssigneeId} onChange={(e) => setBulkAssigneeId(e.target.value)} className={`${inputClass} w-auto`}>
+                  <option value="">Reassign to…</option>
+                  {employees.map((e) => (
+                    <option key={e.id} value={e.id}>{e.full_name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={bulkReassign}
+                  disabled={!bulkAssigneeId || bulkReassigning}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary-hover text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                >
+                  {bulkReassigning ? 'Reassigning…' : 'Apply'}
+                </button>
+                <button type="button" onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground hover:text-foreground cursor-pointer ml-auto">
+                  Clear
+                </button>
+              </div>
+            )}
             <div className="rounded-lg border border-border bg-card overflow-hidden">
               {visible.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-12 text-center">
@@ -156,6 +209,9 @@ export default function Tasks() {
                           onToggle={completeWithUndo}
                           onOpen={(task) => setOpenTaskId(task.id)}
                           showProject={projectFilter === 'All'}
+                          selectable
+                          selected={selectedIds.has(t.id)}
+                          onSelectToggle={toggleSelect}
                         />
                       ))}
                     </section>
@@ -277,6 +333,8 @@ export default function Tasks() {
         onChange={updateTask}
         onToggle={completeWithUndo}
         onAddRemark={addTaskRemark}
+        onUpdateProgress={updateTaskProgress}
+        allTasks={tasks}
         employees={employees}
       />
 

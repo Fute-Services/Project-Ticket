@@ -9,6 +9,7 @@ import {
   updateTaskStatus as updateTaskStatusApi,
   updateTask as updateTaskApi,
   updateTaskRemarks as updateTaskRemarksApi,
+  updateTaskProgress as updateTaskProgressApi,
 } from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 import { useCursorPagination } from '../hooks/useCursorPagination';
@@ -146,6 +147,18 @@ export function TaskProjectProvider({ children }) {
     }
   }
 
+  /** Patch checklist/actualHours on a task - the assignee (not just the coordinator) can call this. */
+  async function updateTaskProgress(id, patch) {
+    try {
+      const { data } = await updateTaskProgressApi(id, patch);
+      setTasks((prev) => prev.map((t) => (t.id === id ? data : t)));
+      return data;
+    } catch (e) {
+      console.error('Failed to update task progress:', e.response?.data?.error || e.message);
+      throw e;
+    }
+  }
+
   /**
    * Asana-style completion toggle. There's no separate `completed` flag -
    * "Completed" is one of TASK_STATUSES, so toggling off has to pick
@@ -159,7 +172,7 @@ export function TaskProjectProvider({ children }) {
 
   return (
     <TaskProjectContext.Provider
-      value={{ tasks, projects, loading, addProject, updateProject, addTask, moveTask, updateTask, addTaskRemark, toggleComplete, refresh, hasMoreTasks: hasMore, loadMoreTasks, loadingMore, lastUpdated, isSharedBoard }}
+      value={{ tasks, projects, loading, addProject, updateProject, addTask, moveTask, updateTask, addTaskRemark, updateTaskProgress, toggleComplete, refresh, hasMoreTasks: hasMore, loadMoreTasks, loadingMore, lastUpdated, isSharedBoard }}
     >
       {children}
     </TaskProjectContext.Provider>

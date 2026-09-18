@@ -58,11 +58,14 @@ function initials(name) {
 const EMPTY_FORM = () => ({
   name: '',
   client: '',
+  clientPhone: '',
+  clientEmail: '',
   startDate: '',
   dueDate: '',
   status: 'On Track',
   figma: '',
   repo: '',
+  documentsLink: '',
   memberIds: [],
 });
 
@@ -78,6 +81,7 @@ export default function CoordinatorProjects() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [dueFilter, setDueFilter] = useState('All');
   const [showArchived, setShowArchived] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -102,11 +106,14 @@ export default function CoordinatorProjects() {
     setForm({
       name: p.name,
       client: p.client,
+      clientPhone: p.clientPhone || '',
+      clientEmail: p.clientEmail || '',
       startDate: p.startDate || '',
       dueDate: p.dueDate || '',
       status: p.status,
       figma: p.figma || '',
       repo: p.repo || '',
+      documentsLink: p.documentsLink || '',
       memberIds: p.memberIds || [],
     });
     setShowModal(true);
@@ -116,6 +123,26 @@ export default function CoordinatorProjects() {
     e.stopPropagation();
     updateProject(p.id, { archived: !p.archived });
     toast.success(p.archived ? 'Project restored' : 'Project archived', { description: p.name });
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkArchive(archived) {
+    const ids = [...selectedIds];
+    try {
+      await Promise.all(ids.map((id) => updateProject(id, { archived })));
+      toast.success(`${archived ? 'Archived' : 'Restored'} ${ids.length} project(s)`);
+      setSelectedIds(new Set());
+    } catch (err) {
+      toast.error('Some projects could not be updated', { description: err.response?.data?.error || err.message });
+    }
   }
 
   function toggleMember(id) {
@@ -214,6 +241,24 @@ export default function CoordinatorProjects() {
           </div>
         </div>
 
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-primary/10 border border-primary/20">
+            <span className="text-xs font-semibold text-foreground">{selectedIds.size} selected</span>
+            {showArchived ? (
+              <button type="button" onClick={() => bulkArchive(false)} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary-hover text-primary-foreground cursor-pointer transition-colors">
+                Restore
+              </button>
+            ) : (
+              <button type="button" onClick={() => bulkArchive(true)} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary hover:bg-primary-hover text-primary-foreground cursor-pointer transition-colors">
+                Archive
+              </button>
+            )}
+            <button type="button" onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground hover:text-foreground cursor-pointer ml-auto">
+              Clear
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProjects.length === 0 && (
             <p className="text-xs text-muted-foreground py-6 col-span-full text-center">No projects match.</p>
@@ -235,7 +280,16 @@ export default function CoordinatorProjects() {
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(p.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={() => toggleSelect(p.id)}
+                      aria-label={`Select ${p.name}`}
+                      className="mt-1 shrink-0 cursor-pointer"
+                    />
+                    <div className="min-w-0">
                     <select
                       value={p.code || ''}
                       onClick={(e) => e.stopPropagation()}
@@ -250,6 +304,7 @@ export default function CoordinatorProjects() {
                     </select>
                     <div className="text-sm font-bold text-foreground truncate">{p.name}</div>
                     <div className="text-xs text-muted-foreground truncate">{p.client} · due {p.dueDate}</div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {overdue && (
@@ -326,6 +381,14 @@ export default function CoordinatorProjects() {
             <input required value={form.client} onChange={(e) => setForm((f) => ({ ...f, client: e.target.value }))} className={inputClass} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
+            <Field label="Client Phone (optional)">
+              <input value={form.clientPhone} onChange={(e) => setForm((f) => ({ ...f, clientPhone: e.target.value }))} className={inputClass} />
+            </Field>
+            <Field label="Client Email (optional)">
+              <input type="email" value={form.clientEmail} onChange={(e) => setForm((f) => ({ ...f, clientEmail: e.target.value }))} className={inputClass} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Start Date">
               <input type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} className={inputClass} />
             </Field>
@@ -345,6 +408,9 @@ export default function CoordinatorProjects() {
           </Field>
           <Field label="GitHub repo link (optional)">
             <input value={form.repo} onChange={(e) => setForm((f) => ({ ...f, repo: e.target.value }))} className={inputClass} placeholder="github.com/fute/repo" />
+          </Field>
+          <Field label="Documents link (optional)">
+            <input value={form.documentsLink} onChange={(e) => setForm((f) => ({ ...f, documentsLink: e.target.value }))} className={inputClass} placeholder="drive.google.com/..." />
           </Field>
           <Field label="Team — tag employees on this project">
             <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto border border-input rounded-md p-2">

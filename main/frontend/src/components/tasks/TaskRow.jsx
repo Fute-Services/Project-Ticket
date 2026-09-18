@@ -35,7 +35,7 @@ function dueLabel(dueDate) {
  * Deliberately a row rather than a card - cards make every task look equally
  * important and waste vertical space at this density.
  */
-export default function TaskRow({ task, project, onToggle, onOpen, showProject = true }) {
+export default function TaskRow({ task, project, onToggle, onOpen, showProject = true, selectable = false, selected = false, onSelectToggle }) {
   const done = task.status === 'Completed';
 
   return (
@@ -44,6 +44,15 @@ export default function TaskRow({ task, project, onToggle, onOpen, showProject =
         done ? 'opacity-60' : ''
       }`}
     >
+      {selectable && (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onSelectToggle?.(task.id)}
+          aria-label={`Select "${task.title}"`}
+          className="shrink-0 cursor-pointer"
+        />
+      )}
       <button
         type="button"
         onClick={() => onToggle?.(task.id)}

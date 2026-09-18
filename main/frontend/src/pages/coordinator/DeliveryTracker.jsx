@@ -25,6 +25,7 @@ const EMPTY_FORM = (projects) => ({
   clientPOC: '',
   deliveryDeadline: '',
   outputDriveLink: '',
+  invoiceNumber: '',
 });
 
 export default function CoordinatorDeliveryTracker() {
@@ -225,6 +226,12 @@ export default function CoordinatorDeliveryTracker() {
                 />
               ),
             },
+            {
+              key: 'invoiceNumber',
+              label: 'Invoice No.',
+              width: '110px',
+              render: (r) => r.invoiceNumber || '—',
+            },
           ]}
         />
       </div>
@@ -275,6 +282,9 @@ export default function CoordinatorDeliveryTracker() {
           </Field>
           <Field label="Output Drive Link (optional)">
             <input value={form.outputDriveLink} onChange={(e) => setForm((f) => ({ ...f, outputDriveLink: e.target.value }))} className={inputClass} placeholder="drive.google.com/..." />
+          </Field>
+          <Field label="Invoice Number (optional)">
+            <input value={form.invoiceNumber} onChange={(e) => setForm((f) => ({ ...f, invoiceNumber: e.target.value }))} className={inputClass} />
           </Field>
           <button
             type="submit"

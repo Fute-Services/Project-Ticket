@@ -532,7 +532,7 @@ function MyTasksView({ tasks, projects, onToggle, onOpen, onRefresh, lastUpdated
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
   const { tickets, addTicket, updateTicketField, editTicket, reopenTicket, refresh: refreshTickets, lastUpdated: ticketsUpdated, loading: ticketsLoading } = useTickets();
-  const { tasks, projects, toggleComplete, addTaskRemark, refresh: refreshTasks, lastUpdated: tasksUpdated, loading: tasksLoading } = useTaskProject();
+  const { tasks, projects, toggleComplete, addTaskRemark, updateTaskProgress, refresh: refreshTasks, lastUpdated: tasksUpdated, loading: tasksLoading } = useTaskProject();
   const [openTaskId, setOpenTaskId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
@@ -875,6 +875,8 @@ export default function EmployeeDashboardPage() {
         onClose={() => setOpenTaskId(null)}
         onToggle={completeWithUndo}
         onAddRemark={addTaskRemark}
+        onUpdateProgress={updateTaskProgress}
+        allTasks={tasks}
         readOnly
       />
 

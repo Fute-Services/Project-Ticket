@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { tasks as allTasks } from '../../data/coordinatorMockData';
 import { useTaskProject } from '../../context/TaskProjectContext';
+import { getProductionRecords } from '../../utils/api';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/coordinator/overview' },
@@ -50,6 +51,17 @@ export default function CoordinatorLayout({ children }) {
   // board already polls (TaskProjectContext), no separate notifications
   // backend needed.
   const { tasks: notifTasks, projects: notifProjects } = useTaskProject();
+
+  // Delivery deadlines live in a separate collection (production records),
+  // not on the task/project doc, so they need their own fetch here rather
+  // than piggy-backing on TaskProjectContext's poll.
+  const [deliveryRecords, setDeliveryRecords] = useState([]);
+  useEffect(() => {
+    getProductionRecords()
+      .then(({ data }) => setDeliveryRecords(data || []))
+      .catch((e) => console.error('Failed to load delivery records for notifications:', e.response?.data?.error || e.message));
+  }, []);
+
   const notifications = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
@@ -67,8 +79,13 @@ export default function CoordinatorLayout({ children }) {
         items.push({ id: `remark-${t.id}`, text: `${t.remarksBy} posted an update on "${t.title}"`, at: t.remarksAt });
       }
     }
+    for (const r of deliveryRecords) {
+      if (r.closureStatus !== 'Closed' && r.deliveryDeadline && r.deliveryDeadline < today) {
+        items.push({ id: `delivery-${r.id}`, text: `Delivery for "${r.projectCode}" is overdue (was due ${r.deliveryDeadline})`, at: r.deliveryDeadline });
+      }
+    }
     return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10);
-  }, [notifTasks, notifProjects]);
+  }, [notifTasks, notifProjects, deliveryRecords]);
 
   const searchIndex = useMemo(buildSearchIndex, []);
   const results = useMemo(() => {
