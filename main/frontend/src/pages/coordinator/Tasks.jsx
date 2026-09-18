@@ -28,7 +28,7 @@ function toHref(link) {
 }
 
 export default function Tasks() {
-  const { tasks, projects, addTask, moveTask, updateTask, toggleComplete, hasMoreTasks, loadMoreTasks, loadingMore } = useTaskProject();
+  const { tasks, projects, addTask, moveTask, updateTask, addTaskRemark, toggleComplete, hasMoreTasks, loadMoreTasks, loadingMore } = useTaskProject();
   // Real employee-role login accounts, not the HR employee roster — a task
   // is only visible/actionable to whoever's account actually matches
   // assigneeId (see taskProjectController.js), so the picker has to offer
@@ -276,6 +276,7 @@ export default function Tasks() {
         onClose={() => setOpenTaskId(null)}
         onChange={updateTask}
         onToggle={completeWithUndo}
+        onAddRemark={addTaskRemark}
         employees={employees}
       />
 

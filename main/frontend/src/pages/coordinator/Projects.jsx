@@ -1,11 +1,41 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Figma, Github, Plus, Pencil } from 'lucide-react';
+import { Figma, Github, Plus, Pencil, Search, Archive, ArchiveRestore, Download, AlertTriangle } from 'lucide-react';
 import CoordinatorLayout from '../../components/coordinator/CoordinatorLayout';
 import { SectionHeader, Modal, Field, inputClass } from '../../components/ui';
 import { useTaskProject } from '../../context/TaskProjectContext';
 import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 import { toast } from 'sonner';
+import { PROJECT_CODES } from '../../constants/projectCodes';
+
+const TODAY = new Date().toISOString().slice(0, 10);
+
+function daysFromToday(n) {
+  return new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+}
+
+const DUE_FILTERS = {
+  All: () => true,
+  Overdue: (p) => p.status !== 'Completed' && p.dueDate && p.dueDate < TODAY,
+  'Due this week': (p) => p.dueDate && p.dueDate >= TODAY && p.dueDate <= daysFromToday(7),
+  'Due this month': (p) => p.dueDate && p.dueDate >= TODAY && p.dueDate <= daysFromToday(30),
+};
+
+// Plain CSV, not an .xlsx lib - Excel/Sheets both open CSV natively and this
+// needs zero new dependency for a one-off "give me the list" export.
+function exportProjectsCsv(rows) {
+  const headers = ['Code', 'Name', 'Client', 'Status', 'Start Date', 'Due Date', 'Progress %', 'Team Size'];
+  const lines = [headers, ...rows.map((p) => [
+    p.code || '', p.name, p.client, p.status, p.startDate || '', p.dueDate, p.progress ?? 0, (p.memberIds || []).length,
+  ])].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','));
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `projects-${TODAY}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const PROJECT_STATUS_TONE = {
   'On Track': 'bg-primary/10 text-primary border-primary/20',
@@ -44,6 +74,21 @@ export default function CoordinatorProjects() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [dueFilter, setDueFilter] = useState('All');
+  const [showArchived, setShowArchived] = useState(false);
+
+  const filteredProjects = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return projects.filter((p) => {
+      if (!!p.archived !== showArchived) return false;
+      if (statusFilter !== 'All' && p.status !== statusFilter) return false;
+      if (!DUE_FILTERS[dueFilter](p)) return false;
+      if (q && !`${p.code || ''} ${p.name} ${p.client}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [projects, query, statusFilter, dueFilter, showArchived]);
 
   function openCreate() {
     setEditingId(null);
@@ -65,6 +110,12 @@ export default function CoordinatorProjects() {
       memberIds: p.memberIds || [],
     });
     setShowModal(true);
+  }
+
+  function toggleArchive(e, p) {
+    e.stopPropagation();
+    updateProject(p.id, { archived: !p.archived });
+    toast.success(p.archived ? 'Project restored' : 'Project archived', { description: p.name });
   }
 
   function toggleMember(id) {
@@ -100,24 +151,78 @@ export default function CoordinatorProjects() {
       <div className="flex flex-col gap-6 max-w-[1600px] mx-auto">
         <SectionHeader
           title="Project Details"
-          subtitle={`${projects.length} projects`}
+          subtitle={`${filteredProjects.length} of ${projects.length} projects`}
           action={
-            <button
-              type="button"
-              onClick={openCreate}
-              className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
-            >
-              <Plus size={14} />
-              New Project
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => exportProjectsCsv(filteredProjects)}
+                title="Export visible projects as CSV"
+                className="flex items-center gap-2 bg-muted hover:bg-muted/70 border border-border text-foreground text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
+              >
+                <Download size={14} />
+                Export
+              </button>
+              <button
+                type="button"
+                onClick={openCreate}
+                className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+              >
+                <Plus size={14} />
+                New Project
+              </button>
+            </div>
           }
         />
 
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative flex-1 min-w-[200px] max-w-[320px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by code, name, client…"
+              className={`${inputClass} pl-8`}
+            />
+          </div>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={`${inputClass} w-auto`}>
+            <option value="All">All statuses</option>
+            {Object.keys(PROJECT_STATUS_TONE).map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          <select value={dueFilter} onChange={(e) => setDueFilter(e.target.value)} className={`${inputClass} w-auto`}>
+            {Object.keys(DUE_FILTERS).map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
+          <div className="flex items-center rounded-xl border border-border overflow-hidden text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setShowArchived(false)}
+              className={`px-3 py-2 transition-colors cursor-pointer ${!showArchived ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
+            >
+              Active
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowArchived(true)}
+              className={`px-3 py-2 transition-colors cursor-pointer ${showArchived ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
+            >
+              Archived
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((p) => {
+          {filteredProjects.length === 0 && (
+            <p className="text-xs text-muted-foreground py-6 col-span-full text-center">No projects match.</p>
+          )}
+          {filteredProjects.map((p) => {
             const projectTasks = tasks.filter((t) => t.projectId === p.id);
             const done = projectTasks.filter((t) => t.status === 'Completed').length;
             const memberNames = (p.memberIds || []).map(nameOf);
+            const overdue = p.status !== 'Completed' && p.dueDate && p.dueDate < TODAY;
             return (
               <div
                 key={p.id}
@@ -125,17 +230,45 @@ export default function CoordinatorProjects() {
                 tabIndex={0}
                 onClick={() => navigate(`/coordinator/projects/${p.id}`)}
                 onKeyDown={(e) => e.key === 'Enter' && navigate(`/coordinator/projects/${p.id}`)}
-                className="p-4 rounded-lg bg-card border border-border hover:border-muted-foreground/40 transition-colors flex flex-col gap-3 cursor-pointer"
+                className={`p-4 rounded-lg bg-card border transition-colors flex flex-col gap-3 cursor-pointer ${
+                  overdue ? 'border-destructive/50 hover:border-destructive' : 'border-border hover:border-muted-foreground/40'
+                }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
+                    <select
+                      value={p.code || ''}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => updateProject(p.id, { code: e.target.value })}
+                      className="block text-[11px] font-bold text-primary bg-transparent border-none p-0 mb-0.5 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/30 rounded"
+                      title="Project code"
+                    >
+                      <option value="">— code —</option>
+                      {PROJECT_CODES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
                     <div className="text-sm font-bold text-foreground truncate">{p.name}</div>
                     <div className="text-xs text-muted-foreground truncate">{p.client} · due {p.dueDate}</div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
+                    {overdue && (
+                      <span title="Past due date" className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-semibold whitespace-nowrap bg-destructive/10 text-destructive border-destructive/20">
+                        <AlertTriangle size={11} /> Overdue
+                      </span>
+                    )}
                     <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold whitespace-nowrap ${PROJECT_STATUS_TONE[p.status]}`}>
                       {p.status}
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => toggleArchive(e, p)}
+                      title={p.archived ? 'Restore project' : 'Archive project'}
+                      aria-label={p.archived ? `Restore ${p.name}` : `Archive ${p.name}`}
+                      className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      {p.archived ? <ArchiveRestore size={12} /> : <Archive size={12} />}
+                    </button>
                     <button
                       type="button"
                       onClick={(e) => openEdit(e, p)}

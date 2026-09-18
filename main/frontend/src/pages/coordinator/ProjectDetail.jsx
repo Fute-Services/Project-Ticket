@@ -79,6 +79,11 @@ export default function CoordinatorProjectDetail() {
     return groups;
   }, [memberIds, projectTasks, nameOf]);
 
+  const projectUpdates = useMemo(
+    () => projectTasks.filter((t) => t.remarks && t.remarksAt).sort((a, b) => b.remarksAt.localeCompare(a.remarksAt)),
+    [projectTasks]
+  );
+
   function openEdit() {
     setEditForm({
       name: project.name,
@@ -208,7 +213,7 @@ export default function CoordinatorProjectDetail() {
           <SectionHeader title="Team" subtitle={`${memberIds.length} tagged`} />
           <div className="flex flex-wrap gap-2">
             {memberIds.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-1">No one tagged on this project yet — edit it to add members.</p>
+              <p className="text-xs text-muted-foreground">No one tagged on this project yet — edit it to add members.</p>
             ) : (
               memberIds.map((id) => {
                 const m = nameOf(id);
@@ -223,9 +228,9 @@ export default function CoordinatorProjectDetail() {
               })
             )}
           </div>
-        </Card>
 
-        <Card>
+          <div className="h-px bg-border my-5" />
+
           <SectionHeader
             title="Tasks"
             subtitle={`${projectTasks.length} tasks · who's doing what`}
@@ -242,7 +247,7 @@ export default function CoordinatorProjectDetail() {
             }
           />
           {projectTasks.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4 text-center">No tasks assigned yet.</p>
+            <p className="text-xs text-muted-foreground">No tasks assigned yet.</p>
           ) : (
             <div className="flex flex-col gap-4">
               {tasksByMember.map(({ id, name, items }) =>
@@ -266,6 +271,26 @@ export default function CoordinatorProjectDetail() {
                   </div>
                 )
               )}
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <SectionHeader title="Activity" subtitle="Every update posted on this project's tasks, newest first" />
+          {projectUpdates.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No updates posted yet.</p>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {projectUpdates.map((t) => (
+                <div key={t.id} className="p-3 rounded-lg bg-muted border border-border flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-foreground truncate">{t.title}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono shrink-0">{new Date(t.remarksAt).toLocaleString()}</span>
+                  </div>
+                  <p className="text-xs text-foreground/80 whitespace-pre-wrap">{t.remarks}</p>
+                  <p className="text-[11px] text-muted-foreground">{t.remarksBy}</p>
+                </div>
+              ))}
             </div>
           )}
         </Card>

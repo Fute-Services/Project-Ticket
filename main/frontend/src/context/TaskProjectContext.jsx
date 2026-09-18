@@ -8,6 +8,7 @@ import {
   createTask as createTaskApi,
   updateTaskStatus as updateTaskStatusApi,
   updateTask as updateTaskApi,
+  updateTaskRemarks as updateTaskRemarksApi,
 } from '../utils/api';
 import { useVisibilityAwarePolling } from '../hooks/useVisibilityAwarePolling';
 import { useCursorPagination } from '../hooks/useCursorPagination';
@@ -133,6 +134,18 @@ export function TaskProjectProvider({ children }) {
     }
   }
 
+  /** Posts a progress update on a task - the assignee (not just the coordinator) can call this. */
+  async function addTaskRemark(id, remarks) {
+    try {
+      const { data } = await updateTaskRemarksApi(id, remarks);
+      setTasks((prev) => prev.map((t) => (t.id === id ? data : t)));
+      return data;
+    } catch (e) {
+      console.error('Failed to post remark:', e.response?.data?.error || e.message);
+      throw e;
+    }
+  }
+
   /**
    * Asana-style completion toggle. There's no separate `completed` flag -
    * "Completed" is one of TASK_STATUSES, so toggling off has to pick
@@ -146,7 +159,7 @@ export function TaskProjectProvider({ children }) {
 
   return (
     <TaskProjectContext.Provider
-      value={{ tasks, projects, loading, addProject, updateProject, addTask, moveTask, updateTask, toggleComplete, refresh, hasMoreTasks: hasMore, loadMoreTasks, loadingMore, lastUpdated, isSharedBoard }}
+      value={{ tasks, projects, loading, addProject, updateProject, addTask, moveTask, updateTask, addTaskRemark, toggleComplete, refresh, hasMoreTasks: hasMore, loadMoreTasks, loadingMore, lastUpdated, isSharedBoard }}
     >
       {children}
     </TaskProjectContext.Provider>

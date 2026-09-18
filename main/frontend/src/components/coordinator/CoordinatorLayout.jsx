@@ -18,7 +18,6 @@ import {
   ChevronsRight,
 } from 'lucide-react';
 import { tasks as allTasks } from '../../data/coordinatorMockData';
-import TeamChatDrawer from '../TeamChatDrawer';
 import { useTaskProject } from '../../context/TaskProjectContext';
 
 const NAV_ITEMS = [
@@ -45,18 +44,31 @@ export default function CoordinatorLayout({ children }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [query, setQuery] = useState('');
   const [dateRangeLabel, setDateRangeLabel] = useState('Today');
-  const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // A coordinator manages every project (not just ones they're a member
-  // of — see taskProjectController.getProjects and chatController's
-  // canAccessProjectChannel, which lets coordinator/founder into any
-  // project-<id> channel), so every project gets a channel here, unlike
-  // EmployeeDashboardPage's membership-filtered myProjectChannels.
-  const { projects } = useTaskProject();
-  const projectChannels = useMemo(
-    () => projects.map((p) => ({ id: `project-${p.id}`, name: p.name, desc: `${(p.memberIds || []).length} members + coordinator` })),
-    [projects]
-  );
+  // Real notifications, not a static placeholder: overdue work plus any
+  // update someone posted in the last 24h - computed from data the shared
+  // board already polls (TaskProjectContext), no separate notifications
+  // backend needed.
+  const { tasks: notifTasks, projects: notifProjects } = useTaskProject();
+  const notifications = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const items = [];
+    for (const p of notifProjects) {
+      if (!p.archived && p.status !== 'Completed' && p.dueDate && p.dueDate < today) {
+        items.push({ id: `proj-${p.id}`, text: `"${p.name}" is overdue (was due ${p.dueDate})`, at: p.dueDate });
+      }
+    }
+    for (const t of notifTasks) {
+      if (t.status !== 'Completed' && t.dueDate && t.dueDate < today) {
+        items.push({ id: `task-${t.id}`, text: `Task "${t.title}" is overdue (${t.assignee || 'unassigned'})`, at: t.dueDate });
+      }
+      if (t.remarksAt && new Date(t.remarksAt).getTime() >= dayAgo) {
+        items.push({ id: `remark-${t.id}`, text: `${t.remarksBy} posted an update on "${t.title}"`, at: t.remarksAt });
+      }
+    }
+    return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10);
+  }, [notifTasks, notifProjects]);
 
   const searchIndex = useMemo(buildSearchIndex, []);
   const results = useMemo(() => {
@@ -81,7 +93,10 @@ export default function CoordinatorLayout({ children }) {
 
   // A permission revoked while the user is on that page (or a sub-route of
   // it, e.g. a project detail page) shouldn't leave them stranded there.
+  // Team Chat isn't permission-gated (same as the profile menu), so it's
+  // exempt from this check like navItems' own paths are.
   useEffect(() => {
+    if (location.pathname === '/coordinator/team-chat') return;
     const stillAllowed = navItems.some(
       (item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
     );
@@ -138,6 +153,23 @@ export default function CoordinatorLayout({ children }) {
                 </button>
               );
             })}
+
+            <button
+              type="button"
+              onClick={() => goTo('/coordinator/team-chat')}
+              title={collapsed ? 'Team Chat' : undefined}
+              aria-current={location.pathname === '/coordinator/team-chat' ? 'page' : undefined}
+              className={`mx-1 flex items-center py-2 px-2.5 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
+                collapsed ? 'lg:justify-center lg:px-0 gap-2.5' : 'gap-2.5'
+              } ${
+                location.pathname === '/coordinator/team-chat'
+                  ? 'bg-white/[0.14] text-white shadow-sm border border-white/20 font-semibold backdrop-blur-md'
+                  : 'text-white/70 hover:text-white hover:bg-white/[0.07] border border-transparent'
+              }`}
+            >
+              <MessageSquare size={15} className={`shrink-0 ${location.pathname === '/coordinator/team-chat' ? 'text-rose-500' : 'text-white/60'}`} />
+              <span className={`truncate ${collapsed ? 'lg:hidden' : ''}`}>Team Chat</span>
+            </button>
           </nav>
         </div>
 
@@ -211,36 +243,38 @@ export default function CoordinatorLayout({ children }) {
               <Menu size={16} />
             </button>
 
-            <div className="relative flex-1 max-w-[360px]">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search tasks..."
-                className="h-9 bg-muted/60 hover:bg-muted focus:bg-white border border-border/80 rounded-full pl-9 pr-4 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-full transition-all"
-              />
-              {results.length > 0 && (
-                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-border rounded-2xl shadow-xl overflow-hidden z-30">
-                  {results.map((r, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => goTo(r.path)}
-                      className="w-full flex items-center justify-between px-3.5 py-2 text-left hover:bg-muted/40 transition-colors cursor-pointer border-b border-border/60 last:border-0"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold text-foreground truncate">{r.label}</div>
-                        <div className="text-[10px] text-muted-foreground truncate">{r.sub}</div>
-                      </div>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border shrink-0 ml-2">
-                        {r.group}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {location.pathname.startsWith('/coordinator/tasks') && (
+              <div className="relative flex-1 max-w-[360px]">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search tasks..."
+                  className="h-9 bg-muted/60 hover:bg-muted focus:bg-white border border-border/80 rounded-full pl-9 pr-4 text-xs text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-full transition-all"
+                />
+                {results.length > 0 && (
+                  <div className="absolute top-full left-0 mt-2 w-full bg-white border border-border rounded-2xl shadow-xl overflow-hidden z-30">
+                    {results.map((r, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => goTo(r.path)}
+                        className="w-full flex items-center justify-between px-3.5 py-2 text-left hover:bg-muted/40 transition-colors cursor-pointer border-b border-border/60 last:border-0"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold text-foreground truncate">{r.label}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">{r.sub}</div>
+                        </div>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border shrink-0 ml-2">
+                          {r.group}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -254,25 +288,25 @@ export default function CoordinatorLayout({ children }) {
                 className="relative w-9 h-9 rounded-full bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
               >
                 <Bell size={15} />
+                {notifications.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
+                )}
               </button>
               {showNotifs && (
-                <div className="absolute top-full right-0 mt-2 w-[260px] bg-white border border-border rounded-2xl shadow-xl overflow-hidden z-30">
-                  <div className="px-4 py-2.5 border-b border-border/60 text-xs font-bold text-foreground">Notifications</div>
-                  <div className="px-4 py-6 text-center text-[11px] text-muted-foreground">You're all caught up.</div>
+                <div className="absolute top-full right-0 mt-2 w-[300px] max-h-[360px] overflow-y-auto bg-white border border-border rounded-2xl shadow-xl z-30">
+                  <div className="px-4 py-2.5 border-b border-border/60 text-xs font-bold text-foreground sticky top-0 bg-white">Notifications</div>
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-[11px] text-muted-foreground">You're all caught up.</div>
+                  ) : (
+                    <div className="flex flex-col divide-y divide-border/60">
+                      {notifications.map((n) => (
+                        <div key={n.id} className="px-4 py-2.5 text-xs text-foreground">{n.text}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-
-            {/* Team Chat Hub Button */}
-            <button
-              type="button"
-              onClick={() => setIsChatOpen(true)}
-              aria-label="Team Chat"
-              className="h-9 px-3 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 shadow transition-all cursor-pointer shrink-0"
-            >
-              <MessageSquare size={13} />
-              <span className="hidden sm:inline">Team Chat</span>
-            </button>
 
             <button
               type="button"
@@ -299,8 +333,6 @@ export default function CoordinatorLayout({ children }) {
 
         <main className="flex-1 p-3.5 lg:p-5 min-w-0 overflow-y-auto flex flex-col">{children}</main>
       </div>
-
-      <TeamChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} projectChannels={projectChannels} />
     </div>
   );
 }

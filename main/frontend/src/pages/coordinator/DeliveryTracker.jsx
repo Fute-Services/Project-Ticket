@@ -9,6 +9,7 @@ import { useEmployeeDirectory } from '../../hooks/useEmployeeDirectory';
 import { useAuth } from '../../context/AuthContext';
 import { getProductionRecords, createProductionRecord, updateProductionRecord } from '../../utils/api';
 import { toast } from 'sonner';
+import { PROJECT_CODES } from '../../constants/projectCodes';
 
 const PRODUCTION_STATUSES = ['Not Started', 'Under Production', 'Delivered'];
 const INPUTS_STATUSES = ['Pending', 'Partial', 'Complete'];
@@ -239,7 +240,17 @@ export default function CoordinatorDeliveryTracker() {
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Project Code">
-              <input required value={form.projectCode} onChange={(e) => setForm((f) => ({ ...f, projectCode: e.target.value }))} className={inputClass} placeholder="e.g. PRJ-014" />
+              <select
+                required
+                value={form.projectCode}
+                onChange={(e) => setForm((f) => ({ ...f, projectCode: e.target.value }))}
+                className={inputClass}
+              >
+                <option value="" disabled>— Select —</option>
+                {PROJECT_CODES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </Field>
             <Field label="Qty.">
               <input type="number" min="0" value={form.qty} onChange={(e) => setForm((f) => ({ ...f, qty: e.target.value }))} className={inputClass} />

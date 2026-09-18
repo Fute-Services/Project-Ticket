@@ -59,6 +59,7 @@ async function createProject(req, res) {
 
   const docData = {
     name,
+    code: req.body.code || '',
     client,
     startDate: req.body.startDate || '',
     dueDate,
@@ -74,7 +75,7 @@ async function createProject(req, res) {
   created(res, { id: docRef.id, ...docData }, 'Project created successfully');
 }
 
-const PROJECT_EDITABLE_FIELDS = ['name', 'client', 'startDate', 'dueDate', 'status', 'figma', 'repo'];
+const PROJECT_EDITABLE_FIELDS = ['name', 'code', 'client', 'startDate', 'dueDate', 'status', 'figma', 'repo', 'archived'];
 
 // PATCH /api/coordinator/projects/:id — coordinator/founder edit project
 // fields and/or the tagged team (memberIds).
@@ -197,6 +198,34 @@ async function updateTaskStatus(req, res) {
   ok(res, { id, ...doc.data(), status, updated_at }, { message: 'Task status updated successfully' });
 }
 
+// PATCH /api/coordinator/tasks/:id/remarks — { remarks }. Same open-to-any-
+// logged-in-user-but-ownership-checked shape as updateTaskStatus above: the
+// whole point is that the assignee (not just the coordinator) can post a
+// progress update without needing full task-edit rights.
+async function updateTaskRemarks(req, res) {
+  const { id } = req.params;
+  const remarks = (req.body.remarks || '').trim();
+  if (!remarks) return fail(res, { status: 400, message: 'remarks is required', code: 'VALIDATION_ERROR' });
+
+  const docRef = tasksCollection.doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) return fail(res, { status: 404, message: 'Task not found', code: 'NOT_FOUND' });
+
+  const isOwnerOrManager =
+    req.user.role === 'coordinator' ||
+    req.user.role === 'founder' ||
+    doc.data().assigneeId === req.user.id;
+  if (!isOwnerOrManager) return fail(res, { status: 403, message: 'Access denied', code: 'FORBIDDEN' });
+
+  const updates = {
+    remarks,
+    remarksBy: req.user.full_name,
+    remarksAt: new Date().toISOString(),
+  };
+  await docRef.update(updates);
+  ok(res, { id, ...doc.data(), ...updates }, { message: 'Remarks updated' });
+}
+
 const EDITABLE_FIELDS = ['title', 'priority', 'dueDate', 'duration', 'comments', 'attachments', 'figma', 'pr'];
 
 // PATCH /api/coordinator/tasks/:id — coordinator/founder edit any field
@@ -238,4 +267,4 @@ async function updateTask(req, res) {
   ok(res, { id, ...doc.data(), ...updates }, { message: 'Task updated successfully' });
 }
 
-module.exports = { getProjects, createProject, updateProject, getTasks, createTask, updateTaskStatus, updateTask };
+module.exports = { getProjects, createProject, updateProject, getTasks, createTask, updateTaskStatus, updateTask, updateTaskRemarks };

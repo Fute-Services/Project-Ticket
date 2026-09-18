@@ -1,4 +1,5 @@
-import { Check, Figma, Github, MessageSquare, Paperclip } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Figma, Github, Paperclip, Send } from 'lucide-react';
 import { Drawer, Field, inputClass } from '../ui';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../../data/coordinatorMockData';
 
@@ -14,11 +15,27 @@ function toHref(link) {
  * Employee dashboard needs: people should see the full task without being
  * able to reassign it to someone else.
  */
-export default function TaskDetailPane({ task, project, open, onClose, onChange, onToggle, readOnly = false, employees = [] }) {
+export default function TaskDetailPane({ task, project, open, onClose, onChange, onToggle, onAddRemark, readOnly = false, employees = [] }) {
+  const [remarkDraft, setRemarkDraft] = useState('');
+  const [posting, setPosting] = useState(false);
+
   if (!task) return null;
   const done = task.status === 'Completed';
 
   const set = (patch) => onChange?.(task.id, patch);
+
+  async function submitRemark(e) {
+    e.preventDefault();
+    const text = remarkDraft.trim();
+    if (!text || posting) return;
+    setPosting(true);
+    try {
+      await onAddRemark?.(task.id, text);
+      setRemarkDraft('');
+    } finally {
+      setPosting(false);
+    }
+  }
 
   return (
     <Drawer open={open} onClose={onClose} title={project ? project.name : 'Task'} wide>
@@ -157,10 +174,39 @@ export default function TaskDetailPane({ task, project, open, onClose, onChange,
           </div>
         )}
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground pt-3 border-t border-border">
-          <span className="flex items-center gap-1.5">
-            <MessageSquare size={13} /> {task.comments ?? 0} comments
-          </span>
+        <div className="pt-3 border-t border-border flex flex-col gap-2">
+          <p className="text-xs font-medium text-muted-foreground">Remarks / Updates</p>
+          {task.remarks ? (
+            <div className="p-2.5 rounded-md bg-muted text-xs text-foreground">
+              <p className="whitespace-pre-wrap">{task.remarks}</p>
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                {task.remarksBy} · {task.remarksAt ? new Date(task.remarksAt).toLocaleString() : ''}
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">No updates yet.</p>
+          )}
+          {onAddRemark && (
+            <form onSubmit={submitRemark} className="flex items-center gap-2">
+              <input
+                value={remarkDraft}
+                onChange={(e) => setRemarkDraft(e.target.value)}
+                placeholder="Post a progress update…"
+                className={`${inputClass} flex-1`}
+              />
+              <button
+                type="submit"
+                disabled={posting || !remarkDraft.trim()}
+                aria-label="Post update"
+                className="p-2 rounded-md bg-primary hover:bg-primary-hover text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
+              >
+                <Send size={14} />
+              </button>
+            </form>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Paperclip size={13} /> {task.attachments ?? 0} attachments
           </span>

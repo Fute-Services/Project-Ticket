@@ -3,7 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const role = require('../middleware/roleMiddleware');
 const validateFields = require('../middleware/validateFields');
-const { getProjects, createProject, updateProject, getTasks, createTask, updateTaskStatus, updateTask } = require('../controllers/taskProjectController');
+const { getProjects, createProject, updateProject, getTasks, createTask, updateTaskStatus, updateTask, updateTaskRemarks } = require('../controllers/taskProjectController');
 const { listStaffByRole } = require('../controllers/staffController');
 const { getProductionRecords, createProductionRecord, updateProductionRecord } = require('../controllers/productionTrackerController');
 
@@ -17,6 +17,7 @@ router.get('/tasks', auth, getTasks);
 router.get('/employees', auth, role('coordinator', 'founder'), listStaffByRole('employee'));
 router.post('/tasks', auth, role('coordinator', 'founder'), validateFields({ title: 300, figma: 500, pr: 500 }), createTask);
 router.patch('/tasks/:id/status', auth, updateTaskStatus);
+router.patch('/tasks/:id/remarks', auth, validateFields({ remarks: 2000 }), updateTaskRemarks);
 router.patch('/tasks/:id', auth, role('coordinator', 'founder'), validateFields({ title: 300, figma: 500, pr: 500 }), updateTask);
 
 // Production & Delivery Tracker - coordinator/founder only, an admin/billing

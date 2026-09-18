@@ -40,6 +40,11 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
 
   const lastMessageAtRef = useRef(null);
   const pollRef = useRef(null);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end' });
+  }, [messages, activeChannel]);
 
   useEscapeToClose(!isFullPage && isOpen, onClose);
   const active = isFullPage || isOpen;
@@ -132,7 +137,7 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
       role={isFullPage ? undefined : 'dialog'}
       aria-modal={isFullPage ? undefined : 'true'}
       aria-label={isFullPage ? undefined : 'Team Collaboration Hub'}
-      className={`w-full apple-glass border border-white/85 rounded-3xl flex flex-col shadow-2xl text-foreground font-sans overflow-hidden ${isFullPage ? 'h-[750px]' : 'relative w-full max-w-2xl h-[85vh] max-h-[720px]'}`}
+      className={`w-full apple-glass border border-white/85 rounded-3xl flex flex-col shadow-2xl text-foreground font-sans overflow-hidden ${isFullPage ? 'h-full' : 'relative w-full max-w-2xl h-[85vh] max-h-[720px]'}`}
     >
       <div className="h-14 px-5 border-b border-black/5 flex items-center justify-between bg-white/50 backdrop-blur-xl shrink-0">
         <div className="flex items-center gap-3">
@@ -245,31 +250,38 @@ export default function TeamChatDrawer({ isOpen, onClose, projectChannels = [], 
             <p className="text-xs text-muted-foreground truncate mt-0.5">{currentChannelObj?.desc}</p>
           </div>
 
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 min-h-0">
+          <div className="flex-1 p-4 overflow-y-auto space-y-2 min-h-0">
             {messages.length === 0 && (
               <div className="text-xs text-muted-foreground text-center py-8">No messages yet — say hello 👋</div>
             )}
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`p-3 rounded-2xl border text-xs flex flex-col gap-1.5 backdrop-blur-sm ${
-                  msg.senderId === user?.id ? 'bg-primary/10 border-primary/20 text-foreground ml-8' : 'bg-white/70 border-white/80 text-foreground shadow-sm mr-8'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground leading-none">{msg.senderName}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/80 text-muted-foreground border border-black/5 font-mono">
-                      {msg.senderRole}
+            {messages.map((msg) => {
+              const own = msg.senderId === user?.id;
+              return (
+                <div key={msg.id} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-[75%] px-3 py-2 text-xs flex flex-col gap-1 shadow-sm ${
+                      own
+                        ? 'bg-primary/15 border border-primary/20 text-foreground rounded-2xl rounded-br-sm'
+                        : 'bg-white/80 border border-white/85 text-foreground rounded-2xl rounded-bl-sm'
+                    }`}
+                  >
+                    {!own && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground leading-none">{msg.senderName}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/80 text-muted-foreground border border-black/5 font-mono">
+                          {msg.senderRole}
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-xs text-foreground/85 leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
+                    <span className="text-[10px] text-muted-foreground font-mono self-end">
+                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
                 </div>
-                <p className="text-xs text-foreground/80 leading-relaxed mt-0.5 whitespace-pre-wrap">{msg.text}</p>
-              </div>
-            ))}
+              );
+            })}
+            <div ref={bottomRef} />
           </div>
 
           <form onSubmit={handleSend} className="p-3.5 border-t border-black/5 bg-white/50 backdrop-blur-xl shrink-0 flex items-center gap-2.5">

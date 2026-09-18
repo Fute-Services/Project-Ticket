@@ -65,7 +65,8 @@ export default function CoordinatorOverview() {
   const inProgress = tasks.filter((t) => t.status === 'In Progress').length;
   const completed = tasks.filter((t) => t.status === 'Completed').length;
   const overdue = tasks.filter((t) => t.status !== 'Completed' && t.dueDate < TODAY).length;
-  const activeProjects = projects.filter((p) => p.status !== 'Completed').length;
+  const visibleProjects = projects.filter((p) => !p.archived);
+  const activeProjects = visibleProjects.filter((p) => p.status !== 'Completed').length;
 
   const statusBreakdown = toDonutData(tasks, 'status', TASK_STATUSES, STATUS_COLOR);
 
@@ -81,6 +82,14 @@ export default function CoordinatorOverview() {
     .filter((t) => t.status !== 'Completed')
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
     .slice(0, 5);
+
+  // Every remark an assignee posts (see TaskDetailPane's "Remarks / Updates"
+  // box) shows up here — the one place a coordinator watches instead of
+  // opening each task individually to check for progress notes.
+  const recentUpdates = [...tasks]
+    .filter((t) => t.remarks && t.remarksAt)
+    .sort((a, b) => b.remarksAt.localeCompare(a.remarksAt))
+    .slice(0, 8);
 
   return (
     <CoordinatorLayout>
@@ -121,7 +130,7 @@ export default function CoordinatorOverview() {
             subtitle="Progress, team, and linked design/code assets"
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {projects.map((p) => {
+            {visibleProjects.map((p) => {
               const projectTasks = tasks.filter((t) => t.projectId === p.id);
               const done = projectTasks.filter((t) => t.status === 'Completed').length;
               return (
@@ -206,6 +215,38 @@ export default function CoordinatorOverview() {
               );
             })}
           </div>
+        </Card>
+
+        {/* Recent Updates - every remark posted across all tasks, newest first */}
+        <Card>
+          <SectionHeader
+            title="Recent Updates"
+            subtitle="Latest progress remarks from assigned team members"
+            action={
+              <button type="button" onClick={() => navigate('/coordinator/tasks')} className="text-xs text-primary font-semibold hover:underline cursor-pointer">
+                View all tasks
+              </button>
+            }
+          />
+          {recentUpdates.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-4 text-center">No updates posted yet.</p>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {recentUpdates.map((t) => {
+                const p = projects.find((pr) => pr.id === t.projectId);
+                return (
+                  <div key={t.id} className="p-3 rounded-lg bg-muted border border-border flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-foreground truncate">{t.title}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono shrink-0">{new Date(t.remarksAt).toLocaleString()}</span>
+                    </div>
+                    <p className="text-xs text-foreground/80 whitespace-pre-wrap">{t.remarks}</p>
+                    <p className="text-[11px] text-muted-foreground">{t.remarksBy} · {p?.name || 'Unknown project'}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
 
         {/* Status breakdown + workload by assignee */}
