@@ -16,6 +16,7 @@ import CheckInWidget from '../components/CheckInWidget';
 import ExtraHoursModal from '../components/ExtraHoursModal';
 import HolidaysCard from '../components/HolidaysCard';
 import MyLeavePerformanceCard from '../components/MyLeavePerformanceCard';
+import TeamChatDrawer from '../components/TeamChatDrawer';
 import { extraHoursApi } from '../utils/api';
 import { toast } from 'sonner';
 
@@ -862,6 +863,8 @@ export default function EmployeeDashboardPage() {
           myName={user?.full_name}
         />
       )}
+
+      {activeTab === 'chat' && <TeamChatDrawer isFullPage />}
 
       {/* Read-only: an employee can complete their own work, but reassigning
           it or changing its priority is the coordinator's call. */}

@@ -13,6 +13,7 @@ import DataRequestsView from '../components/DataRequestsView';
 import AssetsView, { ASSET_TYPE_ICON } from '../components/AssetsView';
 import ReportsView from '../components/ReportsView';
 import RenderingStatusView from '../components/RenderingStatusView';
+import TeamChatDrawer from '../components/TeamChatDrawer';
 import { Card, SectionHeader, StatCard, DarkMetricCard } from '../components/ui';
 import { ASSET_TYPES } from '../data/itMockData';
 import { Activity, Server, ShieldCheck, CheckCircle2 } from 'lucide-react';
@@ -261,6 +262,8 @@ export default function DashboardPage() {
       {activeTab === 'reports' && <ReportsView />}
 
       {activeTab === 'renderstatus' && <RenderingStatusView />}
+
+      {activeTab === 'chat' && <TeamChatDrawer isFullPage />}
 
       {/* Modals */}
       <DataTransferModal

@@ -25,6 +25,7 @@ import {
   Ticket,
   CheckSquare,
   FileText,
+  MessageSquare,
 } from 'lucide-react';
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutGrid, path: '/hr/overview' },
@@ -95,7 +96,10 @@ export default function HrLayout({ children }) {
 
   // A permission revoked while the user is sitting on that exact page
   // shouldn't leave them stuck on a page that's no longer in their nav.
+  // Team Chat isn't permission-gated (same as Coordinator's), so it's
+  // exempt here the same way navItems' own paths are.
   useEffect(() => {
+    if (location.pathname === '/hr/team-chat') return;
     if (navItems.length && !navItems.some((item) => item.path === location.pathname)) {
       navigate(navItems[0].path, { replace: true });
     }
@@ -146,6 +150,23 @@ export default function HrLayout({ children }) {
                 </button>
               );
             })}
+
+            <button
+              type="button"
+              onClick={() => goTo('/hr/team-chat')}
+              title={collapsed ? 'Team Chat' : undefined}
+              aria-current={location.pathname === '/hr/team-chat' ? 'page' : undefined}
+              className={`mx-1 flex items-center py-2 px-2.5 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all duration-200 text-left cursor-pointer ${
+                collapsed ? 'lg:justify-center lg:px-0 gap-2.5' : 'gap-2.5'
+              } ${
+                location.pathname === '/hr/team-chat'
+                  ? 'bg-white/[0.14] text-white shadow-sm border border-white/20 font-semibold backdrop-blur-md'
+                  : 'text-white/70 hover:text-white hover:bg-white/[0.07] border border-transparent'
+              }`}
+            >
+              <MessageSquare size={15} className={`shrink-0 ${location.pathname === '/hr/team-chat' ? 'text-rose-500' : 'text-white/60'}`} />
+              <span className={`truncate ${collapsed ? 'lg:hidden' : ''}`}>Team Chat</span>
+            </button>
           </nav>
         </div>
 

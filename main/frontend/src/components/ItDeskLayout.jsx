@@ -27,6 +27,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Film,
+  MessageSquare,
 } from 'lucide-react';
 
 const ROLE_LABEL = {
@@ -100,7 +101,10 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
 
   // A permission revoked while the user is sitting on that exact tab
   // shouldn't leave them on a page they can no longer reach from the nav.
+  // Team Chat isn't permission-gated (same reasoning as Coordinator's), so
+  // it's exempt from this redirect the same way navItems' own tabs are.
   useEffect(() => {
+    if (activeTab === 'chat') return;
     if (navItems.length && !navItems.some((item) => item.id === activeTab)) {
       setActiveTab(navItems[0].id);
     }
@@ -159,6 +163,24 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
                 </button>
               );
             })}
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('chat')}
+              className={`py-2 rounded-lg text-[11px] font-mono font-bold tracking-wide uppercase transition-all duration-200 cursor-pointer flex items-center ${
+                collapsed ? 'justify-center px-0' : 'px-3 justify-between'
+              } ${
+                activeTab === 'chat'
+                  ? 'bg-white/[0.14] text-white shadow-sm border border-white/20 font-semibold backdrop-blur-md'
+                  : 'text-white/70 hover:text-white hover:bg-white/[0.07] border border-transparent'
+              }`}
+              title="Team Chat"
+            >
+              <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2.5 min-w-0'}`}>
+                <MessageSquare size={16} className={activeTab === 'chat' ? 'text-rose-500' : 'text-white/60'} />
+                {!collapsed && <span className="truncate">Team Chat</span>}
+              </div>
+            </button>
           </nav>
         </div>
 

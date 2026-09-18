@@ -31,6 +31,7 @@ const HrReports = lazy(() => import('./pages/hr/Reports'));
 const HrTemplates = lazy(() => import('./pages/hr/Templates'));
 const HrTickets = lazy(() => import('./pages/hr/Tickets'));
 const HrApprovals = lazy(() => import('./pages/hr/Approvals'));
+const HrTeamChat = lazy(() => import('./pages/hr/TeamChat'));
 const CoordinatorOverview = lazy(() => import('./pages/coordinator/Overview'));
 const CoordinatorTasks = lazy(() => import('./pages/coordinator/Tasks'));
 const CoordinatorProjects = lazy(() => import('./pages/coordinator/Projects'));
@@ -91,6 +92,7 @@ const HR_ROUTES = [
   { path: '/hr/templates', element: <HrTemplates /> },
   { path: '/hr/tickets', element: <HrTickets /> },
   { path: '/hr/approvals', element: <HrApprovals /> },
+  { path: '/hr/team-chat', element: <HrTeamChat /> },
 ];
 
 const COORDINATOR_ROUTES = [
