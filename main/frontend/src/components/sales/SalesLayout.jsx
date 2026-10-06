@@ -5,7 +5,7 @@ import { useSalesDesk } from '../../context/SalesDeskContext';
 import {
   LayoutGrid, Contact, PhoneCall, Clock, CalendarDays, TrendingUp,
   Megaphone, BarChart2, Settings as SettingsIcon, LogOut, ChevronDown, Menu,
-  ChevronsLeft, ChevronsRight,
+  ChevronsLeft, ChevronsRight, Table2,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { label: 'Pipeline', icon: TrendingUp, path: '/sales/pipeline' },
   { label: 'Campaigns', icon: Megaphone, path: '/sales/campaigns' },
   { label: 'Reports', icon: BarChart2, path: '/sales/reports' },
+  { label: 'Project Sheet', icon: Table2, path: '/sales/project-sheet' },
   { label: 'Settings', icon: SettingsIcon, path: '/sales/settings' },
 ];
 

@@ -448,3 +448,8 @@ export const getSalesSettings = () => api.get('/api/sales-desk/settings');
 export const updateSalesSettings = (data) => api.patch('/api/sales-desk/settings', data);
 
 export default api;
+
+// Shared Project Sheet (sales + coordinator).
+export const getProjectSheet = () => api.get("/api/project-sheet");
+export const createProjectSheetRow = (data) => api.post("/api/project-sheet", data);
+export const updateProjectSheetRow = (id, patch) => api.patch(`/api/project-sheet/${id}`, patch);

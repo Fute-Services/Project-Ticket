@@ -38,6 +38,7 @@ const CoordinatorProjects = lazy(() => import('./pages/coordinator/Projects'));
 const CoordinatorProjectDetail = lazy(() => import('./pages/coordinator/ProjectDetail'));
 const CoordinatorDeliveryTracker = lazy(() => import('./pages/coordinator/DeliveryTracker'));
 const CoordinatorTeamChat = lazy(() => import('./pages/coordinator/TeamChat'));
+const CoordinatorProjectSheet = lazy(() => import('./pages/coordinator/ProjectSheet'));
 
 const FounderLandingPage = lazy(() => import('./pages/FounderLandingPage'));
 const FounderDashboardPage = lazy(() => import('./pages/FounderDashboardPage'));
@@ -61,6 +62,7 @@ const SalesPipeline = lazy(() => import('./pages/sales/Pipeline'));
 const SalesCampaigns = lazy(() => import('./pages/sales/Campaigns'));
 const SalesReports = lazy(() => import('./pages/sales/Reports'));
 const SalesSettings = lazy(() => import('./pages/sales/Settings'));
+const SalesProjectSheet = lazy(() => import('./pages/sales/ProjectSheet'));
 
 const DASHBOARD_ROUTES = [{ path: '/it/dashboard', allow: ['it'] }];
 
@@ -79,6 +81,7 @@ const SALES_ROUTES = [
   { path: '/sales/campaigns', element: <SalesCampaigns /> },
   { path: '/sales/reports', element: <SalesReports /> },
   { path: '/sales/settings', element: <SalesSettings /> },
+  { path: '/sales/project-sheet', element: <SalesProjectSheet /> },
 ];
 
 const HR_ROUTES = [
@@ -102,6 +105,7 @@ const COORDINATOR_ROUTES = [
   { path: '/coordinator/projects/:projectId', element: <CoordinatorProjectDetail /> },
   { path: '/coordinator/delivery-tracker', element: <CoordinatorDeliveryTracker /> },
   { path: '/coordinator/team-chat', element: <CoordinatorTeamChat /> },
+  { path: '/coordinator/project-sheet', element: <CoordinatorProjectSheet /> },
 ];
 
 // ponytail: every non-auth provider below already role-gates its own fetch

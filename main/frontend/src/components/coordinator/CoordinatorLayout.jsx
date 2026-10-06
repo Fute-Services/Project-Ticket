@@ -7,6 +7,7 @@ import {
   ListChecks,
   FolderKanban,
   Truck,
+  Table2,
   Search,
   Bell,
   LogOut,
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { label: 'Projects', icon: FolderKanban, path: '/coordinator/projects' },
   { label: 'Tasks', icon: ListChecks, path: '/coordinator/tasks' },
   { label: 'Delivery Tracker', icon: Truck, path: '/coordinator/delivery-tracker' },
+  { label: 'Project Sheet', icon: Table2, path: '/coordinator/project-sheet' },
 ];
 
 function buildSearchIndex() {

@@ -39,6 +39,7 @@ export const PAGE_REGISTRY = {
     { id: '/coordinator/projects', label: 'Projects' },
     { id: '/coordinator/tasks', label: 'Tasks' },
     { id: '/coordinator/delivery-tracker', label: 'Delivery Tracker' },
+    { id: '/coordinator/project-sheet', label: 'Project Sheet' },
   ],
   // Founder's own sidebar (FounderDashboardPage.jsx SIDEBAR_ORDER) - no
   // longer auto-granted; Super Admin is the one role that bypasses this
