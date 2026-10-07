@@ -9,7 +9,10 @@ import EditTicketModal from '../components/EditTicketModal';
 import { issueTitle, ColorSelect } from '../components/TicketsQueueView';
 import DataTable from '../components/DataTable';
 import { Card, SectionHeader, StatCard, Badge, Drawer, RefreshBar } from '../components/ui';
-import { Plus, UserPlus, Search, X, Eye, Pencil, Clock, RotateCcw } from 'lucide-react';
+import { Plus, UserPlus, Search, X, Eye, Pencil, Clock, RotateCcw, MessageSquare } from 'lucide-react';
+import TicketChatDrawer from '../components/TicketChatDrawer';
+import { TicketDateCell, RemarksChatCell } from '../components/TicketCells';
+import { formatDateTime } from '../utils/tickets';
 import TaskRow from '../components/tasks/TaskRow';
 import TaskDetailPane from '../components/tasks/TaskDetailPane';
 import CheckInWidget from '../components/CheckInWidget';
@@ -41,6 +44,8 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onE
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [detailsTicket, setDetailsTicket] = useState(null);
+  const [chatTicketId, setChatTicketId] = useState(null);
+  const chatTicket = chatTicketId ? tickets.find((t) => t.id === chatTicketId) || null : null;
 
   const visible = useMemo(() => {
     return tickets
@@ -164,8 +169,8 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onE
             {
               key: 'date',
               label: 'Date',
-              width: '80px',
-              render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '-'}</span>,
+              width: '125px',
+              render: (t) => <TicketDateCell t={t} />,
             },
             {
               key: 'username',
@@ -225,20 +230,10 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onE
             },
             {
               key: 'remarks',
-              label: 'Remarks',
+              label: 'Remarks / Chat',
               sortable: false,
-              width: '140px',
-              render: (t) => (
-                <div className="truncate max-w-[150px]" title={t.remarks || 'No remarks yet'}>
-                  {t.remarks ? (
-                    <span className="text-xs text-foreground font-medium bg-muted px-2 py-0.5 rounded border border-border inline-block max-w-full truncate">
-                      {t.remarks}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground/50 italic">No remarks</span>
-                  )}
-                </div>
-              ),
+              width: '150px',
+              render: (t) => <RemarksChatCell t={t} onOpen={setChatTicketId} />,
             },
             {
               key: 'actions',
@@ -293,6 +288,8 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onE
           ]}
         />
       </div>
+
+      <TicketChatDrawer ticket={chatTicket} onClose={() => setChatTicketId(null)} />
 
       <Drawer
         open={!!detailsTicket}
@@ -360,14 +357,26 @@ function MyTicketsView({ tickets, onFieldChange, onNewTicket, onNewHrTicket, onE
               </div>
 
               <div className="bg-card border border-border rounded-xl p-3">
-                <div className="text-muted-foreground font-semibold mb-0.5">Date</div>
-                <div className="text-foreground">{detailsTicket.date || '-'}</div>
+                <div className="text-muted-foreground font-semibold mb-0.5">Created (date &amp; time)</div>
+                <div className="text-foreground">{formatDateTime(detailsTicket.submittedAt, detailsTicket.date || '-')}</div>
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-xl p-3">
-              <div className="text-muted-foreground font-semibold mb-0.5">Remarks</div>
-              <div className="text-foreground">{detailsTicket.remarks || 'No remarks yet'}</div>
+            <div className="bg-card border border-border rounded-xl p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-muted-foreground font-semibold mb-0.5">Latest message</div>
+                <div className="text-foreground truncate">{detailsTicket.remarks || 'No messages yet'}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setChatTicketId(detailsTicket.id);
+                  setDetailsTicket(null);
+                }}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-semibold cursor-pointer"
+              >
+                <MessageSquare size={13} /> Open chat
+              </button>
             </div>
 
             <button
@@ -539,6 +548,7 @@ export default function EmployeeDashboardPage() {
   const [isHrTicketModalOpen, setIsHrTicketModalOpen] = useState(false);
   const [isExtraHoursOpen, setIsExtraHoursOpen] = useState(false);
   const [detailsTicket, setDetailsTicket] = useState(null);
+  const [chatTicketId, setChatTicketId] = useState(null);
   const [editingTicket, setEditingTicket] = useState(null);
   const [extraHours, setExtraHours] = useState(null);
 
@@ -734,8 +744,8 @@ export default function EmployeeDashboardPage() {
                 {
                   key: 'date',
                   label: 'Date',
-                  width: '80px',
-                  render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '-'}</span>,
+                  width: '125px',
+                  render: (t) => <TicketDateCell t={t} />,
                 },
                 {
                   key: 'username',
@@ -795,20 +805,10 @@ export default function EmployeeDashboardPage() {
                 },
                 {
                   key: 'remarks',
-                  label: 'Remarks',
+                  label: 'Remarks / Chat',
                   sortable: false,
-                  width: '140px',
-                  render: (t) => (
-                    <div className="truncate max-w-[150px]" title={t.remarks || 'No remarks yet'}>
-                      {t.remarks ? (
-                        <span className="text-xs text-foreground font-medium bg-muted px-2 py-0.5 rounded border border-border inline-block max-w-full truncate">
-                          {t.remarks}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/50 italic">No remarks</span>
-                      )}
-                    </div>
-                  ),
+                  width: '150px',
+                  render: (t) => <RemarksChatCell t={t} onOpen={setChatTicketId} />,
                 },
                 {
                   key: 'actions',
@@ -894,6 +894,11 @@ export default function EmployeeDashboardPage() {
 
       <ExtraHoursModal open={isExtraHoursOpen} onClose={() => setIsExtraHoursOpen(false)} onSubmitted={refreshExtraHours} />
 
+      <TicketChatDrawer
+        ticket={chatTicketId ? myTickets.find((t) => t.id === chatTicketId) || null : null}
+        onClose={() => setChatTicketId(null)}
+      />
+
       <Drawer
         open={!!detailsTicket}
         onClose={() => setDetailsTicket(null)}
@@ -960,14 +965,26 @@ export default function EmployeeDashboardPage() {
               </div>
 
               <div className="bg-card border border-border rounded-xl p-3">
-                <div className="text-muted-foreground font-semibold mb-0.5">Date</div>
-                <div className="text-foreground">{detailsTicket.date || '-'}</div>
+                <div className="text-muted-foreground font-semibold mb-0.5">Created (date &amp; time)</div>
+                <div className="text-foreground">{formatDateTime(detailsTicket.submittedAt, detailsTicket.date || '-')}</div>
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-xl p-3">
-              <div className="text-muted-foreground font-semibold mb-0.5">Remarks</div>
-              <div className="text-foreground">{detailsTicket.remarks || 'No remarks yet'}</div>
+            <div className="bg-card border border-border rounded-xl p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-muted-foreground font-semibold mb-0.5">Latest message</div>
+                <div className="text-foreground truncate">{detailsTicket.remarks || 'No messages yet'}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setChatTicketId(detailsTicket.id);
+                  setDetailsTicket(null);
+                }}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-semibold cursor-pointer"
+              >
+                <MessageSquare size={13} /> Open chat
+              </button>
             </div>
 
             <button

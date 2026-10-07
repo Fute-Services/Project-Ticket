@@ -3,6 +3,7 @@ import { useTickets } from '../context/TicketContext';
 import { useLeave, isFounderApproval } from '../context/LeaveContext';
 import { useApprovals } from '../context/ApprovalContext';
 import { relativeTime } from '../utils/tickets';
+import { useNotificationReadState } from './useNotificationReadState';
 
 // Shared by HrLayout's notification bell and the Overview dashboard's
 // "Notifications" stat card, so both read the exact same live list instead
@@ -17,6 +18,7 @@ export function useHrNotifications() {
   const { tickets } = useTickets();
   const { leaveRequests } = useLeave();
   const { approvals } = useApprovals();
+  const { isRead } = useNotificationReadState();
 
   return useMemo(() => {
     const ticketNotifs = tickets
@@ -26,7 +28,15 @@ export function useHrNotifications() {
         text: `New ticket from ${t.user || 'someone'}: ${t.title}`,
         time: relativeTime(t.submittedAt),
         at: t.submittedAt,
-        unread: true,
+        path: '/hr/tickets',
+      }));
+    const chatNotifs = tickets
+      .filter((t) => t.lastMessageBy === 'requester' && t.lastMessageAt && t.status !== 'Resolved')
+      .map((t) => ({
+        id: `chat-${t.id}-${t.lastMessageAt}`,
+        text: `${t.user || 'Requester'} replied on ${t.token || 'a ticket'}: ${t.remarks}`,
+        time: relativeTime(t.lastMessageAt),
+        at: t.lastMessageAt,
         path: '/hr/tickets',
       }));
     const leaveNotifs = leaveRequests
@@ -39,7 +49,6 @@ export function useHrNotifications() {
         text: `Leave request from ${l.employee || 'someone'} awaiting approval`,
         time: relativeTime(l.submitted_at),
         at: l.submitted_at,
-        unread: true,
         path: '/hr/approvals',
       }));
     const approvalNotifs = approvals
@@ -54,11 +63,11 @@ export function useHrNotifications() {
         text: `Approval request pending founder sign-off: ${a.title}${a.sub ? ` (${a.sub})` : ''}`,
         time: a.timestamp,
         at: a.createdAt,
-        unread: true,
         path: '/hr/approvals',
       }));
-    return [...ticketNotifs, ...leaveNotifs, ...approvalNotifs]
+    return [...ticketNotifs, ...chatNotifs, ...leaveNotifs, ...approvalNotifs]
       .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
-      .slice(0, 20);
-  }, [tickets, leaveRequests, approvals]);
+      .slice(0, 20)
+      .map((n) => ({ ...n, unread: !isRead(n.id) }));
+  }, [tickets, leaveRequests, approvals, isRead]);
 }

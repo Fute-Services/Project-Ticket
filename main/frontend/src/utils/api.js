@@ -304,6 +304,12 @@ export const deleteItComplaint = (id) => api.delete(`/api/it/complaints/${id}`);
 export const reopenHrComplaint = (id) => api.patch(`/api/hr/complaints/${id}/reopen`);
 export const reopenItComplaint = (id) => api.patch(`/api/it/complaints/${id}/reopen`);
 
+// Per-ticket chat between the requester and the solver (replaces Remarks)
+export const getHrTicketMessages = (id) => api.get(`/api/hr/complaints/${id}/messages`);
+export const getItTicketMessages = (id) => api.get(`/api/it/complaints/${id}/messages`);
+export const sendHrTicketMessage = (id, text) => api.post(`/api/hr/complaints/${id}/messages`, { text });
+export const sendItTicketMessage = (id, text) => api.post(`/api/it/complaints/${id}/messages`, { text });
+
 // Active staff for a department's queue, for the "Resolved By" dropdown -
 // HR/IT staff and founders only
 export const getHrStaff = () => api.get('/api/hr/staff');

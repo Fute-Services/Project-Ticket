@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useTickets } from '../context/TicketContext';
 import { useApprovals } from '../context/ApprovalContext';
 import { relativeTime } from '../utils/tickets';
+import { useNotificationReadState } from './useNotificationReadState';
 
 // IT's real events, same "not seeded mock" philosophy as useHrNotifications:
 // unclaimed tickets in the IT queue, IT's own approval requests (Data
@@ -11,6 +12,7 @@ import { relativeTime } from '../utils/tickets';
 export function useItNotifications() {
   const { tickets } = useTickets();
   const { approvals } = useApprovals();
+  const { isRead } = useNotificationReadState();
 
   return useMemo(() => {
     const ticketNotifs = tickets
@@ -20,7 +22,19 @@ export function useItNotifications() {
         text: `New ticket ${t.token || ''} from ${t.user || 'someone'}: ${t.title}`,
         time: relativeTime(t.submittedAt),
         at: t.submittedAt,
-        unread: true,
+        tab: 'tickets',
+      }));
+
+    // The requester wrote last in the ticket's chat - IT owes a reply. The
+    // id carries the message time, so each new message is a fresh
+    // notification even if the previous one was already opened.
+    const chatNotifs = tickets
+      .filter((t) => t.dept === 'IT' && t.lastMessageBy === 'requester' && t.lastMessageAt && t.status !== 'Resolved')
+      .map((t) => ({
+        id: `chat-${t.id}-${t.lastMessageAt}`,
+        text: `${t.user || 'Requester'} replied on ${t.token || 'a ticket'}: ${t.remarks}`,
+        time: relativeTime(t.lastMessageAt),
+        at: t.lastMessageAt,
         tab: 'tickets',
       }));
 
@@ -32,7 +46,6 @@ export function useItNotifications() {
         text: `${a.title} is waiting for approval`,
         time: a.timestamp,
         at: a.createdAt,
-        unread: true,
         tab: 'approval',
       }));
     const decidedNotifs = itApprovals
@@ -42,14 +55,14 @@ export function useItNotifications() {
         text: `${a.title} was ${a.status === 'approved' ? 'approved' : 'rejected'}`,
         time: relativeTime(a.decidedAt),
         at: a.decidedAt,
-        // A decision is informational, not something still waiting on IT —
-        // no unread dot, mirrors how HR's hook only dots things still pending.
-        unread: false,
         tab: 'approval',
       }));
 
-    return [...ticketNotifs, ...pendingNotifs, ...decidedNotifs]
+    return [...ticketNotifs, ...chatNotifs, ...pendingNotifs, ...decidedNotifs]
       .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
-      .slice(0, 20);
-  }, [tickets, approvals]);
+      .slice(0, 20)
+      // "Unread" = not opened yet on this device (see useNotificationReadState).
+      // A decision (approved/rejected) is informational, so it never dots.
+      .map((n) => ({ ...n, unread: !n.id.startsWith('approval-decided-') && !isRead(n.id) }));
+  }, [tickets, approvals, isRead]);
 }

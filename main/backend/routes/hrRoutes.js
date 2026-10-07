@@ -47,6 +47,12 @@ router.patch(
 // Only the submitter employee can delete their own ticket
 router.delete('/complaints/:id', auth, deleteComplaint);
 
+// Per-ticket chat between the requester and whoever is solving it (replaces
+// the old one-line Remarks box). Access is checked in the controller:
+// the ticket's own requester, or staff/founder.
+router.get('/complaints/:id/messages', auth, listMessages);
+router.post('/complaints/:id/messages', auth, validateFields({ text: 2000 }), addMessage);
+
 // Only the submitter employee can reopen their own resolved ticket
 router.patch('/complaints/:id/reopen', auth, reopenComplaint);
 

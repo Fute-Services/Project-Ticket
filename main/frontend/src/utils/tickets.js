@@ -66,6 +66,19 @@ export function relativeTime(iso) {
   return rtf.format(-Math.round(value), unit);
 }
 
+/**
+ * Exact date AND time a ticket was raised, e.g. "06 Oct 2026, 03:15 PM".
+ * Falls back to the plain date string for old tickets that never stored a
+ * full timestamp.
+ */
+export function formatDateTime(iso, fallback = '-') {
+  const d = new Date(iso);
+  if (!iso || Number.isNaN(d.getTime())) return fallback;
+  const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return `${date}, ${time}`;
+}
+
 /** The exact value, for the `title` tooltip on a relative timestamp. */
 export function exactTime(iso) {
   const d = new Date(iso);

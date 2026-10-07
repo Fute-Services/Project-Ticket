@@ -4,7 +4,9 @@ import ItDatePicker from './ItDatePicker';
 import DataTable from './DataTable';
 import { Drawer } from './ui';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from './ui/select';
-import { Search, X, Eye, CheckSquare, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Search, X, Eye, CheckSquare, CheckCircle2, XCircle, Clock, MessageSquare } from 'lucide-react';
+import TicketChatDrawer from './TicketChatDrawer';
+import { formatDateTime } from '../utils/tickets';
 import { getHrStaff, getItStaff } from '../utils/api';
 
 // Requests raised through NewHrTicketModal combine its separate Title +
@@ -119,6 +121,10 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
   const [filter, setFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [detailsTicket, setDetailsTicket] = useState(null);
+  const [chatTicketId, setChatTicketId] = useState(null);
+  // Looked up from the live list (not stored as an object) so the chat header
+  // keeps showing the ticket's current status as the queue polls.
+  const chatTicket = chatTicketId ? tickets.find((t) => t.id === chatTicketId) || null : null;
 
   const statusCounts = useMemo(() => {
     const counts = { All: tickets.filter((t) => !HISTORY_STATUSES.includes(t.status)).length };
@@ -240,8 +246,26 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
             {
               key: 'date',
               label: 'Date',
-              width: '80px',
-              render: (t) => <span className="text-muted-foreground text-xs whitespace-nowrap">{t.date || '-'}</span>,
+              width: '125px',
+              render: (t) => {
+                const stamp = formatDateTime(t.submittedAt, t.date || '-');
+                const sep = stamp.indexOf(', ', 7);
+                // Date on top, exact time underneath - old tickets with no
+                // stored timestamp just show their plain date.
+                return (
+                  <span className="text-muted-foreground text-xs whitespace-nowrap leading-tight" title={stamp}>
+                    {sep === -1 ? (
+                      stamp
+                    ) : (
+                      <>
+                        {stamp.slice(0, sep)}
+                        <br />
+                        <span className="text-foreground font-medium">{stamp.slice(sep + 2)}</span>
+                      </>
+                    )}
+                  </span>
+                );
+              },
             },
             {
               key: 'username',
@@ -342,17 +366,23 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
             },
             {
               key: 'remarks',
-              label: 'Remarks',
+              label: 'Remarks / Chat',
               sortable: false,
-              width: '130px',
+              width: '150px',
               render: (t) => (
-                <input
-                  type="text"
-                  value={t.remarks || ''}
-                  onChange={(e) => onFieldChange && onFieldChange(t.id, 'remarks', e.target.value)}
-                  placeholder="Type remarks..."
-                  className="w-full bg-background border border-input rounded-md px-2 py-1 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring placeholder:text-muted-foreground/60"
-                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChatTicketId(t.id);
+                  }}
+                  title="Open chat with the requester"
+                  aria-label={`Open chat for ticket ${t.token || t.id}`}
+                  className="w-full flex items-center gap-1.5 bg-background hover:bg-muted border border-input rounded-md px-2 py-1 text-xs text-left shadow-sm cursor-pointer"
+                >
+                  <MessageSquare size={13} className={t.lastMessageBy === 'requester' ? 'text-primary shrink-0' : 'text-muted-foreground shrink-0'} />
+                  <span className={`truncate ${t.remarks ? 'text-foreground' : 'text-muted-foreground/60'}`}>{t.remarks || 'Open chat...'}</span>
+                </button>
               ),
             },
             {
@@ -517,18 +547,32 @@ export default function TicketsQueueView({ tickets, onStatusChange, onFieldChang
               )}
 
               <div className="bg-card border border-border rounded-xl p-3">
-                <div className="text-muted-foreground font-semibold mb-0.5">Date</div>
-                <div className="text-foreground">{detailsTicket.date || '-'}</div>
+                <div className="text-muted-foreground font-semibold mb-0.5">Created (date &amp; time)</div>
+                <div className="text-foreground">{formatDateTime(detailsTicket.submittedAt, detailsTicket.date || '-')}</div>
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-xl p-3">
-              <div className="text-muted-foreground font-semibold mb-0.5">Remarks</div>
-              <div className="text-foreground">{detailsTicket.remarks || 'No remarks yet'}</div>
+            <div className="bg-card border border-border rounded-xl p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-muted-foreground font-semibold mb-0.5">Latest remark</div>
+                <div className="text-foreground truncate">{detailsTicket.remarks || 'No messages yet'}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setChatTicketId(detailsTicket.id);
+                  setDetailsTicket(null);
+                }}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-semibold cursor-pointer"
+              >
+                <MessageSquare size={13} /> Open chat
+              </button>
             </div>
           </div>
         )}
       </Drawer>
+
+      <TicketChatDrawer ticket={chatTicket} onClose={() => setChatTicketId(null)} />
     </div>
   );
 }

@@ -40,6 +40,38 @@ function sortByRecent(docs) {
   return docs.sort((a, b) => new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0));
 }
 
+// Once a ticket has sat in Completed (Resolved/Closed) for this long, the
+// requester's own "Employee Status" flips to Closed by itself - nobody has
+// to remember to close it. There's no background worker here (the API also
+// runs as serverless functions on Vercel, where an in-process timer can't
+// be trusted to stay alive), so the sweep runs lazily whenever a ticket
+// list is read: stale docs are patched in the returned rows and written
+// back to the DB in the same call, so every later read already has them.
+const AUTO_CLOSE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+
+function isStaleCompleted(d, now) {
+  if (d.status !== 'Completed' || d.employeeStatus === 'Closed') return false;
+  const since = new Date(d.completed_at || d.updated_at || d.submitted_at || 0).getTime();
+  return since > 0 && now - since >= AUTO_CLOSE_AFTER_MS;
+}
+
+async function autoCloseStale(collection, docs) {
+  const now = Date.now();
+  const stale = docs.filter((d) => isStaleCompleted(d, now));
+  if (stale.length === 0) return docs;
+  const auto_closed_at = new Date(now).toISOString();
+  await Promise.all(
+    stale.map((d) =>
+      collection
+        .doc(d.id)
+        .update({ employeeStatus: 'Closed', auto_closed_at })
+        .catch((e) => console.error('Auto-close failed for', d.id, e.message))
+    )
+  );
+  const staleIds = new Set(stale.map((d) => d.id));
+  return docs.map((d) => (staleIds.has(d.id) ? { ...d, employeeStatus: 'Closed', auto_closed_at } : d));
+}
+
 // Tickets store `role`/`user_role` at creation time, so most docs need no
 // lookup here at all; only legacy docs missing both fields fall back to a
 // bounded, deduped single-doc read instead of scanning the whole users
@@ -97,6 +129,9 @@ async function enrichWithUserRole(docs) {
  */
 function createComplaintController(opts) {
   const collection = db.collection(opts.collectionName);
+  // Per-ticket chat thread (see listMessages/addMessage below).
+  const messages = db.collection('ticket_messages');
+  const MESSAGE_LIMIT = 500;
   const VALID_STATUSES = ['Pending', 'In Progress', 'Waiting Approval', 'Completed'];
 
   async function createComplaint(req, res) {
@@ -199,7 +234,7 @@ function createComplaintController(opts) {
   async function getAllComplaints(req, res) {
     const { docs, nextCursor } = await paginatedQuery(collection, 'submitted_at', req.query.after);
     const data = docs.map((d) => ({ id: d.id, ...d.data() }));
-    const enriched = await enrichWithUserRole(data);
+    const enriched = await enrichWithUserRole(await autoCloseStale(collection, data));
     ok(res, { items: sortByRecent(enriched), nextCursor });
   }
 
@@ -210,7 +245,7 @@ function createComplaintController(opts) {
   async function getMyComplaints(req, res) {
     const snap = await collection.where('user_id', '==', req.user.id).limit(UNPAGINATED_READ_LIMIT).get();
     const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const enriched = await enrichWithUserRole(data);
+    const enriched = await enrichWithUserRole(await autoCloseStale(collection, data));
     ok(res, sortByRecent(enriched));
   }
 
@@ -254,7 +289,9 @@ function createComplaintController(opts) {
         if (!before.exists) throw Object.assign(new Error('Complaint not found'), { status: 404 });
         const previousStatus = before.data().status;
 
-        tx.update(docRef, { status, updated_at });
+        // completed_at is what the 3-day auto-close counts from; moving
+        // back out of Completed clears it so the clock restarts.
+        tx.update(docRef, { status, updated_at, completed_at: status === 'Completed' ? updated_at : null });
 
         // Only create an approval record on the transition INTO "Waiting
         // Approval" — without the previousStatus check, re-sending the same
@@ -361,6 +398,14 @@ function createComplaintController(opts) {
       .get();
     linkedApprovals.docs.forEach((d) => batch.delete(d.ref));
 
+    // The ticket's chat thread goes with it.
+    const linkedMessages = await messages
+      .where('ticket_id', '==', id)
+      .where('ticket_collection', '==', opts.collectionName)
+      .limit(MESSAGE_LIMIT)
+      .get();
+    linkedMessages.docs.forEach((d) => batch.delete(d.ref));
+
     await batch.commit();
     ok(res, { id, deleted: true }, { message: 'Ticket deleted successfully' });
   }
@@ -385,12 +430,98 @@ function createComplaintController(opts) {
       return fail(res, { status: 400, message: 'Only a resolved ticket can be reopened', code: 'VALIDATION_ERROR' });
     }
 
-    const updates = { status: 'Pending', employeeStatus: 'Active', updated_at: new Date().toISOString() };
+    const updates = { status: 'Pending', employeeStatus: 'Active', completed_at: null, auto_closed_at: null, updated_at: new Date().toISOString() };
     await docRef.update(updates);
     ok(res, { id, ...docData, ...updates }, { message: 'Ticket reopened successfully' });
   }
 
-  return { createComplaint, getAllComplaints, getMyComplaints, searchByToken, updateStatus, updateFields, deleteComplaint, reopenComplaint };
+  // ---- Ticket chat (replaces the old single-line Remarks box) ----------
+  // The requester and whoever's working the ticket (staff/founder) talk in
+  // one thread per ticket. Messages are never edited or deleted, so the
+  // thread doubles as the ticket's history, and it survives the ticket being
+  // resolved or closed. `remarks` on the ticket mirrors the latest message so
+  // anything that still searches/reads that field keeps working.
+  async function loadTicketForChat(req, res) {
+    const doc = await collection.doc(req.params.id).get();
+    if (!doc.exists) {
+      fail(res, { status: 404, message: 'Complaint not found', code: 'NOT_FOUND' });
+      return null;
+    }
+    const data = doc.data();
+    const isOwner = data.user_id === req.user?.id;
+    const isStaff = [opts.staffRole, 'founder', 'superadmin'].includes(req.user?.role);
+    if (!isOwner && !isStaff) {
+      fail(res, { status: 403, message: 'Forbidden: Insufficient permissions', code: 'FORBIDDEN' });
+      return null;
+    }
+    return { data, isOwner };
+  }
+
+  // GET .../complaints/:id/messages - full thread, oldest first.
+  async function listMessages(req, res) {
+    const ticket = await loadTicketForChat(req, res);
+    if (!ticket) return;
+    const snap = await messages
+      .where('ticket_id', '==', req.params.id)
+      .where('ticket_collection', '==', opts.collectionName)
+      .limit(MESSAGE_LIMIT)
+      .get();
+    const items = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    ok(res, items);
+  }
+
+  // POST .../complaints/:id/messages - { text }
+  async function addMessage(req, res) {
+    const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
+    if (!text) return fail(res, { status: 400, message: 'Message text is required', code: 'VALIDATION_ERROR' });
+    if (text.length > 2000) {
+      return fail(res, { status: 400, message: 'Message is too long (max 2000 characters)', code: 'VALIDATION_ERROR' });
+    }
+
+    const ticket = await loadTicketForChat(req, res);
+    if (!ticket) return;
+
+    const created_at = new Date().toISOString();
+    // Which side of the conversation this is follows who raised the ticket,
+    // not the role - a staff member replying on their own ticket is still
+    // the requester there.
+    const sender_type = ticket.isOwner ? 'requester' : 'solver';
+    const msg = {
+      ticket_id: req.params.id,
+      ticket_collection: opts.collectionName,
+      sender_id: req.user.id,
+      sender_name: req.user.full_name || 'User',
+      sender_role: req.user.role,
+      sender_type,
+      text,
+      created_at,
+    };
+    const ref = await messages.add(msg);
+
+    await collection.doc(req.params.id).update({
+      remarks: text,
+      last_message_at: created_at,
+      last_message_by: sender_type,
+      updated_at: created_at,
+    });
+
+    created(res, { id: ref.id, ...msg }, 'Message sent');
+  }
+
+  return {
+    createComplaint,
+    getAllComplaints,
+    getMyComplaints,
+    searchByToken,
+    updateStatus,
+    updateFields,
+    deleteComplaint,
+    reopenComplaint,
+    listMessages,
+    addMessage,
+  };
 }
 
 module.exports = { createComplaintController };

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTickets } from '../context/TicketContext';
 import { relativeTime } from '../utils/tickets';
+import { useNotificationReadState } from './useNotificationReadState';
 import { extraHoursApi } from '../utils/api';
 
 // Same real-events philosophy as useHrNotifications/useItNotifications, but
@@ -11,6 +12,7 @@ import { extraHoursApi } from '../utils/api';
 export function useEmployeeNotifications() {
   const { tickets } = useTickets();
   const [mentions, setMentions] = useState([]);
+  const { isRead } = useNotificationReadState();
 
   // Someone else's "Log Extra Hours" submission named this employee under
   // "Any other teammates along with me" (free-text, matched by name server
@@ -39,7 +41,19 @@ export function useEmployeeNotifications() {
         // Resolved is the one state that's actually "new news" worth a
         // dot — in-progress/waiting-approval are steady states the
         // employee already knows they're waiting on.
-        unread: t.status === 'Resolved',
+        unread: t.status === 'Resolved' && !isRead(`ticket-${t.id}`),
+        tab: 'tickets',
+      }));
+
+    // The solver wrote last in the ticket's chat.
+    const chatNotifs = tickets
+      .filter((t) => t.lastMessageBy === 'solver' && t.lastMessageAt)
+      .map((t) => ({
+        id: `chat-${t.id}-${t.lastMessageAt}`,
+        text: `${t.solver && t.solver !== 'Unassigned' ? t.solver : t.dept} replied on ${t.token || 'your ticket'}: ${t.remarks}`,
+        time: relativeTime(t.lastMessageAt),
+        at: t.lastMessageAt,
+        unread: !isRead(`chat-${t.id}-${t.lastMessageAt}`),
         tab: 'tickets',
       }));
 
@@ -48,12 +62,12 @@ export function useEmployeeNotifications() {
       text: `${m.loggedBy || 'A teammate'} logged ${m.hours}h on ${m.projectCode} and included you`,
       time: relativeTime(m.createdAt),
       at: m.createdAt,
-      unread: true,
+      unread: !isRead(`extrahours-mention-${m.id}`),
       tab: 'tasks',
     }));
 
-    return [...ticketNotifs, ...mentionNotifs]
+    return [...ticketNotifs, ...chatNotifs, ...mentionNotifs]
       .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
       .slice(0, 20);
-  }, [tickets, mentions]);
+  }, [tickets, mentions, isRead]);
 }

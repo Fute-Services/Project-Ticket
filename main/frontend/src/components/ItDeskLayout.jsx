@@ -4,6 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../context/PermissionsContext';
 import { useItNotifications } from '../hooks/useItNotifications';
 import { useEmployeeNotifications } from '../hooks/useEmployeeNotifications';
+import { useNotificationReadState } from '../hooks/useNotificationReadState';
+import { useTickets } from '../context/TicketContext';
+import NewHrTicketModal from './NewHrTicketModal';
+import { toast } from 'sonner';
 import {
   Building2,
   LayoutGrid,
@@ -28,6 +32,7 @@ import {
   ChevronsRight,
   Film,
   MessageSquare,
+  UserPlus,
 } from 'lucide-react';
 
 const ROLE_LABEL = {
@@ -61,6 +66,9 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
   const [collapsed, setCollapsed] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [isHrTicketOpen, setIsHrTicketOpen] = useState(false);
+  const { addTicket } = useTickets();
+  const { markRead, markAllRead } = useNotificationReadState();
   const [query, setQuery] = useState('');
 
   const results = useMemo(() => {
@@ -85,9 +93,22 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
   const notifications = role === 'employee' ? employeeNotifs : itNotifs;
   const unreadCount = notifications.filter((n) => n.unread).length;
 
-  function goToNotification(tab) {
-    setActiveTab(tab);
+  function goToNotification(n) {
+    markRead(n.id);
+    setActiveTab(n.tab);
     setShowNotifs(false);
+  }
+
+  // IT staff are employees of the company too - they can raise a ticket to
+  // the HR desk (payroll, leave, documents...) the same way an employee does.
+  // TicketContext.addTicket keeps it out of IT's own queue; it lands in HR's.
+  async function handleRaiseHrTicket(req) {
+    await addTicket({ ...req, dept: 'HR' }, user?.full_name);
+    toast.success('HR Ticket raised', {
+      description: req.isConfidential
+        ? 'Routed confidentially to Senior HR & Founder.'
+        : 'HR team has been notified.',
+    });
   }
 
   function handleSignOut() {
@@ -277,10 +298,21 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
 
           {/* Header Right Actions */}
           <div className="flex items-center gap-2.5">
+            {role === 'it' && (
+              <button
+                type="button"
+                onClick={() => setIsHrTicketOpen(true)}
+                className="h-9 px-3 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
+              >
+                <UserPlus size={14} />
+                <span className="hidden sm:inline">Raise HR Ticket</span>
+              </button>
+            )}
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowNotifs((p) => !p)}
+                aria-label="Open notifications"
                 className="relative w-9 h-9 rounded-full bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center cursor-pointer shrink-0"
               >
                 <Bell size={15} />
@@ -292,7 +324,18 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
               </button>
               {showNotifs && (
                 <div className="absolute top-full right-0 mt-2 w-[300px] bg-white border border-border rounded-2xl shadow-xl overflow-hidden z-30">
-                  <div className="px-4 py-2.5 border-b border-border/60 text-xs font-bold text-foreground">Notifications</div>
+                  <div className="px-4 py-2.5 border-b border-border/60 flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">Notifications</span>
+                    {unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => markAllRead(notifications)}
+                        className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
                   <div className="max-h-[300px] overflow-y-auto">
                     {notifications.length === 0 ? (
                       <div className="px-4 py-6 text-center text-[11px] text-muted-foreground">All caught up — nothing pending.</div>
@@ -301,7 +344,7 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
                         <button
                           key={n.id}
                           type="button"
-                          onClick={() => goToNotification(n.tab)}
+                          onClick={() => goToNotification(n)}
                           className="w-full text-left p-3 border-b border-border/60 last:border-0 hover:bg-muted/40 cursor-pointer"
                         >
                           <div className="flex items-start gap-2">
@@ -325,6 +368,10 @@ export default function ItDeskLayout({ activeTab, setActiveTab, children, search
         {/* View Content - Zero Page Scrollbar */}
         <main className="flex-1 p-3.5 lg:p-5 min-w-0 overflow-y-auto flex flex-col">{children}</main>
       </div>
+
+      {role === 'it' && (
+        <NewHrTicketModal isOpen={isHrTicketOpen} onClose={() => setIsHrTicketOpen(false)} onSubmitSuccess={handleRaiseHrTicket} />
+      )}
     </div>
   );
 }

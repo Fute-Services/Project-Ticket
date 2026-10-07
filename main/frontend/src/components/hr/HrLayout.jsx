@@ -5,6 +5,7 @@ import { usePermissions } from '../../context/PermissionsContext';
 import { useTickets } from '../../context/TicketContext';
 import { useHrDesk } from '../../context/HrDeskContext';
 import { useHrNotifications } from '../../hooks/useHrNotifications';
+import { useNotificationReadState } from '../../hooks/useNotificationReadState';
 import {
   Users2,
   LayoutGrid,
@@ -88,7 +89,8 @@ export default function HrLayout({ children }) {
   // for what counts as "unread" and why. Shared with Overview.jsx's
   // Notifications stat card so both show the exact same live count.
   const notifications = useHrNotifications();
-  const unreadCount = notifications.length;
+  const unreadCount = notifications.filter((n) => n.unread).length;
+  const { markRead, markAllRead } = useNotificationReadState();
 
   const { canAccess } = usePermissions();
   const navItems = NAV_ITEMS.filter((item) => canAccess('hr', item.path));
@@ -295,7 +297,18 @@ export default function HrLayout({ children }) {
               </button>
               {showNotifs && (
                 <div className="absolute top-full right-0 mt-2 w-[300px] bg-white border border-border rounded-2xl shadow-xl overflow-hidden z-30">
-                  <div className="px-4 py-2.5 border-b border-border/60 text-xs font-bold text-foreground">Notifications</div>
+                  <div className="px-4 py-2.5 border-b border-border/60 flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">Notifications</span>
+                    {unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => markAllRead(notifications)}
+                        className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
                   <div className="max-h-[300px] overflow-y-auto">
                     {notifications.length === 0 ? (
                       <div className="px-4 py-6 text-center text-[11px] text-muted-foreground">All caught up - nothing pending.</div>
@@ -305,6 +318,7 @@ export default function HrLayout({ children }) {
                           key={n.id}
                           type="button"
                           onClick={() => {
+                            markRead(n.id);
                             goTo(n.path);
                             setShowNotifs(false);
                           }}

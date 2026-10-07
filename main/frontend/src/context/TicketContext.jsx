@@ -32,7 +32,9 @@ const TicketContext = createContext(null);
 // their own actions, so a background poll for *other* people's changes
 // isn't buying them anything - those roles get manual refresh only.
 const SHARED_QUEUE_ROLES = ['it', 'hr', 'founder'];
-const SHARED_POLL_MS = 180000;
+// 30s (was 3 min): a new ticket or a chat reply should reach IT/HR's bell
+// within seconds, not minutes - 3 min made notifications feel broken.
+const SHARED_POLL_MS = 30000;
 
 // The UI's 5-state vocabulary (a legacy 'Closed' included) vs. the backend's
 // 4-state enum (backend/controllers/{hr,it}Controller.js VALID_STATUSES) -
@@ -81,6 +83,9 @@ function fromBackend(doc) {
     date: doc.complaint_date,
     submittedAt: doc.submitted_at || null,
     updatedAt: doc.updated_at || null,
+    completedAt: doc.completed_at || null,
+    lastMessageAt: doc.last_message_at || null,
+    lastMessageBy: doc.last_message_by || null,
     username: (doc.name || 'you').toLowerCase().replace(/\s+/g, '.'),
     employeeStatus: doc.employeeStatus || 'Active',
     solver: doc.solver || 'Team 1',
@@ -194,7 +199,12 @@ export function TicketProvider({ children }) {
           priority: req.priority || 'Medium',
           employeeId: empId,
         });
-        setTickets((prev) => [fromBackend({ ...data.complaint, dept_tag: 'HR' }), ...prev]);
+        // An IT/HR staff member raising a ticket to the *other* desk must not
+        // drop it into their own queue - it belongs to the other team.
+        if (!user || user.role !== 'it') {
+          setTickets((prev) => [fromBackend({ ...data.complaint, dept_tag: 'HR' }), ...prev]);
+        }
+        return data.complaint;
       } else {
         const { data } = await createItComplaint({
           name,
@@ -208,7 +218,10 @@ export function TicketProvider({ children }) {
           employeeId: empId,
           vpnNo: req.vpnNo,
         });
-        setTickets((prev) => [fromBackend({ ...data.complaint, dept_tag: 'IT' }), ...prev]);
+        if (!user || user.role !== 'hr') {
+          setTickets((prev) => [fromBackend({ ...data.complaint, dept_tag: 'IT' }), ...prev]);
+        }
+        return data.complaint;
       }
     } catch (e) {
       console.error('Failed to create ticket:', e.response?.data?.error || e.message);
